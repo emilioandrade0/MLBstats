@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>STRIKECAST - Predicciones MLB</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <span class="brand-mark">⚾</span>
+      <span class="brand-name">STRIKE<em>CAST</em></span>
+      <span class="brand-sub">Predicciones MLB · Edge vs Mercado</span>
+    </div>
+    <nav class="datebar">
+      <button id="prev">&lsaquo;</button>
+      <input id="datepick" type="date" />
+      <button id="next">&rsaquo;</button>
+      <button id="today" class="ghost">HOY</button>
+    </nav>
+  </header>
+
+  <main id="app-main">
+    <section id="list-view">
+      <section id="status" class="status"></section>
+      <section id="grid" class="games-grid"></section>
+    </section>
+
+    <section id="detail-view" class="detail-view hidden">
+      <div class="detail-toolbar">
+        <button id="back-to-events" type="button">&larr; Volver a eventos</button>
+      </div>
+      <div id="detail-body"></div>
+    </section>
+  </main>
+
+  <script src="/env.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

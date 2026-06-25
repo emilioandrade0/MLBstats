@@ -1,0 +1,45 @@
+# Runtime logs
+*.log
+*.err.log
+uvicorn-*.log
+uvicorn-*.err.log
+
+# Python/cache artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local/raw data
+data/raw/
+data/savant/
+backend/data/raw/
+backend/data/savant/
+
+# Heavy processed datasets not needed by runtime Docker image
+data/processed/*
+!data/processed/train.parquet
+!data/processed/games.parquet
+!data/processed/games_xref.parquet
+!data/processed/odds_close.parquet
+!data/processed/features_market.parquet
+!data/processed/features_pitcher_season.parquet
+
+# Runtime model bundle only
+data/models/*
+!data/models/ensemble.pkl
+!data/models/lgb_cls.pkl
+!data/models/lgb_reg.pkl
+!data/models/f5_cls.pkl
+!data/models/f5_reg.pkl
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/

@@ -1,0 +1,65 @@
+name: refresh-odds
+
+# Refreshes today's ESPN odds and commits the rebuilt parquets so they survive
+# Railway redeploys. Only covers ODDS — for new train.parquet rows or model
+# retraining, run the pipeline locally and push.
+#
+# Cron: every 2 hours during the MLB regular season window (Mar 15 – Nov 1),
+# only between 14:00 and 04:00 UTC (roughly noon ET pregame through end of
+# late-night West Coast games). Outside that window, no traffic on the data
+# anyway — Railway's on-request refresh handles edge cases.
+
+on:
+  schedule:
+    - cron: '0 14,16,18,20,22,0,2,4 * 3-11 *'  # every 2h, Mar-Nov
+  workflow_dispatch:                            # manual trigger from UI
+
+# Only one refresh at a time. New triggers cancel stale runs to avoid commit races.
+concurrency:
+  group: refresh-odds
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write     # so we can git push back to the repo
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run odds refresh
+        run: python -m src.refresh
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Show diff summary
+        run: |
+          git status --short
+          git diff --stat -- 'data/processed/*.parquet' || true
+
+      - name: Commit + push if changed
+        run: |
+          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/raw/odds 2>/dev/null)" ]]; then
+            echo "No data changes — skipping commit."
+            exit 0
+          fi
+          git config user.name  "strikecast-bot"
+          git config user.email "strikecast-bot@users.noreply.github.com"
+          # Only commit the slim parquets — raw JSONs stay local.
+          git add data/processed/odds_close.parquet data/processed/features_market.parquet
+          git commit -m "data: auto-refresh odds $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
