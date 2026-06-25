@@ -22,6 +22,7 @@ import numpy as np
 import orjson
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, ORJSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -33,14 +34,62 @@ STATSAPI_LIVE_URL = "https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live"
 
 # Background refresh interval. Override with env var if needed.
 REFRESH_INTERVAL_SEC = int(os.environ.get("STRIKECAST_REFRESH_SEC", "900"))  # 15 min
+# Minimum gap between on-request refreshes (lower than background interval —
+# we want pageloads to feel snappy without hammering ESPN).
+REFRESH_ON_REQUEST_TTL_SEC = int(os.environ.get("STRIKECAST_ONREQ_TTL_SEC", "120"))  # 2 min
 _last_refresh = {"ok": 0.0, "started": 0.0, "running": False, "err": None}
+_refresh_lock = asyncio.Lock()
 _freshness_cache = {"ts": 0.0, "data": None}
 _FRESHNESS_TTL_SEC = 60
 
 
+async def _maybe_refresh_now() -> None:
+    """Fast on-request refresh: only re-fetches if odds are stale.
+
+    Throttled to one fetch every REFRESH_ON_REQUEST_TTL_SEC. If a refresh is
+    already running, the request waits up to 4s for it to finish so the
+    response reflects fresh data; after that it returns the (still stale)
+    cached values rather than blocking the user.
+    """
+    now = time.time()
+    if _last_refresh["ok"] and (now - _last_refresh["ok"]) < REFRESH_ON_REQUEST_TTL_SEC:
+        return
+    if _refresh_lock.locked():
+        try:
+            await asyncio.wait_for(_refresh_lock.acquire(), timeout=4.0)
+            _refresh_lock.release()
+        except asyncio.TimeoutError:
+            pass
+        return
+    async with _refresh_lock:
+        _last_refresh["started"] = time.time()
+        _last_refresh["running"] = True
+        try:
+            from ..refresh import refresh_async
+            await refresh_async(days_back=1, days_forward=0,
+                                statsapi=True, include_savant=False,
+                                verbose=False)
+            _cache["market_lines"] = _build_market_lines()
+            _last_refresh["ok"] = time.time()
+            _last_refresh["err"] = None
+        except Exception as ex:
+            _last_refresh["err"] = repr(ex)
+        finally:
+            _last_refresh["running"] = False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Spawn the background data refresher while the server runs."""
+    """Spawn the background data refresher while the server runs.
+
+    Set STRIKECAST_DISABLE_REFRESH=1 in production to skip the loop
+    (the slim deploy image doesn't ship raw ESPN JSONs, so rebuilding
+    odds_close.parquet on the server would wipe historical rows).
+    """
+    if os.environ.get("STRIKECAST_DISABLE_REFRESH", "0") == "1":
+        _last_refresh["err"] = "refresh disabled by env"
+        yield
+        return
     task = asyncio.create_task(_refresh_loop())
     try:
         yield
@@ -70,7 +119,7 @@ async def _refresh_loop():
                                 verbose=False)
             # Invalidate just the market_lines cache so the next request
             # rebuilds it from the freshly-written odds_close.parquet.
-            _cache.pop("market_lines", None)
+            _cache["market_lines"] = _build_market_lines()
             _last_refresh["ok"] = time.time()
             _last_refresh["err"] = None
         except Exception as e:
@@ -81,6 +130,22 @@ async def _refresh_loop():
 
 
 app = FastAPI(default_response_class=ORJSONResponse, title="STRIKECAST", lifespan=lifespan)
+
+# CORS: comma-separated origins from env (e.g. "https://strikecast.vercel.app,https://strikecast.com").
+# Defaults to "*" so localhost dev still works out of the box.
+_cors_origins = [o.strip() for o in os.environ.get("STRIKECAST_CORS_ORIGINS", "*").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/api/health")
+def health():
+    return {"ok": True, "service": "strikecast"}
 
 
 @app.get("/api/refresh-status")
@@ -109,7 +174,7 @@ async def refresh_now():
         _last_refresh["started"] = time.time()
         try:
             await refresh_async(days_back=1, statsapi=True, verbose=False)
-            _cache.pop("market_lines", None)
+            _cache["market_lines"] = _build_market_lines()
             _last_refresh["ok"] = time.time()
             _last_refresh["err"] = None
         except Exception as e:
@@ -163,36 +228,44 @@ def _load():
     else:
         pitcher_season = None
 
-    # Real market lines (median across DraftKings + ESPN BET close) keyed by game_pk.
-    market_lines = None
-    odds_close_path = PROCESSED / "odds_close.parquet"
-    xref_path = PROCESSED / "games_xref.parquet"
-    if odds_close_path.exists() and xref_path.exists():
-        odds = pd.read_parquet(odds_close_path)
-        sharp = odds[odds["provider_name"].isin({"DraftKings", "ESPN BET"})].copy()
-        sharp["home_ml"] = (sharp["home_ml_close"]
-                             .fillna(sharp["home_ml_current"])
-                             .fillna(sharp["home_ml_top"]))
-        sharp["away_ml"] = (sharp["away_ml_close"]
-                             .fillna(sharp["away_ml_current"])
-                             .fillna(sharp["away_ml_top"]))
-        sharp = sharp.dropna(subset=["home_ml", "away_ml"])
-        agg = sharp.groupby("espn_event_id").agg(
-            home_ml=("home_ml", "median"),
-            away_ml=("away_ml", "median"),
-            total_close=("total_close", "median"),
-        ).reset_index()
-        xref = pd.read_parquet(xref_path)
-        matched = xref[xref["_merge"] == "both"][["espn_event_id", "game_pk"]].dropna()
-        matched["game_pk"] = matched["game_pk"].astype(int)
-        market_lines = agg.merge(matched, on="espn_event_id", how="inner") \
-                          .drop(columns=["espn_event_id"]).drop_duplicates("game_pk") \
-                          .set_index("game_pk")
+    market_lines = _build_market_lines()
 
     _cache.update({"train": train, "games": games, "cls": cls_b, "reg": reg_b,
                    "pitcher_season": pitcher_season, "market_lines": market_lines,
                    "f5_cls": f5_cls_b, "f5_reg": f5_reg_b})
     return _cache
+
+
+def _build_market_lines():
+    """Build the game_pk → (home_ml, away_ml, total_close) median table.
+
+    Extracted so refresh-on-request can rebuild without restarting the server.
+    Returns None if the underlying parquets are missing.
+    """
+    odds_close_path = PROCESSED / "odds_close.parquet"
+    xref_path = PROCESSED / "games_xref.parquet"
+    if not (odds_close_path.exists() and xref_path.exists()):
+        return None
+    odds = pd.read_parquet(odds_close_path)
+    sharp = odds[odds["provider_name"].isin({"DraftKings", "ESPN BET"})].copy()
+    sharp["home_ml"] = (sharp["home_ml_close"]
+                         .fillna(sharp["home_ml_current"])
+                         .fillna(sharp["home_ml_top"]))
+    sharp["away_ml"] = (sharp["away_ml_close"]
+                         .fillna(sharp["away_ml_current"])
+                         .fillna(sharp["away_ml_top"]))
+    sharp = sharp.dropna(subset=["home_ml", "away_ml"])
+    agg = sharp.groupby("espn_event_id").agg(
+        home_ml=("home_ml", "median"),
+        away_ml=("away_ml", "median"),
+        total_close=("total_close", "median"),
+    ).reset_index()
+    xref = pd.read_parquet(xref_path)
+    matched = xref[xref["_merge"] == "both"][["espn_event_id", "game_pk"]].dropna()
+    matched["game_pk"] = matched["game_pk"].astype(int)
+    return agg.merge(matched, on="espn_event_id", how="inner") \
+              .drop(columns=["espn_event_id"]).drop_duplicates("game_pk") \
+              .set_index("game_pk")
 
 
 def _f5_predict(c, r: pd.Series) -> dict:
@@ -225,16 +298,42 @@ def _f5_predict(c, r: pd.Series) -> dict:
     return out
 
 
+# Empirical low-confidence zone for the model (see src/analysis/calibration_bands.py).
+# Walkforward (n=4,411) shows the market beats the model by 1-5pp accuracy when
+# the model's top-side probability is in [50%, 58%]. Specifically the [52, 55] band
+# is the worst (n=1131, market 54.47% vs model 49.78%, +4.69pp).
+# Rule: in this band, if market disagrees with the model's pick, defer to market.
+LOW_CONF_LO = 0.50
+LOW_CONF_HI = 0.58
+
 # User-observed dog sweet spot: when the model's underdog has 46-48% probability,
-# it wins 50.6% historically. Surface it as a marginal pick when the market
-# price is at least break-even against that empirical win rate.
+# it wins 50.6% historically (n=828, calibration_bands.py Section C). Used to
+# override slot_skip and surface the dog as a marginal pick. Gain is small
+# (~+1pp ROI vs not betting), but matches the user's empirical observation.
 DOG_LO = 0.46
 DOG_HI = 0.48
 DOG_HIST_WIN_PROB = 0.506
 
 
+# Empirical slot profile from walkforward (n=4,411 — see src/analysis/slot_fade.py).
+# Used by _value_block to downgrade/upgrade ev_grade based on time-of-day signal.
+#   model_strong: slots where the model genuinely beats market (+ROI in walk-forward)
+#   market_sharp: slot where the market is so accurate (~62%) we should defer to it
+#   flip_zone   : model loses but flipping the pick was +ROI (mostly via longer dog prices)
+#   skip        : model loses, flip didn't beat skip — best action is no bet
+SLOT_PROFILES = {
+    1: "model_strong",
+    9: "model_strong",
+    5: "market_sharp",
+    2: "flip_zone", 4: "flip_zone", 12: "flip_zone", 14: "flip_zone",
+    3: "skip", 6: "skip", 7: "skip", 8: "skip",
+    10: "skip", 11: "skip", 13: "skip", 15: "skip",
+}
+
+
 def _value_block(c, game_pk: int, p_home_model: float,
-                  away_abbrev: str, home_abbrev: str) -> dict:
+                  away_abbrev: str, home_abbrev: str,
+                  slot: int | None = None) -> dict:
     """Produce fair odds + value pick + EV grade based on REAL book lines (with vig).
 
     Empirical sweet spot from walk-forward analysis (4,411 games):
@@ -267,17 +366,25 @@ def _value_block(c, game_pk: int, p_home_model: float,
         "value_team_abbrev": None,
         "ev_grade": "no_data",        # sweet | marginal | overconfident | no_edge | no_data
         "ev_per_dollar": None,        # raw EV per $1 wagered
+        # ── Slot-aware fields (empirical patterns from walkforward) ──
+        "slot_profile": SLOT_PROFILES.get(slot, "neutral") if slot else "neutral",
+        # Why ev_grade ended up where it did: base | slot_skip | slot_boost |
+        # slot_sharp | slot_flip | low_conf_market | dog_46_48
         "ev_grade_reason": "base",
+        # Alternative pick suggested by the slot profile (for UI to surface)
+        "alt_pick": None,            # dict { side, team, decimal, kind }
     }
 
     def apply_dog_46_48_override() -> bool:
+        """Surface the model's 46-48% dog when the market price is playable."""
         dog_side = None
+        dog_prob = None
         dog_dec = None
         dog_team = None
         if DOG_LO <= p_home_model < DOG_HI:
-            dog_side, dog_dec, dog_team = "HOME", dec_h, home_abbrev
+            dog_side, dog_prob, dog_dec, dog_team = "HOME", p_home_model, dec_h, home_abbrev
         elif DOG_LO <= (1 - p_home_model) < DOG_HI:
-            dog_side, dog_dec, dog_team = "AWAY", dec_a, away_abbrev
+            dog_side, dog_prob, dog_dec, dog_team = "AWAY", 1 - p_home_model, dec_a, away_abbrev
         if dog_side is None or dog_dec is None:
             return False
 
@@ -289,6 +396,7 @@ def _value_block(c, game_pk: int, p_home_model: float,
         out["ev_per_dollar"]     = round(DOG_HIST_WIN_PROB * (dog_dec - 1) - (1 - DOG_HIST_WIN_PROB), 4)
         out["ev_grade"]          = "marginal"
         out["ev_grade_reason"]   = "dog_46_48"
+        out["alt_pick"]          = None
         return True
 
     ml = c.get("market_lines")
@@ -354,7 +462,77 @@ def _value_block(c, game_pk: int, p_home_model: float,
         out["ev_grade"] = "marginal"       # +1% ROI band → bet smaller
     else:
         out["ev_grade"] = "no_edge"        # negative EV
-    apply_dog_46_48_override()
+
+    # ── Slot-aware adjustment (post-hoc; see src/analysis/slot_fade.py) ──
+    profile = out["slot_profile"]
+    if profile == "skip":
+        # Walk-forward says: model + flip + market all lose money in these slots.
+        # Best action is usually no bet, except for the user-observed 46-48% dog band.
+        if apply_dog_46_48_override():
+            pass
+        elif out["ev_grade"] in ("sweet", "marginal"):
+            out["ev_grade_reason"] = "slot_skip"
+            out["ev_grade"] = "no_edge"
+    elif profile == "model_strong" and out["ev_grade"] == "marginal":
+        # Slots 1 and 9 had +3-5% ROI for the model historically — bump marginal
+        # picks to sweet to size them up.
+        out["ev_grade"] = "sweet"
+        out["ev_grade_reason"] = "slot_boost"
+    elif profile == "market_sharp":
+        # Slot 5: market hit 62.2% acc; model picks ate vig. Make the market
+        # side the actual recommendation.
+        mkt_home = p_h_devig >= 0.5
+        mkt_dec  = dec_h if mkt_home else dec_a
+        mkt_team = home_abbrev if mkt_home else away_abbrev
+        out["value_side"]        = "HOME" if mkt_home else "AWAY"
+        out["value_decimal"]     = round(mkt_dec, 2)
+        out["value_edge_pp"]     = None
+        out["value_team_abbrev"] = mkt_team
+        out["ev_per_dollar"]     = None
+        out["ev_grade"]          = "marginal"
+        out["ev_grade_reason"]   = "slot_sharp"
+        out["alt_pick"]          = None
+    elif profile == "flip_zone":
+        # Slots 2/4/12/14: flipping was +ROI. Make the opposite side the
+        # actual recommendation instead of a secondary badge.
+        flip_home = (side == "AWAY")
+        flip_dec  = dec_h if flip_home else dec_a
+        flip_team = home_abbrev if flip_home else away_abbrev
+        out["value_side"]        = "HOME" if flip_home else "AWAY"
+        out["value_decimal"]     = round(flip_dec, 2)
+        out["value_edge_pp"]     = None
+        out["value_team_abbrev"] = flip_team
+        out["ev_per_dollar"]     = None
+        out["ev_grade"]          = "marginal"
+        out["ev_grade_reason"]   = "slot_flip"
+        out["alt_pick"]          = None
+
+    # ── Low-confidence override (calibration_bands.py) ──
+    # Model is systematically beaten by market when its top-side prob is in
+    # [50%, 58%]. Rule (validated on walkforward, +1.29pp acc): override only
+    # when MODEL and MARKET disagree on direction. If they agree, the existing
+    # value pick stays (book-edge picker may have legitimately landed on the
+    # dog in the 45-48% band — that's the calibration miss the user noticed).
+    p_pick_model = max(p_home_model, 1 - p_home_model)
+    if (LOW_CONF_LO <= p_pick_model < LOW_CONF_HI
+        and out["ev_grade"] in ("sweet", "marginal", "overconfident")
+        and out["ev_grade_reason"] not in ("slot_sharp", "slot_flip", "dog_46_48")):
+        model_side = "HOME" if p_home_model >= 0.5 else "AWAY"
+        mkt_side   = "HOME" if p_h_devig    >= 0.5 else "AWAY"
+        if mkt_side != model_side and mkt_side != out["value_side"]:
+            mkt_dec  = dec_h if mkt_side == "HOME" else dec_a
+            mkt_team = home_abbrev if mkt_side == "HOME" else away_abbrev
+            out["value_side"]        = mkt_side
+            out["value_decimal"]     = round(mkt_dec, 2)
+            out["value_team_abbrev"] = mkt_team
+            # Edge vs book is now irrelevant (we're using market's confidence,
+            # not the model's). Keep edge field but flag the reason.
+            out["value_edge_pp"]     = None
+            out["ev_per_dollar"]     = None
+            out["ev_grade"]          = "marginal"
+            out["ev_grade_reason"]   = "low_conf_market"
+            # Suppress flip alt — it conflicts with the market override.
+            out["alt_pick"]          = None
     return out
 
 
@@ -666,19 +844,187 @@ def _predict_row(row: pd.Series, c) -> tuple[float, float]:
 
 
 # ---------------- endpoints ----------------
+@app.get("/api/performance")
+def performance(days: int = 60):
+    c = _load()
+    train = c["train"].copy()
+    games_df = c["games"][["game_pk", "first_pitch_utc"]].copy()
+    today = date.today()
+    start = today - timedelta(days=max(1, min(days, 180)))
+    sub = train[
+        (train["game_date"] >= start)
+        & (train["game_date"] <= today)
+        & train["home_score"].notna()
+        & train["away_score"].notna()
+    ].copy()
+    if sub.empty:
+        return {
+            "days": days,
+            "start": start.isoformat(),
+            "end": today.isoformat(),
+            "summary": {},
+            "weekly": [],
+            "grades": [],
+            "recent": [],
+        }
+
+    sub = sub.merge(games_df, on="game_pk", how="left")
+    sub["first_pitch_utc"] = pd.to_datetime(sub["first_pitch_utc"], utc=True, errors="coerce")
+    sub["_sort_time"] = sub["first_pitch_utc"].fillna(pd.Timestamp("2100-01-01", tz="UTC"))
+    sub = sub.sort_values(["game_date", "_sort_time", "game_pk"]).drop(columns=["_sort_time"])
+    sub["et_date"] = sub["first_pitch_utc"].dt.tz_convert("America/New_York").dt.date
+    sub["slot"] = sub.groupby("et_date").cumcount() + 1
+
+    feats = c["cls"]["feature_names"]
+    rows = []
+    for _, r in sub.iterrows():
+        X = pd.DataFrame([r[feats].values], columns=feats)
+        try:
+            p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]))[0])
+        except Exception:
+            continue
+        home_won = bool(r["home_score"] > r["away_score"])
+        model_side = "HOME" if p_home >= 0.5 else "AWAY"
+        model_won = (model_side == "HOME") == home_won
+        market_side = "HOME" if pd.notna(r.get("market_p_home")) and float(r.get("market_p_home")) >= 0.5 else "AWAY"
+        market_won = (market_side == "HOME") == home_won if pd.notna(r.get("market_p_home")) else None
+
+        v = _value_block(
+            c,
+            int(r["game_pk"]),
+            p_home,
+            r["away_team_abbrev"],
+            r["home_team_abbrev"],
+            slot=int(r["slot"]) if pd.notna(r.get("slot")) else None,
+        )
+        model_dec = v.get("market_home_decimal") if model_side == "HOME" else v.get("market_away_decimal")
+        value_side = v.get("value_side")
+        value_dec = v.get("value_decimal")
+        is_value = value_side in ("HOME", "AWAY") and v.get("ev_grade") in ("sweet", "marginal")
+        value_won = ((value_side == "HOME") == home_won) if is_value else None
+        rows.append({
+            "game_pk": int(r["game_pk"]),
+            "date": r["game_date"],
+            "away": r["away_team_abbrev"],
+            "home": r["home_team_abbrev"],
+            "score": f"{r['away_team_abbrev']} {int(r['away_score'])} · {int(r['home_score'])} {r['home_team_abbrev']}",
+            "p_home": p_home,
+            "model_side": model_side,
+            "model_team": r["home_team_abbrev"] if model_side == "HOME" else r["away_team_abbrev"],
+            "model_won": model_won,
+            "model_profit": (float(model_dec) - 1.0 if model_won else -1.0) if model_dec else None,
+            "market_won": market_won,
+            "value_side": value_side,
+            "value_team": v.get("value_team_abbrev"),
+            "value_won": value_won,
+            "value_profit": (float(value_dec) - 1.0 if value_won else -1.0) if is_value and value_dec else None,
+            "ev_grade": v.get("ev_grade") or "no_data",
+            "reason": v.get("ev_grade_reason") or "base",
+            "edge": v.get("value_edge_pp"),
+            "decimal": value_dec,
+        })
+
+    if not rows:
+        return {"days": days, "start": start.isoformat(), "end": today.isoformat(), "summary": {}, "weekly": [], "grades": [], "recent": []}
+
+    df = pd.DataFrame(rows)
+
+    def _rate(series) -> float | None:
+        s = series.dropna()
+        return round(float(s.mean() * 100), 1) if len(s) else None
+
+    def _roi(series) -> float | None:
+        s = series.dropna()
+        return round(float(s.sum() / len(s) * 100), 1) if len(s) else None
+
+    value_df = df[df["value_profit"].notna()].copy()
+    model_df = df[df["model_profit"].notna()].copy()
+    market_df = df[df["market_won"].notna()].copy()
+
+    weekly = []
+    df["week"] = pd.to_datetime(df["date"]).dt.to_period("W-SUN").astype(str)
+    for week, g in df.groupby("week", sort=True):
+        vg = g[g["value_profit"].notna()]
+        mg = g[g["model_profit"].notna()]
+        weekly.append({
+            "week": week,
+            "games": int(len(g)),
+            "model_accuracy": _rate(g["model_won"]),
+            "market_accuracy": _rate(g["market_won"]),
+            "value_picks": int(len(vg)),
+            "value_accuracy": _rate(vg["value_won"]) if len(vg) else None,
+            "value_roi": _roi(vg["value_profit"]) if len(vg) else None,
+            "model_roi": _roi(mg["model_profit"]) if len(mg) else None,
+        })
+
+    grades = []
+    for grade, g in df.groupby("ev_grade", sort=True):
+        vg = g[g["value_profit"].notna()]
+        grades.append({
+            "grade": grade,
+            "games": int(len(g)),
+            "picks": int(len(vg)),
+            "accuracy": _rate(vg["value_won"]) if len(vg) else None,
+            "roi": _roi(vg["value_profit"]) if len(vg) else None,
+        })
+
+    recent = df.sort_values("date", ascending=False).head(12)
+    return {
+        "days": days,
+        "start": start.isoformat(),
+        "end": today.isoformat(),
+        "summary": {
+            "games": int(len(df)),
+            "model_picks": int(len(model_df)),
+            "model_accuracy": _rate(model_df["model_won"]),
+            "model_roi": _roi(model_df["model_profit"]),
+            "market_accuracy": _rate(market_df["market_won"]),
+            "value_picks": int(len(value_df)),
+            "value_accuracy": _rate(value_df["value_won"]) if len(value_df) else None,
+            "value_roi": _roi(value_df["value_profit"]) if len(value_df) else None,
+            "value_profit_units": round(float(value_df["value_profit"].sum()), 2) if len(value_df) else 0.0,
+        },
+        "weekly": weekly,
+        "grades": grades,
+        "recent": [
+            {
+                "game_pk": int(r.game_pk),
+                "date": r.date.isoformat(),
+                "matchup": f"{r.away}@{r.home}",
+                "score": r.score,
+                "pick": r.value_team or r.model_team,
+                "grade": r.ev_grade,
+                "reason": r.reason,
+                "won": bool(r.value_won) if pd.notna(r.value_won) else bool(r.model_won),
+                "profit": _safe(r.value_profit if pd.notna(r.value_profit) else r.model_profit),
+            }
+            for r in recent.itertuples(index=False)
+        ],
+    }
+
+
 @app.get("/api/games")
-def games(start: str | None = None, end: str | None = None, days: int = 7):
+async def games(start: str | None = None, end: str | None = None, days: int = 7):
     c = _load()
     train = c["train"]
     today = date.today()
     s = date.fromisoformat(start) if start else today
     e = date.fromisoformat(end) if end else (s + timedelta(days=days))
+    # If the window touches today/future, opportunistically refresh ESPN odds
+    # so the user always sees fresh market_lines. Throttled via _last_refresh.
+    if e >= today:
+        await _maybe_refresh_now()
     sub = train[(train["game_date"] >= s) & (train["game_date"] <= e)].copy()
+    # Merge first_pitch_utc from games.parquet so the response can carry the
+    # scheduled start time and the slot-within-day.
     games_df = c["games"][["game_pk", "first_pitch_utc"]]
     sub = sub.merge(games_df, on="game_pk", how="left")
     sub["first_pitch_utc"] = pd.to_datetime(sub["first_pitch_utc"], utc=True, errors="coerce")
+    # Sort by start time within each date; games without a known start time
+    # sink to the bottom (rare — usually only TBD playoff stuff).
     sub["_sort_time"] = sub["first_pitch_utc"].fillna(pd.Timestamp("2100-01-01", tz="UTC"))
     sub = sub.sort_values(["game_date", "_sort_time", "game_pk"]).drop(columns=["_sort_time"])
+    # Per-day slot index (1 = first game of the day in ET).
     sub["et_date"] = sub["first_pitch_utc"].dt.tz_convert("America/New_York").dt.date
     sub["slot"] = sub.groupby("et_date").cumcount() + 1
     sub["games_in_day"] = sub.groupby("et_date")["game_pk"].transform("size")
@@ -731,7 +1077,8 @@ def games(start: str | None = None, end: str | None = None, days: int = 7):
             pick_abbrev = r["home_team_abbrev"] if p_home >= 0.5 else r["away_team_abbrev"]
         # Value pick (positive-edge side at real market price) + decimal odds
         v = _value_block(c, int(r["game_pk"]), p_home,
-                          r["away_team_abbrev"], r["home_team_abbrev"])
+                          r["away_team_abbrev"], r["home_team_abbrev"],
+                          slot=int(r["slot"]) if pd.notna(r.get("slot")) else None)
         f5 = _f5_predict(c, r)
         fpu = r.get("first_pitch_utc")
         first_pitch_iso = (
@@ -741,8 +1088,8 @@ def games(start: str | None = None, end: str | None = None, days: int = 7):
             "game_pk": int(r["game_pk"]),
             "date": r["game_date"].isoformat(),
             "first_pitch_utc": first_pitch_iso,
-            "slot": int(r["slot"]) if pd.notna(r.get("slot")) else None,
-            "games_in_day": int(r["games_in_day"]) if pd.notna(r.get("games_in_day")) else None,
+            "slot": int(r["slot"]),
+            "games_in_day": int(r["games_in_day"]),
             "away_abbrev": r["away_team_abbrev"],
             "home_abbrev": r["home_team_abbrev"],
             "venue": _safe(r.get("venue_name")),
@@ -777,6 +1124,20 @@ def game_detail(game_pk: int):
         raise HTTPException(404, "game not found")
     r = row.iloc[0]
     g = games[games["game_pk"] == game_pk].iloc[0] if not games[games["game_pk"] == game_pk].empty else None
+
+    # Compute slot-within-day for this game so the value block can apply the
+    # slot-aware EV adjustment.
+    detail_slot = None
+    if g is not None and pd.notna(g.get("first_pitch_utc")):
+        day = pd.to_datetime(g["first_pitch_utc"], utc=True).tz_convert("America/New_York").date()
+        day_games = games.copy()
+        day_games["first_pitch_utc"] = pd.to_datetime(day_games["first_pitch_utc"], utc=True, errors="coerce")
+        day_games = day_games.dropna(subset=["first_pitch_utc"])
+        day_games["et_date"] = day_games["first_pitch_utc"].dt.tz_convert("America/New_York").dt.date
+        day_games = day_games[day_games["et_date"] == day].sort_values("first_pitch_utc")
+        order = day_games["game_pk"].tolist()
+        if game_pk in order:
+            detail_slot = order.index(game_pk) + 1
 
     # Read feed/live for player names, weather, and live linescore.
     feed = _read_cached_feed(game_pk)
@@ -912,7 +1273,9 @@ def game_detail(game_pk: int):
             "fair_away_ml": _to_american(1 - p_home) if np.isfinite(p_home) else None,
         },
         "value": _value_block(c, game_pk, p_home,
-                                r["away_team_abbrev"], r["home_team_abbrev"]),
+                                r["away_team_abbrev"], r["home_team_abbrev"],
+                                slot=detail_slot),
+        "slot": detail_slot,
         "f5": _f5_predict(c, r),
         "result": {
             "played": feed_final or pd.notna(r.get("total_runs")),

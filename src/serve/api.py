@@ -844,6 +844,165 @@ def _predict_row(row: pd.Series, c) -> tuple[float, float]:
 
 
 # ---------------- endpoints ----------------
+@app.get("/api/performance")
+def performance(days: int = 60):
+    c = _load()
+    train = c["train"].copy()
+    games_df = c["games"][["game_pk", "first_pitch_utc"]].copy()
+    today = date.today()
+    start = today - timedelta(days=max(1, min(days, 180)))
+    sub = train[
+        (train["game_date"] >= start)
+        & (train["game_date"] <= today)
+        & train["home_score"].notna()
+        & train["away_score"].notna()
+    ].copy()
+    if sub.empty:
+        return {
+            "days": days,
+            "start": start.isoformat(),
+            "end": today.isoformat(),
+            "summary": {},
+            "weekly": [],
+            "grades": [],
+            "recent": [],
+        }
+
+    sub = sub.merge(games_df, on="game_pk", how="left")
+    sub["first_pitch_utc"] = pd.to_datetime(sub["first_pitch_utc"], utc=True, errors="coerce")
+    sub["_sort_time"] = sub["first_pitch_utc"].fillna(pd.Timestamp("2100-01-01", tz="UTC"))
+    sub = sub.sort_values(["game_date", "_sort_time", "game_pk"]).drop(columns=["_sort_time"])
+    sub["et_date"] = sub["first_pitch_utc"].dt.tz_convert("America/New_York").dt.date
+    sub["slot"] = sub.groupby("et_date").cumcount() + 1
+
+    feats = c["cls"]["feature_names"]
+    rows = []
+    for _, r in sub.iterrows():
+        X = pd.DataFrame([r[feats].values], columns=feats)
+        try:
+            p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]))[0])
+        except Exception:
+            continue
+        home_won = bool(r["home_score"] > r["away_score"])
+        model_side = "HOME" if p_home >= 0.5 else "AWAY"
+        model_won = (model_side == "HOME") == home_won
+        market_side = "HOME" if pd.notna(r.get("market_p_home")) and float(r.get("market_p_home")) >= 0.5 else "AWAY"
+        market_won = (market_side == "HOME") == home_won if pd.notna(r.get("market_p_home")) else None
+
+        v = _value_block(
+            c,
+            int(r["game_pk"]),
+            p_home,
+            r["away_team_abbrev"],
+            r["home_team_abbrev"],
+            slot=int(r["slot"]) if pd.notna(r.get("slot")) else None,
+        )
+        model_dec = v.get("market_home_decimal") if model_side == "HOME" else v.get("market_away_decimal")
+        value_side = v.get("value_side")
+        value_dec = v.get("value_decimal")
+        is_value = value_side in ("HOME", "AWAY") and v.get("ev_grade") in ("sweet", "marginal")
+        value_won = ((value_side == "HOME") == home_won) if is_value else None
+        rows.append({
+            "game_pk": int(r["game_pk"]),
+            "date": r["game_date"],
+            "away": r["away_team_abbrev"],
+            "home": r["home_team_abbrev"],
+            "score": f"{r['away_team_abbrev']} {int(r['away_score'])} · {int(r['home_score'])} {r['home_team_abbrev']}",
+            "p_home": p_home,
+            "model_side": model_side,
+            "model_team": r["home_team_abbrev"] if model_side == "HOME" else r["away_team_abbrev"],
+            "model_won": model_won,
+            "model_profit": (float(model_dec) - 1.0 if model_won else -1.0) if model_dec else None,
+            "market_won": market_won,
+            "value_side": value_side,
+            "value_team": v.get("value_team_abbrev"),
+            "value_won": value_won,
+            "value_profit": (float(value_dec) - 1.0 if value_won else -1.0) if is_value and value_dec else None,
+            "ev_grade": v.get("ev_grade") or "no_data",
+            "reason": v.get("ev_grade_reason") or "base",
+            "edge": v.get("value_edge_pp"),
+            "decimal": value_dec,
+        })
+
+    if not rows:
+        return {"days": days, "start": start.isoformat(), "end": today.isoformat(), "summary": {}, "weekly": [], "grades": [], "recent": []}
+
+    df = pd.DataFrame(rows)
+
+    def _rate(series) -> float | None:
+        s = series.dropna()
+        return round(float(s.mean() * 100), 1) if len(s) else None
+
+    def _roi(series) -> float | None:
+        s = series.dropna()
+        return round(float(s.sum() / len(s) * 100), 1) if len(s) else None
+
+    value_df = df[df["value_profit"].notna()].copy()
+    model_df = df[df["model_profit"].notna()].copy()
+    market_df = df[df["market_won"].notna()].copy()
+
+    weekly = []
+    df["week"] = pd.to_datetime(df["date"]).dt.to_period("W-SUN").astype(str)
+    for week, g in df.groupby("week", sort=True):
+        vg = g[g["value_profit"].notna()]
+        mg = g[g["model_profit"].notna()]
+        weekly.append({
+            "week": week,
+            "games": int(len(g)),
+            "model_accuracy": _rate(g["model_won"]),
+            "market_accuracy": _rate(g["market_won"]),
+            "value_picks": int(len(vg)),
+            "value_accuracy": _rate(vg["value_won"]) if len(vg) else None,
+            "value_roi": _roi(vg["value_profit"]) if len(vg) else None,
+            "model_roi": _roi(mg["model_profit"]) if len(mg) else None,
+        })
+
+    grades = []
+    for grade, g in df.groupby("ev_grade", sort=True):
+        vg = g[g["value_profit"].notna()]
+        grades.append({
+            "grade": grade,
+            "games": int(len(g)),
+            "picks": int(len(vg)),
+            "accuracy": _rate(vg["value_won"]) if len(vg) else None,
+            "roi": _roi(vg["value_profit"]) if len(vg) else None,
+        })
+
+    recent = df.sort_values("date", ascending=False).head(12)
+    return {
+        "days": days,
+        "start": start.isoformat(),
+        "end": today.isoformat(),
+        "summary": {
+            "games": int(len(df)),
+            "model_picks": int(len(model_df)),
+            "model_accuracy": _rate(model_df["model_won"]),
+            "model_roi": _roi(model_df["model_profit"]),
+            "market_accuracy": _rate(market_df["market_won"]),
+            "value_picks": int(len(value_df)),
+            "value_accuracy": _rate(value_df["value_won"]) if len(value_df) else None,
+            "value_roi": _roi(value_df["value_profit"]) if len(value_df) else None,
+            "value_profit_units": round(float(value_df["value_profit"].sum()), 2) if len(value_df) else 0.0,
+        },
+        "weekly": weekly,
+        "grades": grades,
+        "recent": [
+            {
+                "game_pk": int(r.game_pk),
+                "date": r.date.isoformat(),
+                "matchup": f"{r.away}@{r.home}",
+                "score": r.score,
+                "pick": r.value_team or r.model_team,
+                "grade": r.ev_grade,
+                "reason": r.reason,
+                "won": bool(r.value_won) if pd.notna(r.value_won) else bool(r.model_won),
+                "profit": _safe(r.value_profit if pd.notna(r.value_profit) else r.model_profit),
+            }
+            for r in recent.itertuples(index=False)
+        ],
+    }
+
+
 @app.get("/api/games")
 async def games(start: str | None = None, end: str | None = None, days: int = 7):
     c = _load()

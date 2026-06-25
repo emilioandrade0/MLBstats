@@ -102,6 +102,8 @@ const fmtDateLong = (iso) => { if(!iso) return ''; const [y,m,d]=iso.split('-').
 const fmtPct = (p) => p == null ? '–' : (p*100).toFixed(1) + '%';
 const fmt3 = (n) => n == null ? '–' : (+n).toFixed(3).replace(/^0/, '');
 const pct  = (n) => n == null ? '–' : ((+n)*100).toFixed(1) + '%';
+const perfPct = (n) => n == null ? '–' : `${Number(n).toFixed(1)}%`;
+const perfUnits = (n) => n == null ? '–' : `${Number(n) >= 0 ? '+' : ''}${Number(n).toFixed(2)}u`;
 const TEAM_ID = {ARI:109,ATL:144,BAL:110,BOS:111,CHC:112,CHW:145,CWS:145,CIN:113,CLE:114,COL:115,DET:116,HOU:117,KC:118,LAA:108,LAD:119,MIA:146,MIL:158,MIN:142,NYM:121,NYY:147,OAK:133,ATH:133,PHI:143,PIT:134,SD:135,SF:137,SEA:136,STL:138,TB:139,TEX:140,TOR:141,WSH:120};
 const teamLogo = (a) => `https://www.mlbstatic.com/team-logos/${TEAM_ID[a]||0}.svg`;
 const TEAM_NAMES = {
@@ -122,6 +124,7 @@ const SECTIONS = [
   { id:'envivo',  label:'En vivo' },
   { id:'valor',   label:'+EV' },
   { id:'final',   label:'Resultados' },
+  { id:'resumen', label:'Resumen' },
   { id:'modelo',  label:'Modelo' },
 ];
 
@@ -845,6 +848,190 @@ function MiniStat({ value, suffix, decimals=0, label }) {
   );
 }
 
+// ─── PERFORMANCE SUMMARY ────────────────────────────────────────────────────
+function PerformancePage({ data, loading }) {
+  const wrapRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!wrapRef.current) return;
+    gsap.fromTo(wrapRef.current.querySelectorAll('[data-fade]'),
+      { opacity: 0, y: 26 },
+      { opacity: 1, y: 0, duration: 0.72, ease: 'power3.out', stagger: 0.06 });
+  }, [data]);
+  if (loading && !data) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-10 pb-24">
+        <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/45 tracking-[0.22em] uppercase text-xs animate-pulse">
+          Calculando rendimiento del modelo…
+        </div>
+      </div>
+    );
+  }
+  if (!data || !data.summary || !data.summary.games) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-10 pb-24">
+        <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/55">
+          No hay suficientes juegos cerrados para medir los últimos 60 días.
+        </div>
+      </div>
+    );
+  }
+  const s = data.summary;
+  const valueGood = Number(s.value_roi || 0) >= 0;
+  const modelGood = Number(s.model_roi || 0) >= 0;
+  return (
+    <div ref={wrapRef} className="max-w-[1400px] mx-auto px-10 pb-24">
+      <div data-fade className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <PerformanceMetric label="Picks de valor" value={s.value_picks} sub={`${s.games} juegos cerrados`} accent="gold" />
+        <PerformanceMetric label="Win rate +EV" value={perfPct(s.value_accuracy)} sub="sweet + marginal" accent={valueGood ? 'green' : 'red'} />
+        <PerformanceMetric label="ROI +EV" value={perfPct(s.value_roi)} sub={`${perfUnits(s.value_profit_units)} netas`} accent={valueGood ? 'green' : 'red'} />
+        <PerformanceMetric label="Modelo vs mercado" value={`${perfPct(s.model_accuracy)} / ${perfPct(s.market_accuracy)}`} sub="accuracy modelo / market lean" accent={modelGood ? 'blue' : 'white'} />
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-5 mt-5">
+        <WeeklyPerformanceChart data={data.weekly || []} />
+        <GradeBreakdown grades={data.grades || []} />
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr] gap-5 mt-5">
+        <ComparisonPanel summary={s} />
+        <RecentPerformanceTable rows={data.recent || []} />
+      </div>
+    </div>
+  );
+}
+
+function PerformanceMetric({ label, value, sub, accent }) {
+  const color = accent === 'green' ? 'text-accent-green' :
+    accent === 'red' ? 'text-accent-red' :
+    accent === 'gold' ? 'text-accent-gold' :
+    accent === 'blue' ? 'text-accent-blue' : 'text-white';
+  return (
+    <div data-fade className="glass border border-white/[0.07] rounded-[24px] p-6 overflow-hidden relative">
+      <div className={`absolute inset-x-0 top-0 h-px ${accent === 'red' ? 'bg-accent-red/70' : accent === 'green' ? 'bg-accent-green/70' : accent === 'gold' ? 'bg-accent-gold/70' : 'bg-accent-blue/70'}`}/>
+      <div className="text-[10px] uppercase tracking-[0.24em] text-white/42 font-black">{label}</div>
+      <div className={`mega text-[clamp(38px,4vw,62px)] tabular-nums mt-4 ${color}`}>{value}</div>
+      <div className="text-[11px] text-white/40 mt-2">{sub}</div>
+    </div>
+  );
+}
+
+function WeeklyPerformanceChart({ data }) {
+  const maxAbs = Math.max(20, ...data.map(w => Math.abs(Number(w.value_roi || 0))));
+  return (
+    <div data-fade className="glass border border-accent-blue/15 rounded-[28px] p-7">
+      <div className="flex items-end justify-between gap-4 mb-8">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.28em] text-accent-blue font-black">Tendencia semanal</div>
+          <div className="text-white/45 text-sm mt-2">ROI de picks +EV y accuracy del modelo.</div>
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Últimos 60 días</div>
+      </div>
+      <div className="space-y-3">
+        {data.map((w, idx) => {
+          const roi = Number(w.value_roi || 0);
+          const width = Math.min(100, Math.abs(roi) / maxAbs * 100);
+          const positive = roi >= 0;
+          return (
+            <div key={`${w.week}-${idx}`} className="grid grid-cols-[122px_1fr_76px_76px] items-center gap-3">
+              <div className="text-[11px] text-white/50 font-bold tabular-nums">{w.week.replace('/',' · ')}</div>
+              <div className="h-8 rounded-full bg-white/[0.035] border border-white/[0.05] overflow-hidden flex items-center">
+                <div className={`h-full rounded-full ${positive ? 'bg-accent-green/80' : 'bg-accent-red/80'}`} style={{ width: `${width}%` }} />
+              </div>
+              <div className={`text-sm font-black tabular-nums text-right ${positive ? 'text-accent-green' : 'text-accent-red'}`}>{perfPct(w.value_roi)}</div>
+              <div className="text-[11px] text-white/45 text-right">{w.value_picks} picks</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GradeBreakdown({ grades }) {
+  const order = ['sweet', 'marginal', 'no_edge', 'overconfident', 'skip', 'no_data'];
+  const sorted = [...grades].sort((a,b) => order.indexOf(a.grade) - order.indexOf(b.grade));
+  const label = (g) => g === 'sweet' ? 'Sweet spot' :
+    g === 'marginal' ? 'Marginal' :
+    g === 'no_edge' ? 'No bet' :
+    g === 'overconfident' ? 'Riesgoso' :
+    g === 'skip' ? 'Slot skip' : g;
+  return (
+    <div data-fade className="glass border border-accent-gold/15 rounded-[28px] p-7">
+      <div className="text-[11px] uppercase tracking-[0.28em] text-accent-gold font-black mb-6">Por categoría</div>
+      <div className="space-y-3">
+        {sorted.map(g => {
+          const roi = g.roi == null ? null : Number(g.roi);
+          return (
+            <div key={g.grade} className="rounded-2xl bg-white/[0.025] border border-white/[0.05] p-4 flex items-center justify-between gap-4">
+              <div>
+                <div className="font-black text-white/85">{label(g.grade)}</div>
+                <div className="text-[11px] text-white/38 mt-1">{g.games} juegos · {g.picks} picks</div>
+              </div>
+              <div className="text-right">
+                <div className={`font-black tabular-nums ${roi == null ? 'text-white/40' : roi >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>{perfPct(g.roi)}</div>
+                <div className="text-[10px] text-white/35 uppercase tracking-[0.16em]">ROI</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ComparisonPanel({ summary }) {
+  const rows = [
+    { label:'Accuracy modelo', value:summary.model_accuracy, color:'bg-accent-blue' },
+    { label:'Accuracy mercado', value:summary.market_accuracy, color:'bg-white/65' },
+    { label:'Accuracy picks +EV', value:summary.value_accuracy, color:'bg-accent-green' },
+  ];
+  return (
+    <div data-fade className="glass border border-white/[0.06] rounded-[28px] p-7">
+      <div className="text-[11px] uppercase tracking-[0.28em] text-white/45 font-black mb-7">Comparativa clara</div>
+      <div className="space-y-6">
+        {rows.map(r => (
+          <div key={r.label}>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-white/58 font-bold">{r.label}</span>
+              <span className="text-white font-black tabular-nums">{perfPct(r.value)}</span>
+            </div>
+            <div className="h-3 rounded-full bg-white/[0.04] overflow-hidden border border-white/[0.04]">
+              <div className={`h-full rounded-full ${r.color}`} style={{ width: `${Math.max(0, Math.min(100, Number(r.value || 0)))}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-white/45 text-sm leading-relaxed mt-8">
+        Esta pestaña no intenta vender humo: separa accuracy bruta, mercado y picks de valor para ver si el modelo realmente está generando rendimiento apostable.
+      </p>
+    </div>
+  );
+}
+
+function RecentPerformanceTable({ rows }) {
+  return (
+    <div data-fade className="glass border border-white/[0.06] rounded-[28px] p-7">
+      <div className="flex justify-between items-end mb-6">
+        <div className="text-[11px] uppercase tracking-[0.28em] text-white/45 font-black">Últimos evaluados</div>
+        <div className="text-[10px] uppercase tracking-[0.22em] text-white/30">{rows.length} juegos</div>
+      </div>
+      <div className="space-y-2">
+        {rows.map(r => (
+          <div key={r.game_pk} className="grid grid-cols-[92px_1fr_78px_70px] gap-3 items-center rounded-2xl bg-white/[0.025] border border-white/[0.045] px-4 py-3">
+            <div className="text-[11px] text-white/42 tabular-nums">{r.date}</div>
+            <div className="min-w-0">
+              <div className="font-black text-white/82 truncate">{r.matchup}</div>
+              <div className="text-[11px] text-white/35 truncate">{r.score} · {r.grade}</div>
+            </div>
+            <div className="text-sm font-black text-accent-blue">{r.pick}</div>
+            <div className={`text-right font-black tabular-nums ${r.won ? 'text-accent-green' : 'text-accent-red'}`}>
+              {r.won ? '✓' : '✕'} {perfUnits(r.profit)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── MODELO ─────────────────────────────────────────────────────────────────
 function ModeloPage() {
   const wrapRef = useRef(null);
@@ -856,7 +1043,7 @@ function ModeloPage() {
   }, []);
   return (
     <div ref={wrapRef} className="min-h-screen pt-32 pb-20 px-10 max-w-[1400px] mx-auto">
-      <div data-fade className="text-[12px] tracking-[0.32em] uppercase text-accent-blue mb-6 font-bold">05 · El motor</div>
+      <div data-fade className="text-[12px] tracking-[0.32em] uppercase text-accent-blue mb-6 font-bold">07 · El motor</div>
       <h1 data-fade className="mega text-[clamp(64px,9vw,140px)] leading-[0.9]">
         Empate técnico<br/>
         <span className="text-white/35">con el mercado.</span>
@@ -1635,6 +1822,8 @@ function App() {
   const [scrolled, setScrolled] = useState(false);
   const [openPk, setOpenPk] = useState(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [performance, setPerformance] = useState(null);
+  const [performanceLoading, setPerformanceLoading] = useState(false);
 
   const pageRef = useRef(null);
   const pageContentRef = useRef(null);
@@ -1668,6 +1857,15 @@ function App() {
     }, 30000);
     return () => clearInterval(t);
   }, [date]);
+
+  useEffect(() => {
+    if (activeId !== 'resumen' || performanceLoading || performance) return;
+    setPerformanceLoading(true);
+    fetch(`/api/performance?days=60&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setPerformance(d); setPerformanceLoading(false); })
+      .catch(() => setPerformanceLoading(false));
+  }, [activeId, performance, performanceLoading]);
 
   // Page scroll state
   useEffect(() => {
@@ -1822,6 +2020,20 @@ function App() {
                 statValue={stats ? stats.mlAcc : 0} statSuffix="%" statLabel="accuracy en picks ML" accent="green"
               />
               <GridList items={finished} onOpen={openDetail} emptyText="No hay resultados en esta fecha." title="Eventos cerrados" />
+              </>
+            )}
+            {activeId === 'resumen' && (
+              <>
+              <HeroBlock
+                kicker="06 · Track record"
+                title={<>Rendimiento<br/>del modelo.</>}
+                lead="Resumen de los últimos 60 días: accuracy, ROI, picks de valor y comparación contra el mercado para saber si realmente está rindiendo."
+                statValue={performance?.summary?.value_roi ?? 0}
+                statSuffix="%"
+                statLabel="ROI picks +EV"
+                accent={(performance?.summary?.value_roi ?? 0) >= 0 ? 'green' : 'red'}
+              />
+              <PerformancePage data={performance} loading={performanceLoading} />
               </>
             )}
             {activeId === 'modelo' && (
