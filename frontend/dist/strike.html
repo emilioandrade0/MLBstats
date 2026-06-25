@@ -1485,6 +1485,29 @@ function MetricCard({ icon, label, value, sub, accent }) {
 }
 
 function buildGameAnalysis({ d, a, h, ap, hp, v, mdl, recommendation, confidence, confLevel, valueGood }) {
+  const cleanNum = (n) => n == null || Number.isNaN(Number(n)) ? null : Number(n);
+  const pitcherSummary = (team, pitcher) => {
+    if (!pitcher?.name) return `${team.abbrev}: abridor por confirmar; la lectura del matchup queda abierta hasta tener pitcher oficial.`;
+    const s = pitcher.season || {};
+    const parts = [];
+    if (cleanNum(s.era) != null) parts.push(`${cleanNum(s.era).toFixed(2)} ERA`);
+    if (cleanNum(s.whip) != null) parts.push(`${cleanNum(s.whip).toFixed(2)} WHIP`);
+    if (cleanNum(s.k_pct) != null) parts.push(`${(cleanNum(s.k_pct) * 100).toFixed(1)}% K`);
+    if (cleanNum(s.bb9) != null) parts.push(`${cleanNum(s.bb9).toFixed(2)} BB/9`);
+    if (cleanNum(pitcher.starter_xwoba_l15) != null) parts.push(`${fmt3(pitcher.starter_xwoba_l15)} xwOBA L15`);
+    return `${team.abbrev}: ${pitcher.name}${pitcher.throws ? ` (${pitcher.throws}HP)` : ''}${parts.length ? ` — ${parts.join(', ')}` : ' — sin muestra reciente suficiente'}.`;
+  };
+  const teamMoment = (team) => {
+    const bits = [];
+    if (cleanNum(team.runs_scored_l10) != null) bits.push(`${cleanNum(team.runs_scored_l10).toFixed(1)} carreras anotadas L10`);
+    if (cleanNum(team.runs_allowed_l10) != null) bits.push(`${cleanNum(team.runs_allowed_l10).toFixed(1)} permitidas L10`);
+    if (cleanNum(team.win_pct_l30) != null) bits.push(`${pct(team.win_pct_l30)} win% L30`);
+    if (cleanNum(team.off_xwoba_l30) != null) bits.push(`${fmt3(team.off_xwoba_l30)} xwOBA ofensiva`);
+    if (cleanNum(team.def_xwoba_l30) != null) bits.push(`${fmt3(team.def_xwoba_l30)} xwOBA recibida`);
+    if (cleanNum(team.off_barrel_rate_l30) != null) bits.push(`${pct(team.off_barrel_rate_l30)} barrel%`);
+    if (cleanNum(team.off_k_pct_l30) != null) bits.push(`${pct(team.off_k_pct_l30)} K% ofensivo`);
+    return `${team.abbrev}: ${bits.length ? bits.join(', ') : 'muestra reciente incompleta'}.`;
+  };
   const pick = recommendation?.team || (mdl.p_home >= 0.5 ? h.abbrev : a.abbrev);
   const favName = mdl.p_home >= 0.5 ? (h.name || h.abbrev) : (a.name || a.abbrev);
   const dogName = mdl.p_home >= 0.5 ? (a.name || a.abbrev) : (h.name || h.abbrev);
@@ -1508,7 +1531,7 @@ function buildGameAnalysis({ d, a, h, ap, hp, v, mdl, recommendation, confidence
   const awayEra = ap?.season?.era != null ? Number(ap.season.era) : null;
   const homeEra = hp?.season?.era != null ? Number(hp.season.era) : null;
   const pitcherEdge = (Number.isFinite(awayEra) && Number.isFinite(homeEra))
-    ? `${awayEra < homeEra ? ap.name : hp.name} tiene la ventaja de ERA entre abridores (${Math.min(awayEra, homeEra).toFixed(2)} vs ${Math.max(awayEra, homeEra).toFixed(2)}).`
+    ? `La comparación de ERA entre abridores queda en ${awayEra.toFixed(2)} para ${ap?.name || a.abbrev} y ${homeEra.toFixed(2)} para ${hp?.name || h.abbrev}.`
     : `El matchup de abridores queda sensible a confirmación: ${ap?.name || 'TBD'} vs ${hp?.name || 'TBD'}.`;
   const reasonText = {
     slot_boost: 'El slot histórico refuerza la dirección del modelo.',
@@ -1534,9 +1557,19 @@ function buildGameAnalysis({ d, a, h, ap, hp, v, mdl, recommendation, confidence
     title,
     verdict,
     paragraphs: [
-      `El modelo inclina el partido hacia ${favName} con ${fmtPct(favProb)}, dejando a ${dogName} como el lado de menor probabilidad. ${verdict}`,
+      `El modelo tiene una inclinación moderada hacia ${favName} con ${fmtPct(favProb)}, mientras ${dogName} queda como el lado de menor probabilidad. ${verdict}`,
       `${reasonText} ${pitcherEdge}`,
       `${runEdge} ${xwobaEdge} ${totalLean}`,
+    ],
+    sections: [
+      {
+        title: 'Abridores',
+        items: [pitcherSummary(a, ap), pitcherSummary(h, hp)],
+      },
+      {
+        title: 'Momento de equipos',
+        items: [teamMoment(a), teamMoment(h)],
+      },
     ],
     bullets: [
       { label: 'Pick sugerido', value: recommendation?.dec != null ? `${pick} @ ${recommendation.dec.toFixed(2)}` : pick },
@@ -1560,6 +1593,18 @@ function AnalysisSummary({ analysis, recommendation }) {
           <div className="space-y-3 text-sm leading-relaxed text-white/68">
             {analysis.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
           </div>
+          {analysis.sections?.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">
+              {analysis.sections.map((section) => (
+                <div key={section.title} className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4">
+                  <div className="text-[10px] tracking-[0.24em] uppercase font-black text-accent-blue/85 mb-3">{section.title}</div>
+                  <div className="space-y-2 text-[12px] leading-relaxed text-white/58">
+                    {section.items.map((item, idx) => <p key={idx}>{item}</p>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="rounded-2xl border border-white/[0.07] bg-ink-0/55 p-4">
           <div className="text-[10px] tracking-[0.24em] uppercase text-white/45 font-black mb-3">Lectura rápida</div>
