@@ -13,12 +13,18 @@
       <span class="brand-name">STRIKE<em>CAST</em></span>
       <span class="brand-sub">Predicciones MLB · Edge vs Mercado</span>
     </div>
-    <nav class="datebar">
-      <button id="prev">&lsaquo;</button>
-      <input id="datepick" type="date" />
-      <button id="next">&rsaquo;</button>
-      <button id="today" class="ghost">HOY</button>
-    </nav>
+    <div class="topbar-actions">
+      <nav class="app-tabs" aria-label="Secciones">
+        <button id="games-tab" class="active" type="button">Partidos</button>
+        <button id="ranking-tab" type="button">Ranking</button>
+      </nav>
+      <nav class="datebar" id="datebar">
+        <button id="prev">&lsaquo;</button>
+        <input id="datepick" type="date" />
+        <button id="next">&rsaquo;</button>
+        <button id="today" class="ghost">HOY</button>
+      </nav>
+    </div>
   </header>
 
   <main id="app-main">
@@ -32,6 +38,26 @@
         <button id="back-to-events" type="button">&larr; Volver a eventos</button>
       </div>
       <div id="detail-body"></div>
+    </section>
+
+    <section id="ranking-view" class="ranking-view hidden">
+      <header class="ranking-header">
+        <div>
+          <span class="ranking-kicker">Rendimiento del modelo</span>
+          <h1>Ranking por equipo</h1>
+          <p>Precisión en todos los juegos donde participa cada equipo.</p>
+        </div>
+        <label class="ranking-period">
+          Periodo
+          <select id="ranking-days">
+            <option value="30">30 días</option>
+            <option value="60" selected>60 días</option>
+            <option value="90">90 días</option>
+            <option value="180">180 días</option>
+          </select>
+        </label>
+      </header>
+      <div id="ranking-content"><div class="empty">Cargando ranking...</div></div>
     </section>
   </main>
 

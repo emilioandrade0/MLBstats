@@ -52,6 +52,11 @@ html, body {
 }
 
 .datebar { display: flex; gap: 8px; align-items: center; }
+.topbar-actions { display: flex; align-items: center; gap: 16px; }
+.app-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.app-tabs button { border: 0; border-radius: 6px; padding: 7px 13px; background: transparent; color: var(--text-dim); font-weight: 700; cursor: pointer; }
+.app-tabs button:hover { color: var(--text); }
+.app-tabs button.active { background: var(--bg-3); color: var(--gold); }
 .datebar button, .datebar input {
   background: var(--bg-2);
   color: var(--text);
@@ -111,6 +116,36 @@ main.detail-page {
 }
 
 .status { color: var(--text-dim); font-size: 14px; margin-bottom: 18px; }
+
+.ranking-view { max-width: 1120px; margin: 0 auto; }
+.ranking-header { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin: 12px 0 24px; }
+.ranking-kicker { color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.ranking-header h1 { margin: 5px 0 4px; font-size: 32px; }
+.ranking-header p { margin: 0; color: var(--text-dim); }
+.ranking-period { display: grid; gap: 6px; color: var(--text-dim); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+.ranking-period select { min-width: 130px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); color: var(--text); }
+.ranking-range { margin-bottom: 14px; color: var(--text-dim); font-size: 13px; text-align: right; }
+.ranking-podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.podium-card { position: relative; display: grid; justify-items: center; gap: 5px; padding: 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); }
+.podium-card.place-1 { border-color: rgba(255,212,59,.65); box-shadow: inset 0 3px 0 var(--gold); }
+.podium-card img { width: 58px; height: 58px; object-fit: contain; }
+.podium-card strong { font-size: 18px; }
+.podium-card b { color: var(--green); font-size: 24px; }
+.podium-card small { color: var(--text-dim); }
+.podium-rank { position: absolute; top: 12px; left: 14px; color: var(--gold); font-weight: 900; }
+.ranking-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); }
+.ranking-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+.ranking-table th { padding: 12px 14px; color: var(--text-dim); font-size: 11px; text-align: left; text-transform: uppercase; letter-spacing: .08em; background: rgba(0,0,0,.18); }
+.ranking-table td { padding: 11px 14px; border-top: 1px solid var(--border); font-size: 13px; }
+.ranking-table tbody tr:hover { background: rgba(255,255,255,.025); }
+.rank-number { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--bg-3); font-weight: 800; }
+.rank-team { display: flex; align-items: center; gap: 10px; }
+.rank-team img { width: 32px; height: 32px; object-fit: contain; }
+.accuracy-cell { display: flex; align-items: center; gap: 10px; }
+.accuracy-cell > span { width: 70px; height: 5px; overflow: hidden; border-radius: 4px; background: var(--border); }
+.accuracy-cell i { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+.rank-win { color: var(--green); font-weight: 700; }
+.rank-loss { color: var(--red); font-weight: 700; }
 
 .games-grid {
   display: grid;
@@ -1869,6 +1904,15 @@ main.detail-page {
 
 @media (max-width: 780px) {
   .topbar { padding: 14px 20px; flex-direction: column; gap: 12px; }
+  .topbar-actions { width: 100%; flex-direction: column; gap: 10px; }
+  .app-tabs { width: 100%; }
+  .app-tabs button { flex: 1; }
+  .ranking-header { align-items: stretch; flex-direction: column; }
+  .ranking-period select { width: 100%; }
+  .ranking-podium { grid-template-columns: 1fr; }
+  .podium-card { grid-template-columns: auto 1fr auto; justify-items: start; align-items: center; text-align: left; }
+  .podium-card img { width: 44px; height: 44px; }
+  .podium-card small { grid-column: 2 / 4; }
   main { padding: 20px 16px; }
   .model-block { grid-template-columns: 1fr; }
   .pitcher-row { grid-template-columns: 1fr; }

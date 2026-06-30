@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
     # Background refresh OFF — we rely on the on-request refresh (~2s on first
     # visit, throttled to 120s afterwards) so the container stays idle when
     # no one's browsing. Set STRIKECAST_DISABLE_REFRESH=0 to also enable the
-    # 15-min background loop if you want predictions to update with no traffic.
+    # Hourly background loop if you want predictions to update with no traffic.
     STRIKECAST_DISABLE_REFRESH=1 \
     STRIKECAST_ONREQ_TTL_SEC=120
 

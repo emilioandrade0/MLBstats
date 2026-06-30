@@ -1,5 +1,5 @@
 // State + helpers
-const state = { date: null, detailPk: null, liveTimer: null, listTimer: null };
+const state = { date: null, detailPk: null, liveTimer: null, listTimer: null, view: 'games' };
 const fmtPct = p => p == null ? '-' : (p * 100).toFixed(1) + '%';
 const fmtML = ml => ml == null ? '-' : (ml > 0 ? '+' + ml : '' + ml);
 const fmtNum = (n, d = 2) => n == null ? '-' : Number(n).toFixed(d);
@@ -229,7 +229,7 @@ function renderList(games) {
 
 function teamId(abbr) {
   const teams = {
-    ARI: 109, ATL: 144, BAL: 110, BOS: 111, CHC: 112, CHW: 145, CWS: 145,
+    ARI: 109, AZ: 109, ATL: 144, BAL: 110, BOS: 111, CHC: 112, CHW: 145, CWS: 145,
     CIN: 113, CLE: 114, COL: 115, DET: 116, HOU: 117, KC: 118, LAA: 108,
     LAD: 119, MIA: 146, MIL: 158, MIN: 142, NYM: 121, NYY: 147,
     OAK: 133, ATH: 133, PHI: 143, PIT: 134, SD: 135, SF: 137,
@@ -241,11 +241,87 @@ function teamId(abbr) {
 function showListView() {
   stopLiveRefresh();
   state.detailPk = null;
+  state.view = 'games';
   document.getElementById('list-view').classList.remove('hidden');
   document.getElementById('detail-view').classList.add('hidden');
+  document.getElementById('ranking-view').classList.add('hidden');
   document.getElementById('app-main').classList.remove('detail-page');
   document.getElementById('topbar').classList.remove('hidden');
+  document.getElementById('datebar').classList.remove('hidden');
+  document.getElementById('games-tab').classList.add('active');
+  document.getElementById('ranking-tab').classList.remove('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function showRankingView() {
+  stopLiveRefresh();
+  if (state.listTimer) { clearInterval(state.listTimer); state.listTimer = null; }
+  state.view = 'ranking';
+  document.getElementById('list-view').classList.add('hidden');
+  document.getElementById('detail-view').classList.add('hidden');
+  document.getElementById('ranking-view').classList.remove('hidden');
+  document.getElementById('app-main').classList.remove('detail-page');
+  document.getElementById('topbar').classList.remove('hidden');
+  document.getElementById('datebar').classList.add('hidden');
+  document.getElementById('games-tab').classList.remove('active');
+  document.getElementById('ranking-tab').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  await loadRanking();
+}
+
+async function loadRanking() {
+  const content = document.getElementById('ranking-content');
+  const days = document.getElementById('ranking-days').value;
+  content.innerHTML = '<div class="empty">Calculando rendimiento por equipo...</div>';
+  try {
+    const response = await fetch(`/api/team-ranking?days=${days}&t=${Date.now()}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    renderRanking(data);
+  } catch (error) {
+    content.innerHTML = '<div class="empty">No se pudo cargar el ranking. Intenta de nuevo.</div>';
+  }
+}
+
+function renderRanking(data) {
+  const content = document.getElementById('ranking-content');
+  const teams = data.teams || [];
+  if (!teams.length) {
+    content.innerHTML = '<div class="empty">No hay resultados finalizados en este periodo.</div>';
+    return;
+  }
+  const top = teams.slice(0, 3);
+  content.innerHTML = `
+    <div class="ranking-range">${data.start} a ${data.end} · ${data.games || 0} juegos analizados</div>
+    <div class="ranking-podium">
+      ${top.map((team, index) => `
+        <article class="podium-card place-${index + 1}">
+          <span class="podium-rank">#${team.rank}</span>
+          <img src="https://www.mlbstatic.com/team-logos/${teamId(team.team)}.svg" alt="${team.team}" />
+          <strong>${team.team}</strong>
+          <b>${team.accuracy == null ? '-' : team.accuracy.toFixed(1) + '%'}</b>
+          <small>${team.correct} de ${team.games} aciertos</small>
+        </article>
+      `).join('')}
+    </div>
+    <div class="ranking-table-wrap">
+      <table class="ranking-table">
+        <thead><tr><th>Pos.</th><th>Equipo</th><th>Precisión</th><th>Aciertos</th><th>Fallos</th><th>Elegido</th><th>Precisión al elegirlo</th></tr></thead>
+        <tbody>
+          ${teams.map(team => `
+            <tr>
+              <td><span class="rank-number">${team.rank}</span></td>
+              <td><div class="rank-team"><img src="https://www.mlbstatic.com/team-logos/${teamId(team.team)}.svg" alt="" /><strong>${team.team}</strong></div></td>
+              <td><div class="accuracy-cell"><strong>${team.accuracy == null ? '-' : team.accuracy.toFixed(1) + '%'}</strong><span><i style="width:${team.accuracy || 0}%"></i></span></div></td>
+              <td class="rank-win">${team.correct}</td>
+              <td class="rank-loss">${team.incorrect}</td>
+              <td>${team.times_picked} veces</td>
+              <td>${team.picked_accuracy == null ? '-' : team.picked_accuracy.toFixed(1) + '%'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
 }
 
 function stopLiveRefresh() {
@@ -586,6 +662,12 @@ function probableScore(pHome, total, awayA, homeA) {
 }
 
 document.getElementById('back-to-events').addEventListener('click', showListView);
+document.getElementById('games-tab').addEventListener('click', () => {
+  showListView();
+  loadDate(state.date || todayISO());
+});
+document.getElementById('ranking-tab').addEventListener('click', showRankingView);
+document.getElementById('ranking-days').addEventListener('change', loadRanking);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !document.getElementById('detail-view').classList.contains('hidden')) {
     showListView();

@@ -21,7 +21,9 @@ from ..normalize.paths import PROCESSED
 EXCLUDE_COLS = {
     "game_pk", "game_date", "season", "game_type", "status",
     "home_team_abbrev", "away_team_abbrev",
-    "home_team_id", "away_team_id",
+    # NOTE: home_team_id and away_team_id ARE included as categorical features.
+    # Walk-forward showed +1.17pp acc and +3.00pp on high-conf band when paired
+    # with stronger regularization (reg=1.0, leaves=16) in train.py.
     "venue_id", "venue_name", "roof_type",
     "probable_home_pitcher_id", "probable_away_pitcher_id",
     "home_score", "away_score",
@@ -33,6 +35,9 @@ EXCLUDE_COLS = {
     "f5_home_score", "f5_away_score", "f5_home_won", "f5_tied",
     "f5_total_runs", "f5_run_diff",
 }
+
+# Categorical features — LightGBM handles these natively. Must be int.
+CATEGORICAL_FEATURES = ["home_team_id", "away_team_id"]
 
 
 @dataclass
@@ -83,7 +88,12 @@ def load_split(
                  "away_team_abbrev", "home_score", "away_score"]
 
     def _y(d: pd.DataFrame):
-        return d[fcols], d["home_win"].astype(int), d["total_runs"].astype(float), d[meta_cols]
+        X = d[fcols].copy()
+        # Cast categorical features to int32 so LightGBM treats them correctly.
+        for c in CATEGORICAL_FEATURES:
+            if c in X.columns:
+                X[c] = pd.to_numeric(X[c], errors="coerce").fillna(-1).astype("int32")
+        return X, d["home_win"].astype(int), d["total_runs"].astype(float), d[meta_cols]
 
     Xt, yt_c, yt_r, mt = _y(train)
     Xv, yv_c, yv_r, mv = _y(val)

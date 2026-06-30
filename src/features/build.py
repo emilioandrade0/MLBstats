@@ -33,6 +33,13 @@ def build() -> Path:
     f5_targets = pd.read_parquet(f5_path) if f5_path.exists() else None
     team_feat = pd.read_parquet(PROCESSED / "features_team.parquet")
     pit_feat = pd.read_parquet(PROCESSED / "features_pitcher.parquet")
+    # Pitcher L5 (last 5 starts) tested — -0.35pp acc, -1.9 AUC vs baseline.
+    # The 5-start window is too noisy: pitcher variance star-to-start is high,
+    # so L15 already captures the stable signal. Kept on disk, disabled here.
+    # Pitcher trend (slope) + blowup rate tested — -0.19pp acc, -2.4 AUC.
+    # Hypothesis was that slope captures direction-of-form, but the L15 mean
+    # already absorbs the signal (a pitcher with blowups has high xwoba_l15).
+    # Kept on disk, disabled here.
     park = pd.read_parquet(PROCESSED / "features_park.parquet")
     market = pd.read_parquet(PROCESSED / "features_market.parquet")
     lineup_path = PROCESSED / "features_lineup.parquet"
@@ -54,6 +61,37 @@ def build() -> Path:
     # Kept on disk; uncomment to re-enable individually for further experiments.
     pythag = None
     cluster_luck = None
+    cb_path = PROCESSED / "features_comeback.parquet"
+    comeback = pd.read_parquet(cb_path) if cb_path.exists() else None
+    # Calendar features (slate_size + dow) tested — Δacc +0.04pp, Δauc 0.00.
+    # Real statistical signal in the daily audit but too weak to move the
+    # model once combined with form/bullpen/team_id. Parquet stays on disk,
+    # disabled here.
+    calendar = None
+    # lineup_recent (L15 top-4 batter form): improves model AUC by +7pts and
+    # log_loss by -0.0024 in walk-forward. High-conf band gains +0.99pp acc.
+    # Operationally shifts the edge threshold so the production 5pp filter
+    # needs re-calibration to compensate (handled in _value_block).
+    lr_path = PROCESSED / "features_lineup_recent.parquet"
+    lineup_recent = pd.read_parquet(lr_path) if lr_path.exists() else None
+    # Team volatility (std of runs L10) tested — Δacc -0.04pp, Δauc -2.85.
+    # Hypothesis was that std vs mean would distinguish consistent vs roller-
+    # coaster offenses, but the L10/L30 means absorb the signal. Kept on disk.
+    team_vol = None
+    # burn features (yesterday's bullpen/extra-innings — "carne al asador") tested
+    # walk-forward (-0.49pp acc, -5.5 AUC). Hangover hypothesis didn't hold; the
+    # parquet is kept for the web visualization but excluded from the model.
+    burn = None
+    # game_flow features (fi_score, lead_hold_6, runs_std) tested but degraded
+    # walk-forward AUC and edge calibration — high collinearity with existing
+    # bullpen/win_pct features. Kept on disk; set to None to disable.
+    game_flow = None
+    # situational features (1-run games, blowouts, timezone travel) tested but
+    # degraded walk-forward — collinear with win_pct/run_diff/xwoba already in model.
+    situational = None
+    # error features (error_rate, resilience) tested but degraded walk-forward —
+    # likely captured by def_xwoba + win_pct. Kept on disk; disabled here.
+    errors = None
 
     g = games[games["game_type"].isin(["R", "F", "D", "L", "W"])].copy()
     g = g.dropna(subset=["home_team_abbrev", "away_team_abbrev", "game_date"])
@@ -153,6 +191,66 @@ def build() -> Path:
         g = g.merge(home_bp, on="game_pk", how="left")
         g = g.merge(away_bp, on="game_pk", how="left")
         for c in bp_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- comeback features (rolling comeback rate/depth per team) ---
+    if comeback is not None:
+        cb_cols = [c for c in comeback.columns if c not in ("game_pk", "side")]
+        home_cb = comeback[comeback["side"] == "home"].drop(columns=["side"])
+        away_cb = comeback[comeback["side"] == "away"].drop(columns=["side"])
+        home_cb = home_cb.rename(columns={c: f"{c}_h" for c in cb_cols})
+        away_cb = away_cb.rename(columns={c: f"{c}_a" for c in cb_cols})
+        g = g.merge(home_cb, on="game_pk", how="left")
+        g = g.merge(away_cb, on="game_pk", how="left")
+        for c in cb_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- calendar features (slate_size, dow) — game-level, not _h/_a/_diff ---
+    if calendar is not None:
+        g = g.merge(calendar, on="game_pk", how="left")
+
+    # --- team_volatility features (std of runs L10) ---
+    if team_vol is not None:
+        tv_cols = [c for c in team_vol.columns if c not in ("game_pk", "side")]
+        home_tv = team_vol[team_vol["side"] == "home"].drop(columns=["side"])
+        away_tv = team_vol[team_vol["side"] == "away"].drop(columns=["side"])
+        home_tv = home_tv.rename(columns={c: f"{c}_h" for c in tv_cols})
+        away_tv = away_tv.rename(columns={c: f"{c}_a" for c in tv_cols})
+        g = g.merge(home_tv, on="game_pk", how="left")
+        g = g.merge(away_tv, on="game_pk", how="left")
+        for c in tv_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- lineup_recent features (top-4 batters L15 form) ---
+    if lineup_recent is not None:
+        lr_cols = [c for c in lineup_recent.columns if c not in ("game_pk", "side")]
+        home_lr = lineup_recent[lineup_recent["side"] == "home"].drop(columns=["side"])
+        away_lr = lineup_recent[lineup_recent["side"] == "away"].drop(columns=["side"])
+        home_lr = home_lr.rename(columns={c: f"{c}_h" for c in lr_cols})
+        away_lr = away_lr.rename(columns={c: f"{c}_a" for c in lr_cols})
+        g = g.merge(home_lr, on="game_pk", how="left")
+        g = g.merge(away_lr, on="game_pk", how="left")
+        for c in lr_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- burn features (yesterday's "carne al asador" — bullpen burn, extras) ---
+    if burn is not None:
+        bn_cols = [c for c in burn.columns if c not in ("game_pk", "side")]
+        home_bn = burn[burn["side"] == "home"].drop(columns=["side"])
+        away_bn = burn[burn["side"] == "away"].drop(columns=["side"])
+        home_bn = home_bn.rename(columns={c: f"{c}_h" for c in bn_cols})
+        away_bn = away_bn.rename(columns={c: f"{c}_a" for c in bn_cols})
+        g = g.merge(home_bn, on="game_pk", how="left")
+        g = g.merge(away_bn, on="game_pk", how="left")
+        for c in bn_cols:
             h = f"{c}_h"; a = f"{c}_a"
             if h in g.columns and a in g.columns:
                 g[f"{c}_diff"] = g[h] - g[a]
@@ -264,9 +362,30 @@ def build() -> Path:
             seen.add(c)
             keep.append(c)
     out_df = g[keep].copy()
+
+    # Drop low-signal noise features (|corr with home_win| < 0.01 across all seasons).
+    # Walk-forward showed pruning these 20 features improves ACC +3.8pp and ROI +3.2pp.
+    _DROP = {
+        "days_since_last_game_h", "days_since_last_game_a",
+        "def_barrel_rate_l30_h", "off_barrel_rate_l30_a",
+        "starter_days_rest_h", "starter_days_rest_diff",
+        "starter_spin_mean_l15_a", "starter_spin_mean_l15_diff",
+        "bullpen_ip_l1d_diff", "bullpen_ip_l3d_diff",
+        "cb_max_def_l30_h", "cb_win_rate_l30_a",
+        "lineup_n_with_data_h", "lineup_n_with_data_a", "lineup_n_with_data_diff",
+        "park_off_xwoba_h", "park_def_xwoba_a",
+        "series_game_number",
+        "ump_consistency", "ump_games",
+    }
+    drop_present = [c for c in _DROP if c in out_df.columns]
+    if drop_present:
+        out_df = out_df.drop(columns=drop_present)
+        print(f"pruned {len(drop_present)} low-signal features")
+
     out = PROCESSED / "train.parquet"
     out_df.to_parquet(out, index=False)
-    print(f"wrote {out} ({len(out_df):,} rows, {len(feature_cols)} features)")
+    actual_feat_cols = [c for c in out_df.columns if c not in keep_base]
+    print(f"wrote {out} ({len(out_df):,} rows, {len(actual_feat_cols)} features)")
     return out
 
 

@@ -147,6 +147,10 @@ def build() -> Path:
             "runs_scored_l10", "runs_allowed_l10", "run_diff_l10", "win_pct_l30",
             "off_xwoba_l30", "off_barrel_rate_l30", "off_k_pct_l30", "off_bb_pct_l30",
             "def_xwoba_l30", "def_barrel_rate_l30", "def_k_pct_l30", "def_bb_pct_l30"]
+    # NOTE: L10 versions of xwoba/barrel/k_pct/bb_pct are also computed by the
+    # rolling step above but discarded here — they were tested in walk-forward
+    # (src/model/team_l10_walkforward.py) and degraded the model (-0.19pp acc,
+    # -1.4 AUC) due to high collinearity with the L30 variants.
     keep = [c for c in keep if c in df.columns]
     out_df = df[keep].copy()
     out = PROCESSED / "features_team.parquet"

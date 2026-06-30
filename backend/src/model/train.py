@@ -33,7 +33,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from ..normalize.paths import PROCESSED
-from .dataset import load_split
+from .dataset import load_split, CATEGORICAL_FEATURES
 
 MODELS = PROCESSED.parent / "models"
 MODELS.mkdir(parents=True, exist_ok=True)
@@ -62,22 +62,32 @@ def _baseline_logreg(X_train: pd.DataFrame, y_train: pd.Series,
 
 
 def _train_lgb_classifier(X_train, y_train, X_val, y_val) -> tuple[lgb.LGBMClassifier, dict]:
+    # Hyperparameters tuned via walk-forward (src/model/hyperparam_sweep.py):
+    # num_leaves=10 + reg=1.0 + team_id categorical wins the sweet band
+    # (10-20pp confidence, where +EV picks live):
+    #   - sweet band accuracy:  56.19% (best of 16 configs tested)
+    #   - log_loss:             0.6941 (best calibration)
+    #   - AUC:                  0.5625
+    # Trades 0.4pp overall acc vs leaves=16 for +2.3pp on the band that
+    # actually generates +EV bets.
     model = lgb.LGBMClassifier(
         n_estimators=2000,
         learning_rate=0.03,
-        num_leaves=31,
+        num_leaves=10,
         min_child_samples=40,
         reg_lambda=1.0,
-        reg_alpha=0.0,
+        reg_alpha=1.0,
         subsample=0.85,
         colsample_bytree=0.85,
         random_state=42,
         verbosity=-1,
     )
+    cat_feats = [c for c in CATEGORICAL_FEATURES if c in X_train.columns]
     model.fit(
         X_train, y_train,
         eval_set=[(X_val, y_val)],
         eval_metric="binary_logloss",
+        categorical_feature=cat_feats if cat_feats else "auto",
         callbacks=[lgb.early_stopping(50, verbose=False)],
     )
     p_val = model.predict_proba(X_val)[:, 1]
@@ -97,19 +107,22 @@ def _train_lgb_regressor(X_train, y_train, X_val, y_val) -> tuple[lgb.LGBMRegres
     model = lgb.LGBMRegressor(
         n_estimators=2000,
         learning_rate=0.03,
-        num_leaves=31,
+        num_leaves=10,
         min_child_samples=40,
         reg_lambda=1.0,
+        reg_alpha=1.0,
         subsample=0.85,
         colsample_bytree=0.85,
         random_state=42,
         objective="regression",
         verbosity=-1,
     )
+    cat_feats = [c for c in CATEGORICAL_FEATURES if c in X_train.columns]
     model.fit(
         X_train, y_train,
         eval_set=[(X_val, y_val)],
         eval_metric="l2",
+        categorical_feature=cat_feats if cat_feats else "auto",
         callbacks=[lgb.early_stopping(50, verbose=False)],
     )
     p_val = model.predict(X_val)

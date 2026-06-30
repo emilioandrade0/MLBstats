@@ -6,6 +6,11 @@
 <title>STRIKECAST · Predicciones MLB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.mlbstatic.com">
+<link rel="dns-prefetch" href="https://statsapi.mlb.com">
+<link rel="dns-prefetch" href="https://a.espncdn.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Anton&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -78,6 +83,15 @@
     70%  { box-shadow: 0 0 0 12px rgba(81,207,102,0); }
     100% { box-shadow: 0 0 0 0 rgba(81,207,102,0); }
   }
+  /* Insight panel slide-in animation for the Hoy expandable row */
+  @keyframes panelIn {
+    0%   { opacity: 0; transform: translateX(-12px) scaleX(0.92); transform-origin: left center; max-width: 0; }
+    60%  { opacity: 1; }
+    100% { opacity: 1; transform: translateX(0) scaleX(1); max-width: 420px; }
+  }
+  /* Hoy expandable row — invisible scrollbar, mouse wheel → horizontal scroll */
+  .hoy-row { scrollbar-width: none; -ms-overflow-style: none; }
+  .hoy-row::-webkit-scrollbar { display: none; width: 0; height: 0; }
   /* Scroll snap container */
   .snap-container { scroll-snap-type: y mandatory; overflow-y: auto; height: 100vh; }
   .snap-section { scroll-snap-align: start; min-height: 100vh; }
@@ -124,8 +138,10 @@ const SECTIONS = [
   { id:'envivo',  label:'En vivo' },
   { id:'valor',   label:'+EV' },
   { id:'final',   label:'Resultados' },
-  { id:'resumen', label:'Resumen' },
-  { id:'modelo',  label:'Modelo' },
+  { id:'resumen',  label:'Resumen' },
+  { id:'ranking',  label:'Ranking' },
+  { id:'remontas', label:'Remontas' },
+  { id:'modelo',   label:'Modelo' },
 ];
 
 // ─── THREE.JS PARTICLE SPHERE (cursor-reactive) ──────────────────────────────
@@ -320,6 +336,21 @@ function RefreshIndicator() {
 }
 
 // ─── GAME CARD ───────────────────────────────────────────────────────────────
+function displayMlPick(g) {
+  const evGrade = g.ev_grade || 'no_data';
+  const valueShown = (evGrade === 'sweet' || evGrade === 'marginal') && g.value_team_abbrev;
+  const team = valueShown ? g.value_team_abbrev : g.pick_abbrev;
+  const side = valueShown ? g.value_side
+    : team === g.home_abbrev ? 'HOME'
+    : team === g.away_abbrev ? 'AWAY'
+    : null;
+  const decimal = valueShown ? g.value_decimal
+    : team === g.home_abbrev ? g.market_home_decimal
+    : team === g.away_abbrev ? g.market_away_decimal
+    : null;
+  return { team, side, decimal, valueShown };
+}
+
 function GameCard({ g, onOpen, index = 0 }) {
   const ref = useRef(null);
   useLayoutEffect(() => {
@@ -339,12 +370,12 @@ function GameCard({ g, onOpen, index = 0 }) {
   const isSweet = evGrade === 'sweet';
   const isMarginal = evGrade === 'marginal';
   const isPlayable = isSweet || isMarginal;
-  const valueShown = isPlayable && g.value_team_abbrev;
-  const pickAbbr = valueShown ? g.value_team_abbrev : g.pick_abbrev;
-  const pickDec  = valueShown ? g.value_decimal
-                   : (g.pick_abbrev === g.home_abbrev ? g.market_home_decimal : g.market_away_decimal);
+  const shownPick = displayMlPick(g);
+  const valueShown = shownPick.valueShown;
+  const pickAbbr = shownPick.team;
+  const pickDec  = shownPick.decimal;
   const homeWon = (g.home_score != null && g.away_score != null) ? g.home_score > g.away_score : null;
-  const pickedHome = valueShown ? g.value_side === 'HOME' : pickAbbr === g.home_abbrev;
+  const pickedHome = shownPick.side === 'HOME';
   const verdict = !isFinal || homeWon == null ? null
                   : ((pickedHome === homeWon) ? 'win' : 'loss');
   const accentBorder =
@@ -385,8 +416,13 @@ function GameCard({ g, onOpen, index = 0 }) {
     slotProfile === 'flip_zone' ? '#FFD43B' :
     slotProfile === 'market_sharp' ? '#4DABF7' :
     slotProfile === 'model_strong' ? '#51CF66' : '#4DABF7';
-  const awayPct = Math.max(0, Math.min(100, (g.p_away || 0.5) * 100));
-  const homePct = Math.max(0, Math.min(100, (g.p_home || 0.5) * 100));
+  // Live ESPN WP overrides the pregame model number when game is in progress
+  // or final. Falls back to model for upcoming games.
+  const cardLiveWP = g.live_p_home != null && (isLive || isFinal);
+  const cardPHome = cardLiveWP ? g.live_p_home : g.p_home;
+  const cardPAway = cardPHome != null ? (1 - cardPHome) : g.p_away;
+  const awayPct = Math.max(0, Math.min(100, (cardPAway || 0.5) * 100));
+  const homePct = Math.max(0, Math.min(100, (cardPHome || 0.5) * 100));
   const pickTone =
     isSweet ? 'from-accent-green/20 to-accent-green/[0.04] text-accent-green border-accent-green/45' :
     isMarginal ? 'from-accent-blue/20 to-accent-blue/[0.04] text-accent-blue border-accent-blue/45' :
@@ -431,7 +467,8 @@ function GameCard({ g, onOpen, index = 0 }) {
             <img src={teamLogo(g.away_abbrev)} alt={g.away_abbrev} className="w-16 h-16 object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)]" onError={(e)=>e.target.style.opacity=0.2}/>
           </div>
           <div className="mega text-[31px] leading-none tracking-tight">{g.away_abbrev}</div>
-          <div className="text-[11px] text-white/48 mt-2 tabular-nums font-bold">{fmtPct(g.p_away)}</div>
+          <div className="text-[12px] mt-2 tabular-nums font-bold text-white/70">{g.p_away != null ? (g.p_away*100).toFixed(1)+'%' : '—'}</div>
+          {cardLiveWP && <div className="text-[10px] tabular-nums text-accent-green/65 mt-0.5">{fmtPct(cardPAway)} vivo</div>}
         </div>
         {(isLive || isFinal) ? (
           <div className="flex flex-col items-center bg-ink-0/85 border border-white/[0.08] rounded-2xl px-5 py-3 shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
@@ -451,14 +488,22 @@ function GameCard({ g, onOpen, index = 0 }) {
             <img src={teamLogo(g.home_abbrev)} alt={g.home_abbrev} className="w-16 h-16 object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)]" onError={(e)=>e.target.style.opacity=0.2}/>
           </div>
           <div className="mega text-[31px] leading-none tracking-tight">{g.home_abbrev}</div>
-          <div className="text-[11px] text-white/48 mt-2 tabular-nums font-bold">{fmtPct(g.p_home)}</div>
+          <div className="text-[12px] mt-2 tabular-nums font-bold text-white/70">{g.p_home != null ? (g.p_home*100).toFixed(1)+'%' : '—'}</div>
+          {cardLiveWP && <div className="text-[10px] tabular-nums text-accent-green/65 mt-0.5">{fmtPct(cardPHome)} vivo</div>}
         </div>
       </div>
+      {(g.pitcher_away?.name || g.pitcher_home?.name) && (
+        <div className="text-center text-[9px] text-white/32 tracking-wide -mt-2 mb-3">
+          <span>{g.pitcher_away?.name ? g.pitcher_away.name.split(' ').pop() : '—'}{g.pitcher_away?.throws ? ` (${g.pitcher_away.throws})` : ''}</span>
+          <span className="mx-2 text-white/18">vs</span>
+          <span>{g.pitcher_home?.name ? g.pitcher_home.name.split(' ').pop() : '—'}{g.pitcher_home?.throws ? ` (${g.pitcher_home.throws})` : ''}</span>
+        </div>
+      )}
 
       <div className="relative mb-4">
         <div className="flex items-center justify-between text-[9px] tracking-[0.18em] uppercase text-white/32 font-black mb-2">
           <span>{g.away_abbrev}</span>
-          <span>Win probability</span>
+          <span>{cardLiveWP ? 'Win prob · vivo' : 'Modelo'}</span>
           <span>{g.home_abbrev}</span>
         </div>
         <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.06] ring-1 ring-white/[0.04]">
@@ -503,6 +548,15 @@ function GameCard({ g, onOpen, index = 0 }) {
         {g.ev_grade_reason === 'low_conf_market' && (
           <span className="text-[10px] text-accent-blue/75 uppercase tracking-wider">(modelo dudaba — sigue mercado)</span>
         )}
+        {g.ev_grade_reason === 'fav_band_market' && (
+          <span className="text-[10px] text-accent-blue/75 uppercase tracking-wider">(fav 1.50–1.80 — sigue mercado)</span>
+        )}
+        {g.ev_grade_reason?.startsWith('rule_lab_') && (
+          <span className="text-[10px] text-accent-blue/75 uppercase tracking-wider">(rule lab — accuracy)</span>
+        )}
+        {g.ev_grade_reason === 'accuracy_holdout_skip' && (
+          <span className="text-[10px] text-white/35 uppercase tracking-wider">(holdout skip)</span>
+        )}
         {g.ev_grade_reason === 'slot_sharp' && (
           <span className="text-[10px] text-accent-blue/75 uppercase tracking-wider">(slot MKT — sigue mercado)</span>
         )}
@@ -512,8 +566,736 @@ function GameCard({ g, onOpen, index = 0 }) {
         {g.ev_grade_reason === 'dog_46_48' && (
           <span className="text-[10px] text-accent-gold/80 uppercase tracking-wider">(dog 46-48% override)</span>
         )}
+        {valueShown && g.value_side && g.p_home != null && g.market_home_implied != null && (
+          <div className="w-full mt-2 text-[9px] tabular-nums text-white/30">
+            {(() => {
+              const pm = g.value_side === 'HOME' ? g.p_home : 1 - g.p_home;
+              const pk = g.value_side === 'HOME' ? g.market_home_implied : g.market_away_implied;
+              if (pm == null || pk == null) return null;
+              return `Modelo ${(pm*100).toFixed(1)}% · Mercado ${(pk*100).toFixed(1)}%`;
+            })()}
+          </div>
+        )}
+      </div>
+
+      {/* ── Mercados adicionales ─────────────────────────────── */}
+      {(() => {
+        const fmtML = (v) => v == null ? null : (v > 0 ? `+${Math.round(v)}` : `${Math.round(v)}`);
+        const ouLine    = g.total_close ?? g.market_total;
+        const hasOU     = ouLine != null || g.over_odds != null;
+        const hasRL     = g.run_line != null;
+        const hasK      = g.proj_k_away != null || g.proj_k_home != null;
+        if (!hasOU && !hasRL && !hasK) return null;
+
+        // ── O/U model pick ────────────────────────────────────────────────────
+        const ouEdge    = (g.pred_total != null && ouLine != null) ? g.pred_total - ouLine : null;
+        const ouPick    = ouEdge != null ? (ouEdge > 0.5 ? 'OVER' : ouEdge < -0.5 ? 'UNDER' : null) : null;
+        const ouPickCls = ouPick === 'OVER'  ? 'text-accent-green font-black' :
+                          ouPick === 'UNDER' ? 'text-accent-blue font-black'  : '';
+
+        // ── O/U result (final games only) ─────────────────────────────────────
+        const isFinalScored = g.is_played && g.home_score != null && g.away_score != null;
+        const actualTotal   = isFinalScored ? g.home_score + g.away_score : null;
+        const ouResult = (() => {
+          if (!ouPick || !isFinalScored || ouLine == null) return null;
+          if (actualTotal === ouLine) return 'push';
+          const hit = ouPick === 'OVER' ? actualTotal > ouLine : actualTotal < ouLine;
+          return hit ? 'win' : 'loss';
+        })();
+
+        // ── Run line recommendation: AWAY +1.5 (base-rate heuristic) ─────────
+        // Walk-forward eval: lean from ML 47.4%, dedicated model 60.7%,
+        // "always AWAY +1.5" wins both at 64.3%. So we just recommend the dog.
+        const fmtRL = (v) => v == null ? null : (v > 0 ? `+${v}` : `${v}`);
+        const awayRLVal = g.run_line;
+        const homeRLVal = g.run_line != null ? -g.run_line : null;
+        // run_line is the away team's spread. The dog is whichever side has +1.5
+        const rlLean = (() => {
+          if (g.run_line == null) return null;
+          const awayIsDog = g.run_line > 0;  // away +1.5 → away dog
+          const team = awayIsDog ? g.away_abbrev : g.home_abbrev;
+          const side = awayIsDog ? g.run_line : Math.abs(g.run_line);  // always +1.5
+          return { team, side, pickHome: !awayIsDog };
+        })();
+
+        // ── RL result (final games only): does the dog cover +1.5? ────────────
+        const rlResult = (() => {
+          if (!rlLean || !isFinalScored) return null;
+          const homeMargin = g.home_score - g.away_score;
+          // Dog +1.5 covers iff fav does NOT win by 2+
+          const covered = rlLean.pickHome
+            ? homeMargin >= -1   // home dog: covers unless away wins by 2+
+            : homeMargin <= 1;   // away dog: covers unless home wins by 2+
+          return covered ? 'win' : 'loss';
+        })();
+
+        const verdictBadge = (res) =>
+          res === 'win'  ? <span className="text-[9px] font-black text-accent-green ml-1">✓</span> :
+          res === 'loss' ? <span className="text-[9px] font-black text-accent-red ml-1">✗</span> :
+          res === 'push' ? <span className="text-[9px] text-white/40 ml-1">~</span> : null;
+
+        return (
+          <div className="mt-3 pt-3 border-t border-white/[0.05] grid grid-cols-3 gap-3 text-center">
+
+            {/* ── Total O/U ── */}
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[8px] tracking-[0.2em] uppercase text-white/28 font-black">Total</div>
+              {hasOU ? (
+                <>
+                  {ouLine != null && (
+                    <div className="text-[12px] font-black text-white/75 tabular-nums">{ouLine.toFixed(1)}</div>
+                  )}
+                  {(g.over_odds != null || g.under_odds != null) && (
+                    <div className="text-[9px] tabular-nums text-white/38">
+                      O {fmtML(g.over_odds) ?? '—'} · U {fmtML(g.under_odds) ?? '—'}
+                    </div>
+                  )}
+                  {ouPick && (
+                    <div className={`text-[10px] tracking-wider uppercase mt-0.5 flex items-center justify-center gap-0.5 ${ouPickCls}`}>
+                      {ouPick === 'OVER' ? '↑' : '↓'} {ouPick}
+                      {ouEdge != null && <span className="text-[8px] opacity-70">({ouEdge > 0 ? '+' : ''}{ouEdge.toFixed(1)})</span>}
+                      {verdictBadge(ouResult)}
+                    </div>
+                  )}
+                  {isFinalScored && ouLine != null && (() => {
+                    const over = actualTotal > ouLine;
+                    const under = actualTotal < ouLine;
+                    const push = actualTotal === ouLine;
+                    const cls = over ? 'text-accent-green/75' : under ? 'text-accent-blue/75' : 'text-white/35';
+                    const label = over ? 'OVER' : under ? 'UNDER' : 'PUSH';
+                    return (
+                      <div className={`text-[8px] font-black uppercase tabular-nums mt-0.5 ${cls}`}>
+                        {actualTotal} {over ? '>' : under ? '<' : '='} {ouLine.toFixed(1)} · {label}
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : <div className="text-[10px] text-white/22">—</div>}
+            </div>
+
+            {/* ── Run Line ── */}
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[8px] tracking-[0.2em] uppercase text-white/28 font-black">Run Line</div>
+              {hasRL ? (
+                <>
+                  <div className="text-[9px] tabular-nums text-white/50">
+                    {g.away_abbrev} {fmtRL(awayRLVal)}
+                  </div>
+                  <div className="text-[9px] tabular-nums text-white/50">
+                    {g.home_abbrev} {fmtRL(homeRLVal)}
+                    {g.home_rl_odds != null && <span className="text-white/30 ml-1">({fmtML(g.home_rl_odds)})</span>}
+                  </div>
+                  {rlLean && (
+                    <>
+                      <div className="text-[10px] font-black text-accent-gold/85 tracking-wider uppercase mt-0.5 flex items-center justify-center gap-0.5">
+                        → {rlLean.team} {fmtRL(rlLean.side)}
+                        {verdictBadge(rlResult)}
+                      </div>
+                      <div className="text-[7px] text-white/22 tracking-wider uppercase">Dog +1.5 · 64% hist.</div>
+                    </>
+                  )}
+                  {isFinalScored && rlLean && (
+                    <div className="text-[8px] text-white/28 tabular-nums">
+                      {g.away_abbrev} {g.away_score} · {g.home_abbrev} {g.home_score}
+                    </div>
+                  )}
+                </>
+              ) : <div className="text-[10px] text-white/22">—</div>}
+            </div>
+
+            {/* ── Ks Est. ── */}
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[8px] tracking-[0.2em] uppercase text-white/28 font-black">Ks Est.</div>
+              {hasK ? (
+                <>
+                  <div className="text-[9px] tabular-nums text-white/55">
+                    {g.away_abbrev} {g.proj_k_away?.toFixed(1) ?? '—'}
+                  </div>
+                  <div className="text-[9px] tabular-nums text-white/55">
+                    {g.home_abbrev} {g.proj_k_home?.toFixed(1) ?? '—'}
+                  </div>
+                  {g.proj_k_away != null && g.proj_k_home != null && (
+                    <div className="text-[8px] text-white/28 mt-0.5">
+                      Total ~{(g.proj_k_away + g.proj_k_home).toFixed(0)} Ks
+                    </div>
+                  )}
+                </>
+              ) : <div className="text-[10px] text-white/22">—</div>}
+            </div>
+
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ─── COMPACT CARD (used in the new expandable Hoy row) ──────────────────────
+// Narrower version of GameCard that keeps all sections visible vertically.
+function CompactCard({ g, onOpen, onHover, expanded, accent }) {
+  const isLive = g.is_live, isFinal = g.is_played;
+  const evGrade = g.ev_grade || 'no_data';
+  const isSweet = evGrade === 'sweet';
+  const isMarginal = evGrade === 'marginal';
+  const cardLiveWP = g.live_p_home != null && (isLive || isFinal);
+  const cardPHome = cardLiveWP ? g.live_p_home : g.p_home;
+  const cardPAway = cardPHome != null ? (1 - cardPHome) : g.p_away;
+  const awayPct = Math.max(0, Math.min(100, (cardPAway || 0.5) * 100));
+  const homePct = Math.max(0, Math.min(100, (cardPHome || 0.5) * 100));
+  const shownPick = displayMlPick(g);
+  const valueShown = shownPick.valueShown;
+  const pickAbbr = shownPick.team;
+  const pickDec  = shownPick.decimal;
+  const homeWon = (g.home_score != null && g.away_score != null) ? g.home_score > g.away_score : null;
+  const pickedHome = shownPick.side === 'HOME';
+  const verdict = !isFinal || homeWon == null ? null : ((pickedHome === homeWon) ? 'win' : 'loss');
+  const borderCls =
+    expanded ? 'border-accent-blue/60 shadow-[0_18px_40px_rgba(77,171,247,0.2)]' :
+    verdict === 'win' ? 'border-accent-green/45' :
+    verdict === 'loss' ? 'border-accent-red/35' :
+    isLive ? 'border-accent-green/30' : 'border-white/[0.07]';
+  const fmtML = (v) => v == null ? null : (v > 0 ? `+${Math.round(v)}` : `${Math.round(v)}`);
+  const fmtRL = (v) => v == null ? null : (v > 0 ? `+${v}` : `${v}`);
+
+  const ouLine = g.total_close ?? g.market_total;
+  const ouEdge = (g.pred_total != null && ouLine != null) ? g.pred_total - ouLine : null;
+  // Always show the model's lean (even for tiny edges). Only mark NULL when
+  // pred_total is missing entirely or the edge is literally zero.
+  const ouPick = ouEdge != null && ouEdge !== 0
+                 ? (ouEdge > 0 ? 'OVER' : 'UNDER')
+                 : null;
+  const isFinalScored = isFinal && g.home_score != null && g.away_score != null;
+  const actualTotal = isFinalScored ? g.home_score + g.away_score : null;
+  const ouResult = (!ouPick || !isFinalScored || ouLine == null) ? null :
+                   (actualTotal === ouLine ? 'push' :
+                   (ouPick === 'OVER' ? actualTotal > ouLine : actualTotal < ouLine) ? 'win' : 'loss');
+
+  // Run line — always recommend the dog (+1.5)
+  const awayRLVal = g.run_line;
+  const homeRLVal = g.run_line != null ? -g.run_line : null;
+  const rlLean = g.run_line != null ? {
+    team: g.run_line > 0 ? g.away_abbrev : g.home_abbrev,
+    side: g.run_line > 0 ? g.run_line : Math.abs(g.run_line),
+    pickHome: g.run_line < 0,
+  } : null;
+  const rlResult = (!rlLean || !isFinalScored) ? null :
+                   (rlLean.pickHome ? (g.home_score - g.away_score) >= -1
+                                    : (g.away_score - g.home_score) >= -1) ? 'win' : 'loss';
+
+  const fmtET = (iso) => {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleTimeString('en-US', {
+        timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true
+      });
+    } catch { return '—'; }
+  };
+
+  return (
+    <div
+      onMouseEnter={() => onHover?.(g.game_pk)}
+      onClick={() => onOpen(g)}
+      className={`flex-none w-[215px] rounded-[20px] border ${borderCls} cursor-pointer transition-all duration-500 relative overflow-hidden
+                  bg-[radial-gradient(circle_at_50%_0%,rgba(77,171,247,0.10),transparent_45%),linear-gradient(180deg,rgba(13,20,36,0.95),rgba(3,6,12,0.98))]
+                  shadow-[0_20px_56px_rgba(0,0,0,0.45)]
+                  ${expanded ? 'scale-[1.03] -translate-y-1' : 'hover:border-accent-blue/40 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(0,0,0,0.55)]'}`}>
+      <div className="absolute inset-x-0 top-0 h-[2px] opacity-80"
+           style={{ background:`linear-gradient(90deg, transparent, ${accent || '#4DABF7'}, transparent)` }}/>
+
+      {/* ── Header: slot+time, status ─────────────────────────────────────── */}
+      <div className="px-4 pt-4 flex items-center justify-between">
+        <div className="text-[9px] tabular-nums tracking-[0.16em] uppercase text-white/45 font-black">
+          #{g.slot || '?'} · {fmtET(g.first_pitch_utc)}
+        </div>
+        <span className={`text-[9px] tracking-[0.2em] uppercase font-black flex items-center gap-1
+          ${isLive ? 'text-accent-green' : isFinal ? 'text-white/45' : 'text-accent-blue/85'}`}>
+          {isLive && <span className="live-dot" style={{width:6,height:6}}/>}
+          {isLive ? 'Live' : isFinal ? 'Final' : 'Prox'}
+        </span>
+      </div>
+
+      {/* ── Venue ────────────────────────────────────────────────────────────── */}
+      {g.venue && (
+        <div className="px-4 mt-2 text-[8.5px] tracking-[0.22em] uppercase text-white/32 font-bold truncate text-center">
+          {g.venue}
+        </div>
+      )}
+
+      {/* ── Team logos row ──────────────────────────────────────────────────── */}
+      <div className="px-3 pt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+        <div className="flex flex-col items-center min-w-0">
+          <div className="w-[52px] h-[52px] rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shadow-inner shrink-0">
+            <img src={teamLogo(g.away_abbrev)} alt={g.away_abbrev}
+                 className="w-[44px] h-[44px] object-contain drop-shadow-[0_6px_12px_rgba(0,0,0,0.45)]" onError={(e)=>e.target.style.opacity=0.25}/>
+          </div>
+          <div className="mega text-[22px] leading-none tracking-tight mt-2.5">{g.away_abbrev}</div>
+          <div className="text-[11px] tabular-nums font-bold text-white/75 mt-1.5">{g.p_away != null ? (g.p_away*100).toFixed(1)+'%' : '—'}</div>
+          {cardLiveWP && <div className="text-[8px] tabular-nums text-accent-green/65 mt-0.5">{(cardPAway*100).toFixed(1)}% vivo</div>}
+        </div>
+        {(isLive || isFinal) ? (
+          <div className="flex flex-col items-center bg-ink-0/85 border border-white/[0.08] rounded-xl px-2 py-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.4)]">
+            <div className="text-[7.5px] tracking-[0.22em] uppercase text-white/35 font-black">{isFinal ? 'Final' : 'Live'}</div>
+            <div className="mega text-[26px] tabular-nums leading-none mt-0.5">
+              {g.away_score ?? 0}<span className="text-white/22 text-[17px] mx-1">·</span>{g.home_score ?? 0}
+            </div>
+          </div>
+        ) : (
+          <div className="relative flex items-center justify-center w-10 h-10">
+            <div className="absolute inset-0 rounded-full border border-white/[0.06] bg-white/[0.02]"/>
+            <div className="text-white/30 text-[8.5px] tracking-[0.3em] font-black">VS</div>
+          </div>
+        )}
+        <div className="flex flex-col items-center min-w-0">
+          <div className="w-[52px] h-[52px] rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shadow-inner shrink-0">
+            <img src={teamLogo(g.home_abbrev)} alt={g.home_abbrev}
+                 className="w-[44px] h-[44px] object-contain drop-shadow-[0_6px_12px_rgba(0,0,0,0.45)]" onError={(e)=>e.target.style.opacity=0.25}/>
+          </div>
+          <div className="mega text-[22px] leading-none tracking-tight mt-2.5">{g.home_abbrev}</div>
+          <div className="text-[11px] tabular-nums font-bold text-white/75 mt-1.5">{g.p_home != null ? (g.p_home*100).toFixed(1)+'%' : '—'}</div>
+          {cardLiveWP && <div className="text-[8px] tabular-nums text-accent-green/65 mt-0.5">{(cardPHome*100).toFixed(1)}% vivo</div>}
+        </div>
+      </div>
+
+      {/* ── Pitchers ─────────────────────────────────────────────────────────── */}
+      {(g.pitcher_away?.name || g.pitcher_home?.name) && (
+        <div className="px-4 pt-4 text-center text-[9px] text-white/40 tracking-wide truncate">
+          {g.pitcher_away?.name ? g.pitcher_away.name.split(' ').pop() : '—'}
+          {g.pitcher_away?.throws ? ` (${g.pitcher_away.throws})` : ''}
+          <span className="text-white/22 mx-2">vs</span>
+          {g.pitcher_home?.name ? g.pitcher_home.name.split(' ').pop() : '—'}
+          {g.pitcher_home?.throws ? ` (${g.pitcher_home.throws})` : ''}
+        </div>
+      )}
+
+      {/* ── Win prob donut ──────────────────────────────────────────────────── */}
+      <div className="px-4 pt-5 flex items-center justify-center gap-3">
+        <span className="mega text-[14px] text-accent-red/80 tabular-nums">{Math.round(awayPct)}%</span>
+        {(() => {
+          const r = 30;              // ring radius
+          const C = 2 * Math.PI * r; // circumference
+          const awayLen = (awayPct / 100) * C;
+          const homeLen = (homePct / 100) * C;
+          return (
+            <div className="relative flex items-center justify-center" style={{ width: 78, height: 78 }}>
+              <svg width="78" height="78" viewBox="0 0 78 78" style={{ transform: 'rotate(-90deg)' }}>
+                {/* track */}
+                <circle cx="39" cy="39" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="7"/>
+                {/* away arc — red, starts at top, going clockwise */}
+                <circle cx="39" cy="39" r={r} fill="none"
+                        stroke="#E63946" strokeWidth="7" strokeLinecap="round"
+                        strokeDasharray={`${awayLen} ${C}`} strokeDashoffset="0"/>
+                {/* home arc — blue, picks up after away */}
+                <circle cx="39" cy="39" r={r} fill="none"
+                        stroke="#4DABF7" strokeWidth="7" strokeLinecap="round"
+                        strokeDasharray={`${homeLen} ${C}`} strokeDashoffset={`-${awayLen}`}/>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-[6.5px] tracking-[0.16em] uppercase text-white/40 font-black leading-none">
+                  {cardLiveWP ? 'Vivo' : 'Modelo'}
+                </div>
+                <div className="text-[7px] tracking-[0.16em] uppercase text-white/55 font-black leading-none mt-0.5">
+                  Win Prob
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+        <span className="mega text-[14px] text-accent-blue/80 tabular-nums">{Math.round(homePct)}%</span>
+      </div>
+
+      {/* ── Pick badge ───────────────────────────────────────────────────────── */}
+      <div className="px-4 pt-4">
+        {pickAbbr && (
+          <div className={`text-[11px] text-center font-black tracking-wider uppercase rounded-xl py-2.5 px-3 border flex items-center justify-center gap-2
+            ${isSweet ? 'bg-gradient-to-r from-accent-green/20 to-accent-green/[0.04] text-accent-green border-accent-green/45' :
+              isMarginal ? 'bg-gradient-to-r from-accent-blue/20 to-accent-blue/[0.04] text-accent-blue border-accent-blue/45' :
+              evGrade === 'overconfident' ? 'bg-gradient-to-r from-accent-red/18 to-accent-red/[0.04] text-accent-red border-accent-red/40' :
+              'bg-gradient-to-r from-white/[0.08] to-white/[0.02] text-white/60 border-white/[0.10]'}`}>
+            <span className="text-[12px]">
+              {isSweet ? '◆' : isMarginal ? '◇' : evGrade === 'overconfident' ? '⚠' : '•'}
+            </span>
+            <span>
+              {isSweet ? '+EV ' : isMarginal ? '+EV LIGHT ' : evGrade === 'overconfident' ? 'RIESGO ' : ''}
+              {pickAbbr}{pickDec != null && ` @ ${pickDec.toFixed(2)}`}
+            </span>
+          </div>
+        )}
+        {verdict === 'win'  && <div className="text-[10px] text-center text-accent-green font-black mt-2 tracking-wider">✓ GANÓ</div>}
+        {verdict === 'loss' && <div className="text-[10px] text-center text-accent-red font-black mt-2 tracking-wider">✗ FALLÓ</div>}
+        {valueShown && g.value_side && g.p_home != null && g.market_home_implied != null && (
+          <div className="text-[9px] text-center text-white/35 tabular-nums mt-2">
+            {(() => {
+              const pm = g.value_side === 'HOME' ? g.p_home : 1 - g.p_home;
+              const pk = g.value_side === 'HOME' ? g.market_home_implied : g.market_away_implied;
+              if (pm == null || pk == null) return null;
+              return `Modelo ${(pm*100).toFixed(1)}% · Mercado ${(pk*100).toFixed(1)}%`;
+            })()}
+          </div>
+        )}
+      </div>
+
+      {/* ── Market grid: Total / RL / Ks ─────────────────────────────────────── */}
+      <div className="mt-4 mx-4 mb-4 pt-4 border-t border-white/[0.07] grid grid-cols-3 gap-2 text-center">
+        {/* TOTAL */}
+        <div className="flex flex-col gap-1 min-h-[110px]">
+          <div className="text-[8.5px] tracking-[0.2em] uppercase text-white/35 font-black">Total</div>
+          {ouLine != null ? (
+            <>
+              <div className="text-[15px] font-black text-white/80 tabular-nums leading-none">{ouLine.toFixed(1)}</div>
+              <div className="text-[9px] tabular-nums text-white/45 leading-tight mt-0.5">
+                O {fmtML(g.over_odds) ?? '—'}<br/>U {fmtML(g.under_odds) ?? '—'}
+              </div>
+              {ouPick && (
+                <div className={`text-[10px] font-black tracking-wider mt-auto flex items-center justify-center gap-0.5
+                  ${ouPick === 'OVER' ? 'text-accent-green' : 'text-accent-blue'}`}>
+                  {ouPick === 'OVER' ? '↑' : '↓'} {ouPick}
+                  {ouResult === 'win' && <span className="text-accent-green">✓</span>}
+                  {ouResult === 'loss' && <span className="text-accent-red">✗</span>}
+                </div>
+              )}
+              {isFinalScored && (
+                <div className={`text-[8.5px] font-black tabular-nums leading-tight
+                  ${actualTotal > ouLine ? 'text-accent-green/70' : actualTotal < ouLine ? 'text-accent-blue/70' : 'text-white/30'}`}>
+                  {actualTotal} {actualTotal > ouLine ? '>' : actualTotal < ouLine ? '<' : '='} {ouLine.toFixed(1)}
+                </div>
+              )}
+            </>
+          ) : <div className="text-[10px] text-white/22 mt-2">—</div>}
+        </div>
+        {/* RUN LINE */}
+        <div className="flex flex-col gap-1 min-h-[110px]">
+          <div className="text-[8.5px] tracking-[0.2em] uppercase text-white/35 font-black">Run Line</div>
+          {rlLean ? (
+            <>
+              <div className="text-[10px] tabular-nums text-white/60 leading-tight mt-0.5">
+                {g.away_abbrev} {fmtRL(awayRLVal)}<br/>
+                {g.home_abbrev} {fmtRL(homeRLVal)}
+              </div>
+              <div className="text-[10px] font-black text-accent-gold/85 tracking-wider mt-auto flex items-center justify-center gap-0.5">
+                → {rlLean.team} +1.5
+                {rlResult === 'win' && <span className="text-accent-green">✓</span>}
+                {rlResult === 'loss' && <span className="text-accent-red">✗</span>}
+              </div>
+              {isFinalScored && (
+                <div className="text-[8.5px] text-white/30 tabular-nums">
+                  {g.away_abbrev} {g.away_score}·{g.home_abbrev} {g.home_score}
+                </div>
+              )}
+            </>
+          ) : <div className="text-[10px] text-white/22 mt-2">—</div>}
+        </div>
+        {/* KS EST. */}
+        <div className="flex flex-col gap-1 min-h-[110px]">
+          <div className="text-[8.5px] tracking-[0.2em] uppercase text-white/35 font-black">Ks Est.</div>
+          {(g.proj_k_away != null || g.proj_k_home != null) ? (
+            <>
+              <div className="text-[10px] tabular-nums text-white/60 leading-tight mt-0.5">
+                {g.away_abbrev} {g.proj_k_away?.toFixed(1) ?? '—'}<br/>
+                {g.home_abbrev} {g.proj_k_home?.toFixed(1) ?? '—'}
+              </div>
+              {g.proj_k_away != null && g.proj_k_home != null && (
+                <div className="text-[8.5px] text-white/35 font-black mt-auto">~{Math.round(g.proj_k_away + g.proj_k_home)} Ks</div>
+              )}
+            </>
+          ) : <div className="text-[10px] text-white/22 mt-2">—</div>}
+        </div>
       </div>
     </div>
+  );
+}
+
+// ─── INSIGHT PANEL — game-story narrative (not model-talk) ───────────────────
+function InsightPanel({ g, onOpen }) {
+  if (!g) return null;
+  const fmt1 = (v) => v == null ? '—' : v.toFixed(1);
+  const fmtPct = (v) => v == null ? '—' : `${Math.round(v*100)}%`;
+  const pick   = g.value_team_abbrev || g.pick_abbrev;
+  const pickHome = pick === g.home_abbrev;
+  const dog    = pick === g.home_abbrev ? g.away_abbrev : g.home_abbrev;
+  const pickFullProb = g.p_home != null
+    ? (pickHome ? g.p_home : 1 - g.p_home) : null;
+
+  // ── 1. Pitcher matchup story ────────────────────────────────────────────────
+  const pa = g.pitcher_away?.name?.split(' ').pop();
+  const ph = g.pitcher_home?.name?.split(' ').pop();
+  const paT = g.pitcher_away?.throws;
+  const phT = g.pitcher_home?.throws;
+  const handMatchup = paT && phT
+    ? (paT === phT ? `Duelo ${paT === 'L' ? 'zurdo vs zurdo' : 'derecho vs derecho'}.`
+       : `Cruce ${paT}HP vs ${phT}HP.`)
+    : null;
+
+  // ── 2. Burn — "carne al asador" ayer ────────────────────────────────────────
+  const burnA = g.ctx_burn_away ?? 0;
+  const burnH = g.ctx_burn_home ?? 0;
+  const burnAlerts = [];
+  if (burnA >= 50) burnAlerts.push({
+    team: g.away_abbrev, score: burnA, tags: g.ctx_burn_away_tags || [],
+  });
+  if (burnH >= 50) burnAlerts.push({
+    team: g.home_abbrev, score: burnH, tags: g.ctx_burn_home_tags || [],
+  });
+
+  // ── 3. Forma reciente ───────────────────────────────────────────────────────
+  const aRuns = g.ins_runs_scored_a, hRuns = g.ins_runs_scored_h;
+  const aAllow = g.ins_runs_allowed_a, hAllow = g.ins_runs_allowed_h;
+  const aWin = g.ins_win_pct_a, hWin = g.ins_win_pct_h;
+
+  // ── 4. Weather/venue ────────────────────────────────────────────────────────
+  const temp = g.ctx_weather_temp;
+  const cond = g.ctx_weather_cond;
+  const wind = g.ctx_weather_wind;
+  const indoor = g.ctx_roof_type && /closed|dome/i.test(g.ctx_roof_type);
+  const weatherLine = indoor
+    ? 'Estadio techado · clima sin efecto.'
+    : (temp != null || cond)
+      ? [
+          temp != null ? `${Math.round(temp)}°F` : null,
+          cond,
+          wind ? `viento ${wind}` : null,
+        ].filter(Boolean).join(' · ')
+      : null;
+
+  // ── 5. Comeback resilience ──────────────────────────────────────────────────
+  const cbA = g.ins_cb_rate_a;
+  const cbH = g.ins_cb_rate_h;
+  const cbHigh = (cbA != null && cbA >= 0.25) || (cbH != null && cbH >= 0.25);
+
+  return (
+    <div className="flex-none w-[440px] rounded-2xl border border-accent-blue/40 bg-gradient-to-br from-ink-1/96 to-ink-0/98
+                    px-5 py-5 shadow-[0_22px_56px_rgba(0,0,0,0.55)] relative overflow-hidden"
+         onClick={() => onOpen(g)}
+         style={{ cursor: 'pointer' }}>
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-accent-blue to-transparent opacity-80"/>
+
+      <div className="text-[9px] tracking-[0.28em] uppercase text-accent-blue/85 font-black mb-1">
+        Análisis del partido
+      </div>
+      <div className="mega text-[20px] leading-tight mb-1">
+        {g.away_abbrev} <span className="text-white/25">@</span> {g.home_abbrev}
+      </div>
+      {pick && pickFullProb != null && (
+        <div className="text-[10px] text-white/55 mb-4">
+          Lean del modelo: <span className="text-accent-blue font-black">{pick}</span>
+          <span className="text-white/35 ml-1">({fmtPct(pickFullProb)})</span>
+        </div>
+      )}
+
+      {/* ── 1) Pitchers ─────────────────────────────────────────────── */}
+      {(pa || ph) && (
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 mb-2.5">
+          <div className="text-[8px] tracking-[0.22em] uppercase text-accent-gold/80 font-black mb-1.5">El duelo en la loma</div>
+          <div className="text-[11px] text-white/70 leading-relaxed">
+            <span className="font-black">{pa || 'TBD'}{paT && ` (${paT})`}</span>
+            <span className="text-white/30 mx-1.5">vs</span>
+            <span className="font-black">{ph || 'TBD'}{phT && ` (${phT})`}</span>
+          </div>
+          {handMatchup && <div className="text-[10px] text-white/45 mt-1">{handMatchup}</div>}
+        </div>
+      )}
+
+      {/* ── 2) Burn (carne al asador ayer) ──────────────────────────── */}
+      {burnAlerts.length > 0 && (
+        <div className="rounded-xl border border-accent-red/30 bg-accent-red/[0.06] p-3 mb-2.5">
+          <div className="text-[8px] tracking-[0.22em] uppercase text-accent-red/85 font-black mb-1.5">Carne al asador ayer</div>
+          {burnAlerts.map(b => (
+            <div key={b.team} className="text-[10.5px] text-white/70 leading-relaxed mb-0.5">
+              <span className="font-black text-accent-red">{b.team}</span>
+              <span className="text-white/40"> quemó fuerte ({b.score}/100)</span>
+              {b.tags.length > 0 && (
+                <span className="text-white/35"> — {b.tags.join(', ')}</span>
+              )}
+            </div>
+          ))}
+          <div className="text-[8.5px] text-white/35 mt-1.5 italic">
+            Histórico dice: equipos quemados ganan +3pp más al día siguiente, no menos.
+          </div>
+        </div>
+      )}
+
+      {/* ── 3) Forma reciente ───────────────────────────────────────── */}
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 mb-2.5">
+        <div className="text-[8px] tracking-[0.22em] uppercase text-accent-blue/80 font-black mb-1.5">Cómo llegan</div>
+        <div className="grid grid-cols-2 gap-3 text-[10.5px]">
+          <div className="text-white/65 leading-relaxed">
+            <span className="font-black">{g.away_abbrev}</span>
+            <span className="text-white/40"> · {aWin != null ? fmtPct(aWin) : '—'} L30</span>
+            <div className="text-[9.5px] text-white/45 mt-0.5">
+              {fmt1(aRuns)} anotadas · {fmt1(aAllow)} permitidas L10
+            </div>
+          </div>
+          <div className="text-white/65 leading-relaxed">
+            <span className="font-black">{g.home_abbrev}</span>
+            <span className="text-white/40"> · {hWin != null ? fmtPct(hWin) : '—'} L30</span>
+            <div className="text-[9.5px] text-white/45 mt-0.5">
+              {fmt1(hRuns)} anotadas · {fmt1(hAllow)} permitidas L10
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 4) Clima + venue ────────────────────────────────────────── */}
+      {weatherLine && (
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 mb-2.5">
+          <div className="text-[8px] tracking-[0.22em] uppercase text-accent-green/80 font-black mb-1.5">Condiciones</div>
+          <div className="text-[10.5px] text-white/65 leading-relaxed">{weatherLine}</div>
+          {g.venue && <div className="text-[9.5px] text-white/35 mt-0.5">{g.venue}</div>}
+        </div>
+      )}
+
+      {/* ── 5) Resilencia (comeback rate) ──────────────────────────── */}
+      {cbHigh && (
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 mb-2.5">
+          <div className="text-[8px] tracking-[0.22em] uppercase text-accent-gold/80 font-black mb-1.5">Resilencia</div>
+          <div className="text-[10.5px] text-white/65 leading-relaxed">
+            {cbA != null && cbA >= 0.25 && (
+              <div><span className="font-black">{g.away_abbrev}</span> remonta {fmtPct(cbA)} de sus juegos L30.</div>
+            )}
+            {cbH != null && cbH >= 0.25 && (
+              <div><span className="font-black">{g.home_abbrev}</span> remonta {fmtPct(cbH)} de sus juegos L30.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Pick recap (compact) ────────────────────────────────────── */}
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        <div className="bg-white/[0.04] rounded-lg py-2">
+          <div className="text-[7px] tracking-[0.2em] uppercase text-white/35 font-black">Total est.</div>
+          <div className="text-[12px] font-black text-white/75 tabular-nums">{g.pred_total != null ? `${g.pred_total.toFixed(1)}` : '—'}</div>
+        </div>
+        <div className="bg-white/[0.04] rounded-lg py-2">
+          <div className="text-[7px] tracking-[0.2em] uppercase text-white/35 font-black">Cuota</div>
+          <div className="text-[12px] font-black text-accent-blue tabular-nums">
+            {g.value_decimal != null ? g.value_decimal.toFixed(2) : '—'}
+          </div>
+        </div>
+        <div className="bg-white/[0.04] rounded-lg py-2">
+          <div className="text-[7px] tracking-[0.2em] uppercase text-white/35 font-black">Edge</div>
+          <div className={`text-[12px] font-black tabular-nums ${
+            g.value_edge_pp == null ? 'text-white/40' :
+            g.value_edge_pp >= 1 ? 'text-accent-green' :
+            g.value_edge_pp >= 0 ? 'text-accent-blue' : 'text-accent-red'}`}>
+            {g.value_edge_pp != null ? `${g.value_edge_pp >= 0 ? '+' : ''}${g.value_edge_pp.toFixed(1)}pp` : '—'}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 text-[8px] text-center text-white/30 tracking-wider uppercase">Click para ver detalle completo →</div>
+    </div>
+  );
+}
+
+// ─── HOY EXPANDABLE ROW — integrated header + tall book-page cards ───────────
+function HoyExpandableRow({ games, onOpen, date }) {
+  const [hoveredPk, setHoveredPk] = useState(null);
+  const rowRef = useRef(null);
+  const headRef = useRef(null);
+  const scrollRef = useRef(null);
+  const valueCount = games?.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal').length || 0;
+
+  // Convert vertical wheel to horizontal scroll while hovering the row.
+  useEffect(() => {
+    if (!games?.length) return;
+    const onWheel = (e) => {
+      const el = scrollRef.current;
+      if (!el || !el.contains(e.target)) return;
+      const dx = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+      if (dx === 0) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return;
+      const atLeftEdge  = el.scrollLeft <= 0 && dx < 0;
+      const atRightEdge = el.scrollLeft >= max && dx > 0;
+      if (atLeftEdge || atRightEdge) return;
+      e.preventDefault();
+      e.stopPropagation();
+      el.scrollLeft = Math.max(0, Math.min(max, el.scrollLeft + dx));
+    };
+    window.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    return () => window.removeEventListener('wheel', onWheel, { capture: true });
+  }, [games?.length]);
+
+  useLayoutEffect(() => {
+    if (!rowRef.current || !games?.length) return;
+    const tl = gsap.timeline();
+    if (headRef.current) {
+      tl.fromTo(headRef.current.querySelectorAll('[data-fade]'),
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.85, ease: 'power3.out', stagger: 0.08 });
+    }
+    tl.fromTo(rowRef.current.querySelectorAll('[data-card]'),
+      { opacity: 0, y: 40, scale: 0.96 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'power3.out', stagger: 0.04 },
+      "-=0.35");
+  }, [games.length, date]);
+
+  if (!games?.length) return null;
+  const hovered = games.find(g => g.game_pk === hoveredPk);
+
+  const dateObj = date ? new Date(date + 'T12:00:00') : new Date();
+  const dateStr = dateObj.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+
+  return (
+    <section
+      ref={rowRef}
+      className="min-h-screen pt-28 pb-16">
+      {/* ── Integrated header (aligned to cards row) ─────────────────────── */}
+      <div ref={headRef} className="max-w-[1900px] mx-auto px-8 mb-8">
+        <div data-fade className="text-[11px] tracking-[0.32em] uppercase font-bold text-accent-red mb-3">
+          01 · Slate del día
+        </div>
+        <div className="flex items-end justify-between gap-8 flex-wrap">
+          <h1 data-fade className="mega text-[clamp(54px,7vw,108px)] leading-[0.88]">{dateStr}</h1>
+          <div data-fade className="flex items-baseline gap-6 pb-3">
+            <div className="text-right">
+              <div className="mega text-accent-red text-[clamp(46px,5.5vw,88px)] leading-none tabular-nums">{games.length}</div>
+              <div className="text-[10px] tracking-[0.28em] uppercase text-white/40 font-black mt-1">partidos del día</div>
+            </div>
+            <div className="h-16 w-px bg-white/[0.08]"/>
+            <div>
+              <div className="mega text-accent-gold text-[clamp(46px,5.5vw,88px)] leading-none tabular-nums">{valueCount}</div>
+              <div className="text-[10px] tracking-[0.28em] uppercase text-white/40 font-black mt-1">con valor +EV</div>
+            </div>
+          </div>
+        </div>
+        <p data-fade className="text-[12px] text-white/45 max-w-[680px] mt-5 leading-relaxed">
+          Pasa el mouse sobre cualquier partido para desplegar el análisis comparativo.
+          Las cards se reorganizan suavemente para revelar las métricas, el matchup y la recomendación del modelo.
+        </p>
+      </div>
+
+      {/* ── Tall book-page cards ────────────────────────────────────────────── */}
+      <div className="max-w-[1900px] mx-auto px-8">
+        <div
+          ref={scrollRef}
+          onMouseLeave={() => setHoveredPk(null)}
+          className="flex flex-nowrap gap-4 overflow-x-auto py-6 hoy-row">
+          {games.map((g, i) => (
+            <React.Fragment key={g.game_pk}>
+              <div data-card style={{ flexShrink: 0 }}>
+                <CompactCard
+                  g={g}
+                  onOpen={onOpen}
+                  onHover={setHoveredPk}
+                  expanded={g.game_pk === hoveredPk}
+                  accent={
+                    g.ev_grade === 'sweet' ? '#51CF66' :
+                    g.ev_grade === 'marginal' ? '#4DABF7' :
+                    g.ev_grade === 'overconfident' ? '#E63946' : '#4DABF7'
+                  }
+                />
+              </div>
+              {hoveredPk === g.game_pk && (
+                <div className="animate-[panelIn_0.5s_cubic-bezier(0.2,0.8,0.2,1)]"
+                     style={{ flexShrink: 0 }}>
+                  <InsightPanel g={hovered} onOpen={onOpen} />
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -848,6 +1630,161 @@ function MiniStat({ value, suffix, decimals=0, label }) {
   );
 }
 
+// ─── BURN PANEL — "carne al asador" ──────────────────────────────────────────
+// Shows teams that burned heavy yesterday (bullpen, extra innings, comeback).
+// Historical data: heavy burns (>=65) actually correlate with +3pp WR today,
+// so this is contextual narrative, NOT a hangover prediction.
+function BurnPanel({ data }) {
+  if (!data?.burns?.length) return null;
+  // Only show teams with meaningful burn (>= 35) — anything lower is noise
+  const heavy = data.burns.filter(b => b.burn_score >= 35).slice(0, 8);
+  if (!heavy.length) return null;
+
+  const tier = (s) =>
+    s >= 65 ? { label:'CARNE AL ASADOR', color:'text-accent-red', bg:'bg-accent-red/15 border-accent-red/40' } :
+    s >= 50 ? { label:'QUEMÓ FUERTE',    color:'text-accent-gold', bg:'bg-accent-gold/12 border-accent-gold/35' } :
+              { label:'USÓ RECURSOS',    color:'text-accent-blue/80', bg:'bg-accent-blue/10 border-accent-blue/30' };
+
+  return (
+    <section className="max-w-[1600px] mx-auto px-10 py-8">
+      <div className="flex items-baseline justify-between mb-4">
+        <div>
+          <div className="text-[10px] tracking-[0.32em] uppercase text-white/35 font-bold mb-1">Ayer en MLB</div>
+          <h3 className="mega text-[28px] leading-none">¿Quién metió<br/>la carne al asador?</h3>
+        </div>
+        <div className="text-[10px] text-white/35 max-w-[280px] text-right">
+          Bullpen quemado, extras, comebacks dramáticos. <span className="text-accent-green/70">Histórico:</span> equipos con burn ≥65 ganan 53% al día siguiente (vs 50% baseline).
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {heavy.map(b => {
+          const t = tier(b.burn_score);
+          const wonBadge = b.won_today === 1 ? <span className="text-[9px] font-black text-accent-green">✓ ganó hoy</span> :
+                          b.won_today === 0 ? <span className="text-[9px] font-black text-accent-red">✗ perdió hoy</span> :
+                          <span className="text-[9px] text-white/35">aún no juega</span>;
+          const tags = [];
+          if (b.extra_innings) tags.push('Extras');
+          if (b.long_game)     tags.push('Largo');
+          if (b.used_closer)   tags.push('Cerrador');
+          if (b.comeback)      tags.push('Comeback');
+          return (
+            <div key={b.team} className={`rounded-xl border ${t.bg} p-4`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <img src={teamLogo(b.team)} alt={b.team}
+                       className="w-10 h-10 object-contain" onError={(e)=>e.target.style.opacity=0.25}/>
+                  <div>
+                    <div className="mega text-[20px] leading-none">{b.team}</div>
+                    <div className={`text-[8px] tracking-[0.18em] uppercase font-black mt-1 ${t.color}`}>{t.label}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`mega text-[24px] tabular-nums leading-none ${t.color}`}>{b.burn_score.toFixed(0)}</div>
+                  <div className="text-[8px] text-white/35 tracking-wider uppercase mt-0.5">burn</div>
+                </div>
+              </div>
+              <div className="text-[10px] tabular-nums text-white/55 mt-2 leading-relaxed">
+                BP {b.bullpen_ip_yest?.toFixed(1) ?? '—'} inn · {b.bullpen_apps_yest ?? '—'} pitchers
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {tags.map(t => (
+                    <span key={t} className="text-[8px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tracking-wider uppercase">{t}</span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                <span className="text-[8px] text-white/35 tabular-nums">
+                  desc. {b.days_rest ?? '—'}d
+                </span>
+                {wonBadge}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ─── YESTERDAY BANNER ────────────────────────────────────────────────────────
+function YesterdayBanner({ data }) {
+  if (!data?.recent?.length) return null;
+  const yd = new Date(); yd.setDate(yd.getDate() - 1);
+  const ydStr = yd.toISOString().split('T')[0];
+  const picks = data.recent.filter(r => r.date === ydStr && r.value_profit != null);
+  if (!picks.length) return null;
+  const won = picks.filter(r => r.value_won).length;
+  const units = picks.reduce((s, r) => s + (r.value_profit || 0), 0);
+  const positive = units >= 0;
+  return (
+    <div className="mx-10 mb-2 -mt-2 flex items-center gap-4 px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-[11px]">
+      <span className="text-white/40 uppercase tracking-[0.22em] font-black text-[9px]">Ayer</span>
+      <span className="font-black text-white/80">{won}-{picks.length - won}</span>
+      <span className={`font-black tabular-nums ${positive ? 'text-accent-green' : 'text-accent-red'}`}>
+        {positive ? '+' : ''}{units.toFixed(2)} u
+      </span>
+      <span className="text-white/28 text-[9px]">picks +EV · {ydStr}</span>
+    </div>
+  );
+}
+
+// ─── BANKROLL CHART ──────────────────────────────────────────────────────────
+function BankrollChart({ rows }) {
+  const picks = [...rows].filter(r => r.value_profit != null).sort((a, b) => a.date > b.date ? 1 : -1);
+  if (picks.length < 3) return null;
+  const START = 1000, FLAT = 100;
+  let bk = START;
+  const pts = picks.map(r => { bk += r.value_profit * FLAT; return { bk, won: r.value_won, date: r.date }; });
+  const final = pts[pts.length - 1]?.bk ?? START;
+  const pnl = final - START;
+  const positive = pnl >= 0;
+  const W = 340, H = 80;
+  const minV = Math.min(START * 0.88, ...pts.map(p => p.bk));
+  const maxV = Math.max(START * 1.12, ...pts.map(p => p.bk));
+  const range = maxV - minV || 1;
+  const toX = i => (i / (pts.length - 1)) * W;
+  const toY = v => H - ((v - minV) / range * H);
+  const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.bk).toFixed(1)}`).join(' ');
+  const color = positive ? '#51CF66' : '#E63946';
+  return (
+    <div data-fade className="glass border border-white/[0.06] rounded-[28px] p-7 mt-5">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.28em] text-white/45 font-black mb-1">Simulador de bankroll</div>
+          <div className="text-[10px] text-white/30">$100 plano por pick +EV · inicio $1,000</div>
+        </div>
+        <div className="text-right">
+          <div className={`text-3xl tabular-nums font-black ${positive ? 'text-accent-green' : 'text-accent-red'}`}>${final.toFixed(0)}</div>
+          <div className={`text-[11px] font-black tabular-nums ${positive ? 'text-accent-green/70' : 'text-accent-red/70'}`}>
+            {positive ? '+' : ''}${pnl.toFixed(0)} ({((pnl / START) * 100).toFixed(1)}%)
+          </div>
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-20 overflow-visible">
+        <defs>
+          <linearGradient id="bkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
+            <stop offset="100%" stopColor={color} stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d={`${pathD} L${W},${H} L0,${H} Z`} fill="url(#bkGrad)"/>
+        <line x1="0" y1={toY(START)} x2={W} y2={toY(START)} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="4,3"/>
+        <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round"/>
+        {pts.map((p, i) => (
+          <circle key={i} cx={toX(i)} cy={toY(p.bk)} r="2.5" fill={p.won ? '#51CF66' : '#E63946'} opacity="0.65"/>
+        ))}
+      </svg>
+      <div className="flex items-center gap-4 mt-3 text-[9px] text-white/30">
+        <span><span className="inline-block w-2 h-2 rounded-full bg-accent-green mr-1 align-middle"/>Ganó</span>
+        <span><span className="inline-block w-2 h-2 rounded-full bg-accent-red mr-1 align-middle"/>Perdió</span>
+        <span className="ml-auto">{picks.length} picks +EV totales</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── PERFORMANCE SUMMARY ────────────────────────────────────────────────────
 function PerformancePage({ data, loading, error }) {
   const wrapRef = useRef(null);
@@ -907,6 +1844,7 @@ function PerformancePage({ data, loading, error }) {
         <ComparisonPanel summary={s} />
         <RecentPerformanceTable rows={data.recent || []} />
       </div>
+      <BankrollChart rows={data.recent || []} />
     </div>
   );
 }
@@ -1041,6 +1979,405 @@ function RecentPerformanceTable({ rows }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── REMONTAS ────────────────────────────────────────────────────────────────
+function RemontasPage({ data, loading, season, onSeasonChange }) {
+  const wrapRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!wrapRef.current || !data) return;
+    gsap.fromTo(wrapRef.current.querySelectorAll('[data-fade]'),
+      { opacity: 0, y: 22 },
+      { opacity: 1, y: 0, duration: 0.65, ease: 'power3.out', stagger: 0.05 });
+  }, [data]);
+
+  const [view, setView] = React.useState('teams'); // 'teams' | 'daily' | 'weekly'
+
+  if (loading || !data) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-10 pb-24 pt-10">
+        <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/45 tracking-[0.22em] uppercase text-xs animate-pulse">
+          Calculando remontas…
+        </div>
+      </div>
+    );
+  }
+
+  const tabs = [
+    { id: 'teams',  label: 'Equipos' },
+    { id: 'daily',  label: 'Por día' },
+    { id: 'weekly', label: 'Semanas' },
+  ];
+
+  const teamList = data.team_stats || [];
+  const dailyList = data.daily || [];
+  const weeklyList = data.weekly || [];
+
+  const cbPct = data.overall_cb_pct ?? 0;
+
+  return (
+    <div ref={wrapRef} className="max-w-[1400px] mx-auto px-10 pb-24">
+      {/* Header */}
+      <div data-fade className="flex items-end justify-between mb-8 pt-2">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.32em] text-accent-gold mb-3 font-bold">Remontas</div>
+          <h2 className="mega text-[clamp(40px,6vw,90px)] leading-[0.9]">
+            {cbPct.toFixed(1)}%<br/>
+            <span className="text-white/30 text-[0.55em]">de juegos tienen remontada</span>
+          </h2>
+          <div className="text-white/38 text-sm mt-3">{data.total_comebacks?.toLocaleString()} remontas en {data.total_games?.toLocaleString()} juegos · temporada {season}</div>
+        </div>
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex gap-2">
+            {[2023, 2024, 2025, 2026].map(y => (
+              <button key={y} onClick={() => onSeasonChange(y)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase border transition-all
+                  ${season === y ? 'bg-accent-gold/15 border-accent-gold/45 text-accent-gold' : 'border-white/10 text-white/35 hover:border-white/25'}`}>
+                {y}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setView(t.id)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase border transition-all
+                  ${view === t.id ? 'bg-white/10 border-white/25 text-white' : 'border-white/[0.06] text-white/35 hover:border-white/18'}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* TEAMS VIEW */}
+      {view === 'teams' && (
+        <div data-fade className="space-y-2">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-3 px-4 pb-2 text-[9px] uppercase tracking-[0.22em] text-white/30 font-black">
+            <span>Equipo</span>
+            <span className="text-right">Remontas</span>
+            <span className="text-right">Tasa</span>
+            <span className="text-right">Def. prom</span>
+            <span className="text-right">Def. max</span>
+            <span className="text-right">Mejor momio</span>
+          </div>
+          {teamList.map((t, i) => {
+            const isTop = i < 5;
+            return (
+              <div key={t.abbrev} data-fade
+                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-3 items-center px-4 py-3 rounded-2xl border
+                  ${isTop ? 'bg-accent-gold/[0.04] border-accent-gold/20' : 'bg-white/[0.02] border-white/[0.05]'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-[9px] text-white/25 tabular-nums w-4">{i+1}</span>
+                  <img src={`https://www.mlbstatic.com/team-logos/${_teamIdFromAbbrev(t.abbrev) || 0}.svg`}
+                    className="w-6 h-6 object-contain opacity-80" onError={e => e.target.style.display='none'}/>
+                  <span className="font-black text-white/90">{t.abbrev}</span>
+                </div>
+                <div className="text-right font-black tabular-nums text-white/85">{t.comebacks}</div>
+                <div className="text-right tabular-nums">
+                  <span className={`font-black ${t.cb_rate >= 0.45 ? 'text-accent-green' : t.cb_rate >= 0.35 ? 'text-white/70' : 'text-white/40'}`}>
+                    {(t.cb_rate * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="text-right tabular-nums text-white/55">{t.avg_deficit.toFixed(1)} <span className="text-white/25 text-[9px]">runs</span></div>
+                <div className="text-right tabular-nums text-white/55">{t.max_deficit} <span className="text-white/25 text-[9px]">runs</span></div>
+                <div className="text-right tabular-nums">
+                  {t.best_momio ? (
+                    <span className="text-accent-gold font-black">{t.best_momio.toFixed(2)}</span>
+                  ) : <span className="text-white/20">—</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* DAILY VIEW */}
+      {view === 'daily' && (
+        <div data-fade className="space-y-3">
+          {dailyList.slice(0, 60).map(d => (
+            <div key={d.date} className="glass border border-white/[0.06] rounded-2xl px-5 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-black text-white/75 tabular-nums">{d.date}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-white/35">{d.games} juegos</span>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black tabular-nums
+                    ${d.comebacks === 0 ? 'bg-accent-red/10 text-accent-red/70 border border-accent-red/20'
+                    : d.cb_pct >= 50 ? 'bg-accent-green/10 text-accent-green border border-accent-green/20'
+                    : 'bg-white/[0.05] text-white/55 border border-white/[0.08]'}`}>
+                    {d.comebacks === 0 ? 'Sin remontas' : `${d.comebacks} remontas · ${d.cb_pct}%`}
+                  </span>
+                </div>
+              </div>
+              {d.highlights.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {d.highlights.map((h, i) => (
+                    <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.035] border border-white/[0.07] text-[10px]">
+                      <span className="font-black text-accent-gold">{h.winner}</span>
+                      <span className="text-white/30">vs</span>
+                      <span className="text-white/45">{h.loser}</span>
+                      <span className="text-white/20 mx-1">·</span>
+                      <span className="text-white/55">{h.score}</span>
+                      {h.deficit > 0 && <span className="text-accent-red/70 font-black ml-1">-{h.deficit}R</span>}
+                      {h.decimal_at_worst && <span className="text-accent-blue/70 ml-1">@{h.decimal_at_worst}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* WEEKLY VIEW */}
+      {view === 'weekly' && (
+        <div data-fade className="space-y-2">
+          {weeklyList.map(w => {
+            const pct = w.cb_pct;
+            const isHot = pct >= 50;
+            const isDead = w.comebacks === 0;
+            return (
+              <div key={w.week_start}
+                className={`flex items-center gap-4 px-5 py-4 rounded-2xl border
+                  ${isDead ? 'bg-accent-red/[0.04] border-accent-red/20'
+                  : isHot  ? 'bg-accent-green/[0.04] border-accent-green/20'
+                  : 'bg-white/[0.025] border-white/[0.06]'}`}>
+                <div className="w-28 text-[11px] font-black text-white/65 tabular-nums">{w.week_start}</div>
+                <div className="flex-1">
+                  <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${isDead ? 'bg-accent-red/40' : isHot ? 'bg-accent-green/60' : 'bg-accent-blue/50'}`}
+                      style={{ width: `${Math.min(100, pct)}%` }}/>
+                  </div>
+                </div>
+                <div className={`w-14 text-right text-sm font-black tabular-nums ${isDead ? 'text-accent-red' : isHot ? 'text-accent-green' : 'text-white/70'}`}>
+                  {isDead ? '—' : `${pct}%`}
+                </div>
+                <div className="text-[10px] text-white/30 w-28 text-right">
+                  {w.comebacks}/{w.games} juegos
+                  {isDead && <span className="text-accent-red/60 ml-1">sin remontas</span>}
+                </div>
+                <div className="text-[10px] text-white/28 w-20 text-right tabular-nums">
+                  {w.avg_deficit > 0 ? `prom -${w.avg_deficit}R` : ''}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ERROR VULNERABILITY PAGE ────────────────────────────────────────────────
+function ErrorPage({ data, loading, season, onSeasonChange }) {
+  const wrapRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!wrapRef.current || !data) return;
+    gsap.fromTo(wrapRef.current.querySelectorAll('[data-fade]'),
+      { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out', stagger: 0.04 });
+  }, [data]);
+
+  const [sortBy, setSortBy] = React.useState('resilience'); // 'resilience' | 'avg_errors' | 'wr_with_error'
+
+  if (loading || !data) return (
+    <div className="max-w-[1400px] mx-auto px-10 pb-24 pt-10">
+      <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/45 tracking-[0.22em] uppercase text-xs animate-pulse">Calculando vulnerabilidad defensiva…</div>
+    </div>
+  );
+
+  const teams = [...(data.teams || [])].sort((a, b) => {
+    if (sortBy === 'resilience') return (b.resilience ?? -99) - (a.resilience ?? -99);
+    if (sortBy === 'avg_errors') return b.avg_errors - a.avg_errors;
+    if (sortBy === 'wr_with_error') return (b.wr_with_error ?? 0) - (a.wr_with_error ?? 0);
+    return 0;
+  });
+
+  const avgResilience = teams.reduce((s, t) => s + (t.resilience ?? 0), 0) / teams.length;
+
+  return (
+    <div ref={wrapRef} className="max-w-[1400px] mx-auto px-10 pb-24">
+      <div data-fade className="flex items-end justify-between mb-8 pt-2">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.32em] text-accent-red mb-3 font-bold">Errores defensivos</div>
+          <h2 className="mega text-[clamp(36px,5vw,80px)] leading-[0.9]">
+            Vulnerabilidad<br/><span className="text-white/30 text-[0.55em]">cuando cometen errores</span>
+          </h2>
+          <p className="text-white/38 text-sm mt-3 max-w-[520px]">
+            Con 0 errores los equipos ganan ~58%. Con 2+ errores caen a ~35%.
+            La "resiliencia" mide cuánto le afecta a cada equipo cometer errores.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex gap-2">
+            {[2023,2024,2025,2026].map(y => (
+              <button key={y} onClick={() => onSeasonChange(y)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase border transition-all
+                  ${season===y ? 'bg-accent-red/15 border-accent-red/45 text-accent-red' : 'border-white/10 text-white/35 hover:border-white/25'}`}>
+                {y}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {[['resilience','Más resilientes'],['avg_errors','Más errores'],['wr_with_error','Mejor con errores']].map(([k,l]) => (
+              <button key={k} onClick={() => setSortBy(k)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase border transition-all
+                  ${sortBy===k ? 'bg-white/10 border-white/25 text-white' : 'border-white/[0.06] text-white/35 hover:border-white/18'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Header row */}
+      <div data-fade className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.4fr] gap-3 px-4 pb-2 text-[9px] uppercase tracking-[0.22em] text-white/28 font-black">
+        <span>Equipo</span>
+        <span className="text-right">Sin errores</span>
+        <span className="text-right">Con error</span>
+        <span className="text-right">Con 2+</span>
+        <span className="text-right">Prom errores</span>
+        <span className="text-right">% juegos c/error</span>
+        <span className="text-right">Resiliencia</span>
+      </div>
+
+      {teams.filter(t => ['ATL','AZ','BAL','BOS','CHC','CIN','CLE','COL','CWS','DET',
+        'HOU','KC','LAA','LAD','MIA','MIL','MIN','NYM','NYY','OAK','ATH',
+        'PHI','PIT','SD','SEA','SF','STL','TB','TEX','TOR','WSH'].includes(t.team)).map((t, i) => {
+        const res = t.resilience ?? 0;
+        const isGood = res > avgResilience;      // less hurt than avg
+        const isBad  = res < avgResilience - 0.08;
+        const barW   = Math.max(0, Math.min(100, (res + 0.30) / 0.35 * 100));
+        return (
+          <div key={t.team} data-fade
+            className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.4fr] gap-3 items-center px-4 py-3 rounded-2xl border mb-1.5
+              ${isBad  ? 'bg-accent-red/[0.04] border-accent-red/18'
+              : isGood ? 'bg-accent-green/[0.03] border-accent-green/15'
+              : 'bg-white/[0.02] border-white/[0.05]'}`}>
+            <div className="flex items-center gap-3">
+              <span className="text-[9px] text-white/22 tabular-nums w-4">{i+1}</span>
+              <img src={`https://www.mlbstatic.com/team-logos/${_teamIdFromAbbrev(t.team)||0}.svg`}
+                className="w-6 h-6 object-contain opacity-75" onError={e=>e.target.style.display='none'}/>
+              <span className="font-black text-white/90">{t.team}</span>
+            </div>
+            <div className="text-right tabular-nums text-white/60 font-bold">{t.wr_no_error != null ? (t.wr_no_error*100).toFixed(0)+'%' : '—'}</div>
+            <div className="text-right tabular-nums font-bold text-white/80">{t.wr_with_error != null ? (t.wr_with_error*100).toFixed(0)+'%' : '—'}</div>
+            <div className={`text-right tabular-nums font-bold ${t.wr_multi_error != null && t.wr_multi_error < 0.33 ? 'text-accent-red/80' : 'text-white/55'}`}>
+              {t.wr_multi_error != null ? (t.wr_multi_error*100).toFixed(0)+'%' : '—'}
+            </div>
+            <div className="text-right tabular-nums text-white/50">{t.avg_errors.toFixed(2)}</div>
+            <div className="text-right tabular-nums text-white/45">{(t.error_game_pct*100).toFixed(0)}%</div>
+            <div className="flex items-center gap-2 justify-end">
+              <div className="w-20 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className={`h-full rounded-full ${isBad ? 'bg-accent-red/60' : isGood ? 'bg-accent-green/60' : 'bg-white/30'}`}
+                  style={{width:`${barW}%`}}/>
+              </div>
+              <span className={`tabular-nums font-black text-[11px] w-14 text-right
+                ${isBad ? 'text-accent-red' : isGood ? 'text-accent-green' : 'text-white/55'}`}>
+                {res >= 0 ? '+' : ''}{(res*100).toFixed(1)}pp
+              </span>
+            </div>
+          </div>
+        );
+      })}
+      <div data-fade className="mt-6 px-4 text-[10px] text-white/25 leading-relaxed max-w-[600px]">
+        Resiliencia = WR con error − WR sin error. Promedio histórico: −13.6pp.
+        Equipos cerca de 0 mantienen competitividad incluso cuando fallan en defensa.
+        Equipos en rojo son especialmente vulnerables — un error cambia el juego.
+      </div>
+    </div>
+  );
+}
+
+function _teamIdFromAbbrev(abbrev) {
+  const MAP = {
+    ARI:109,ATH:133,ATL:144,BAL:110,BOS:111,CHC:112,CIN:113,CLE:114,COL:115,
+    CWS:145,DET:116,HOU:117,KC:118,LAA:108,LAD:119,MIA:146,MIL:158,MIN:142,
+    NYM:121,NYY:147,OAK:133,PHI:143,PIT:134,SD:135,SEA:136,SF:137,STL:138,
+    TB:139,TEX:140,TOR:141,WSH:120,AZ:109,
+  };
+  return MAP[abbrev] || null;
+}
+
+// ─── TEAM PREDICTION RANKING ────────────────────────────────────────────────
+function TeamRankingPage({ data, loading, days, onDaysChange }) {
+  const wrapRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!wrapRef.current || !data) return;
+    gsap.fromTo(wrapRef.current.querySelectorAll('[data-fade]'),
+      { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out', stagger: 0.035 });
+  }, [data]);
+
+  if (loading || !data) return (
+    <div className="max-w-[1400px] mx-auto px-10 pt-32 pb-24">
+      <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/45 tracking-[0.22em] uppercase text-xs animate-pulse">
+        Calculando ranking del modelo…
+      </div>
+    </div>
+  );
+
+  const teams = data.teams || [];
+  const podium = teams.slice(0, 3);
+  return (
+    <div ref={wrapRef} className="max-w-[1400px] mx-auto px-10 pt-28 pb-24">
+      <div data-fade className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.32em] text-accent-gold mb-3 font-bold">Rendimiento por equipo</div>
+          <h1 className="mega text-[clamp(52px,8vw,120px)] leading-[0.88]">Ranking<br/><span className="text-white/25">de predicción.</span></h1>
+          <p className="text-white/42 text-sm mt-5 max-w-[620px]">
+            Precisión del modelo en todos los partidos donde participa cada equipo. {data.games} juegos analizados.
+          </p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {[30,60,90,180].map(period => (
+            <button key={period} onClick={() => onDaysChange(period)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-wider uppercase border transition-all
+                ${days === period ? 'bg-accent-gold/15 border-accent-gold/50 text-accent-gold' : 'border-white/[0.08] text-white/35 hover:border-white/25'}`}>
+              {period} días
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div data-fade className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {podium.map((team, index) => (
+          <div key={team.team} className={`glass rounded-[24px] border p-6 relative overflow-hidden
+            ${index === 0 ? 'border-accent-gold/40' : 'border-white/[0.07]'}`}>
+            <span className="absolute top-4 right-5 mega text-4xl text-white/[0.08]">#{team.rank}</span>
+            <img src={`https://www.mlbstatic.com/team-logos/${_teamIdFromAbbrev(team.team)||0}.svg`}
+              className="w-14 h-14 object-contain mb-5" onError={e=>e.target.style.display='none'}/>
+            <div className="text-xl font-black">{team.team}</div>
+            <div className="mega text-5xl text-accent-green mt-2">{team.accuracy?.toFixed(1)}%</div>
+            <div className="text-[11px] text-white/35 mt-2">{team.correct} aciertos de {team.games}</div>
+          </div>
+        ))}
+      </div>
+
+      <div data-fade className="overflow-x-auto glass border border-white/[0.07] rounded-[24px]">
+        <div className="min-w-[820px]">
+          <div className="grid grid-cols-[70px_1.5fr_1.4fr_1fr_1fr_1fr_1.4fr] gap-3 px-6 py-4 text-[9px] uppercase tracking-[0.2em] text-white/28 font-black">
+            <span>Pos.</span><span>Equipo</span><span>Precisión</span><span>Aciertos</span><span>Fallos</span><span>Elegido</span><span>Precisión elegido</span>
+          </div>
+          {teams.map(team => (
+            <div key={team.team} className="grid grid-cols-[70px_1.5fr_1.4fr_1fr_1fr_1fr_1.4fr] gap-3 items-center px-6 py-3 border-t border-white/[0.05] hover:bg-white/[0.025] transition-colors">
+              <span className="mega text-xl text-white/30">{team.rank}</span>
+              <div className="flex items-center gap-3">
+                <img src={`https://www.mlbstatic.com/team-logos/${_teamIdFromAbbrev(team.team)||0}.svg`} className="w-8 h-8 object-contain" onError={e=>e.target.style.display='none'}/>
+                <strong>{team.team}</strong>
+              </div>
+              <div className="flex items-center gap-3">
+                <strong className="text-accent-green tabular-nums w-14">{team.accuracy?.toFixed(1)}%</strong>
+                <div className="w-16 h-1.5 rounded-full bg-white/[0.07] overflow-hidden"><div className="h-full bg-accent-green rounded-full" style={{width:`${team.accuracy || 0}%`}}/></div>
+              </div>
+              <span className="text-accent-green font-bold tabular-nums">{team.correct}</span>
+              <span className="text-accent-red/80 font-bold tabular-nums">{team.incorrect}</span>
+              <span className="text-white/55 tabular-nums">{team.times_picked}</span>
+              <span className="text-white/70 font-bold tabular-nums">{team.picked_accuracy == null ? '—' : `${team.picked_accuracy.toFixed(1)}%`}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p data-fade className="text-[10px] text-white/25 mt-5 px-2">Periodo: {data.start} a {data.end}. Los empates se ordenan por mayor número de juegos.</p>
     </div>
   );
 }
@@ -1194,6 +2531,131 @@ function DetailPage({ pk, onBack }) {
   );
 }
 
+// ─── WIN PROBABILITY CHART ───────────────────────────────────────────────
+function WinProbabilityChart({ pk, awayAbbr, homeAbbr }) {
+  const [data, setData] = useState(null);
+  const [hover, setHover] = useState(null);
+
+  useEffect(() => {
+    if (!pk) return;
+    let alive = true;
+    const load = () => fetch(`/api/games/${pk}/win_probability?t=${Date.now()}`)
+      .then(r => r.json()).then(d => alive && setData(d)).catch(() => {});
+    load();
+    // Refresh every 30s so live games update their curve
+    const t = setInterval(load, 30000);
+    return () => { alive = false; clearInterval(t); };
+  }, [pk]);
+
+  if (!data || !data.plays || data.plays.length === 0) {
+    return (
+      <div className="rounded-2xl border border-white/[0.06] bg-ink-2/40 p-6 text-center text-[11px] tracking-[0.2em] uppercase text-white/35">
+        Sin datos de win probability
+      </div>
+    );
+  }
+
+  const plays = data.plays;
+  const W = 720, H = 240, PAD = 32;
+  const innerW = W - 2 * PAD, innerH = H - 2 * PAD;
+  const xs = (i) => PAD + (i / Math.max(1, plays.length - 1)) * innerW;
+  const ys = (p) => PAD + (1 - p) * innerH;
+
+  // Home win prob path
+  const pathHome = plays.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xs(i).toFixed(1)} ${ys(p.p_home).toFixed(1)}`).join(' ');
+  // Filled area: split into "home above 50" (blue) and "away above 50" (red)
+  const area = `${pathHome} L ${xs(plays.length-1).toFixed(1)} ${ys(0.5).toFixed(1)} L ${xs(0).toFixed(1)} ${ys(0.5).toFixed(1)} Z`;
+
+  // Inning markers
+  const innings = [];
+  let prevInning = null;
+  plays.forEach((p, i) => {
+    if (p.inning != null && p.inning !== prevInning && p.half === 'top') {
+      innings.push({ i, inning: p.inning });
+      prevInning = p.inning;
+    }
+  });
+
+  const final = plays[plays.length - 1];
+  const initial = plays[0];
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-ink-2/40 p-5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] tracking-[0.22em] uppercase text-white/55 font-bold">Win Probability · Play by Play</span>
+        <div className="flex gap-4 text-[11px] tabular-nums">
+          <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-accent-blue rounded"/><span className="text-white/65">{homeAbbr}</span><span className="text-white/40">inicio {(initial.p_home*100).toFixed(0)}%</span></span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-accent-red rounded"/><span className="text-white/65">{awayAbbr}</span></span>
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" onMouseLeave={()=>setHover(null)}>
+        {/* gridlines at 25/50/75 */}
+        {[0.25, 0.5, 0.75].map(p => (
+          <line key={p} x1={PAD} x2={W-PAD} y1={ys(p)} y2={ys(p)}
+            stroke="white" strokeOpacity={p===0.5?0.18:0.06} strokeDasharray={p===0.5?'':'2 3'}/>
+        ))}
+        {/* shaded area: above 50 = home advantage */}
+        <defs>
+          <linearGradient id="wpGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#4DABF7" stopOpacity="0.35"/>
+            <stop offset="50%" stopColor="#4DABF7" stopOpacity="0"/>
+            <stop offset="50%" stopColor="#E63946" stopOpacity="0"/>
+            <stop offset="100%" stopColor="#E63946" stopOpacity="0.35"/>
+          </linearGradient>
+        </defs>
+        <rect x={PAD} y={PAD} width={innerW} height={innerH} fill="url(#wpGrad)"/>
+        {/* inning markers */}
+        {innings.map(({i, inning}) => (
+          <g key={inning} opacity={0.55}>
+            <line x1={xs(i)} x2={xs(i)} y1={PAD} y2={H-PAD} stroke="white" strokeOpacity="0.08" strokeDasharray="2 3"/>
+            <text x={xs(i)} y={H-PAD+14} fontSize="9" fill="white" fillOpacity="0.45" textAnchor="middle" fontFamily="Inter, sans-serif">
+              {inning}
+            </text>
+          </g>
+        ))}
+        {/* main line */}
+        <path d={pathHome} fill="none" stroke="#4DABF7" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round"/>
+        {/* scoring play dots */}
+        {plays.map((p, i) => p.is_scoring && (
+          <circle key={i} cx={xs(i)} cy={ys(p.p_home)} r="3.5" fill="#FFD43B" stroke="#03060c" strokeWidth="1.2"/>
+        ))}
+        {/* hover interaction */}
+        <rect x={PAD} y={PAD} width={innerW} height={innerH} fill="transparent"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const px = (e.clientX - rect.left) * (W / rect.width);
+            const idx = Math.max(0, Math.min(plays.length-1, Math.round((px - PAD) / innerW * (plays.length-1))));
+            setHover({ idx, p: plays[idx] });
+          }}/>
+        {hover && (
+          <g pointerEvents="none">
+            <line x1={xs(hover.idx)} x2={xs(hover.idx)} y1={PAD} y2={H-PAD} stroke="#FFD43B" strokeOpacity="0.6" strokeWidth="1"/>
+            <circle cx={xs(hover.idx)} cy={ys(hover.p.p_home)} r="5" fill="#FFD43B" stroke="#03060c" strokeWidth="1.4"/>
+          </g>
+        )}
+        {/* y axis labels */}
+        <text x={PAD-6} y={ys(0.75)+3} fontSize="9" fill="white" fillOpacity="0.45" textAnchor="end" fontFamily="Inter, sans-serif">75%</text>
+        <text x={PAD-6} y={ys(0.50)+3} fontSize="9" fill="white" fillOpacity="0.45" textAnchor="end" fontFamily="Inter, sans-serif">50%</text>
+        <text x={PAD-6} y={ys(0.25)+3} fontSize="9" fill="white" fillOpacity="0.45" textAnchor="end" fontFamily="Inter, sans-serif">25%</text>
+      </svg>
+      <div className="flex items-center justify-between mt-2 text-[11px] tabular-nums">
+        <span className="text-white/45">{plays.length} jugadas</span>
+        {hover ? (
+          <span className="text-white/80">
+            Jugada {hover.idx + 1}
+            {hover.p.inning != null && ` · Inn ${hover.p.inning}${hover.p.half === 'top' ? '↑' : '↓'}`}
+            {hover.p.event && ` · ${hover.p.event}`}
+            {hover.p.away_score != null && ` · ${awayAbbr} ${hover.p.away_score}–${hover.p.home_score} ${homeAbbr}`}
+            <span className="ml-2 text-accent-blue">{homeAbbr} {(hover.p.p_home*100).toFixed(1)}%</span>
+          </span>
+        ) : (
+          <span className="text-white/55">{homeAbbr} final <span className="text-accent-blue font-bold">{(final.p_home*100).toFixed(0)}%</span></span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DetailBody({ d }) {
   const a = d.away_team, h = d.home_team;
   const ap = d.away_pitcher, hp = d.home_pitcher;
@@ -1207,6 +2669,11 @@ function DetailBody({ d }) {
   const homeRuns = (d.live_score?.home?.runs) ?? d.result.home_score;
   const hasScore = awayRuns != null && homeRuns != null;
   const hasResult = played || isLive || hasBoxScore || hasStarterActual || hasScore;
+  // Display probability: prefer live ESPN WP (updates with score) over the
+  // pregame model prediction. Falls back to model when game hasn't started.
+  const pHomeDisplay = (mdl.live_p_home != null && (isLive || hasResult)) ? mdl.live_p_home : mdl.p_home;
+  const pAwayDisplay = pHomeDisplay != null ? (1 - pHomeDisplay) : mdl.p_away;
+  const isLiveWp = mdl.live_p_home != null && (isLive || hasResult);
   // Empirical sweet spot — bet only when edge vs BOOK is in [0%, 2%].
   // edge ≥ 2pp → model overconfident, statistically loses money.
   const valueGood = v.value_side && (v.ev_grade === 'sweet' || v.ev_grade === 'marginal');
@@ -1264,7 +2731,10 @@ function DetailBody({ d }) {
             <div className="text-[10px] tracking-[0.36em] uppercase text-white/45 mb-1 font-black">{(a.name || a.abbrev).split(' ')[0]}</div>
             <div className="mega text-5xl tracking-tight text-accent-red">{(a.name || a.abbrev).split(' ').slice(1).join(' ').toUpperCase() || a.abbrev}</div>
             <div className="text-white/55 text-sm mt-2 font-medium">{a.wins ?? '–'}-{a.losses ?? '–'}</div>
-            <div className="text-accent-red font-black text-2xl mt-4 tabular-nums">{fmtPct(mdl.p_away)} <span className="text-white/40 text-[10px] tracking-[0.22em] ml-1">WIN PROB</span></div>
+            <div className="text-accent-red font-black text-2xl mt-4 tabular-nums">{fmtPct(pAwayDisplay)} <span className="text-white/40 text-[10px] tracking-[0.22em] ml-1">{isLiveWp ? 'WIN PROB · LIVE' : 'WIN PROB'}</span></div>
+            {isLiveWp && mdl.p_away != null && (
+              <div className="text-white/30 text-[10px] tracking-[0.18em] uppercase mt-1 tabular-nums">pregame {fmtPct(mdl.p_away)}</div>
+            )}
           </div>
           {/* Center */}
           <div className="flex flex-col items-center">
@@ -1293,7 +2763,10 @@ function DetailBody({ d }) {
             <div className="text-[10px] tracking-[0.36em] uppercase text-white/45 mb-1 font-black">{(h.name || h.abbrev).split(' ')[0]}</div>
             <div className="mega text-5xl tracking-tight text-accent-blue">{(h.name || h.abbrev).split(' ').slice(1).join(' ').toUpperCase() || h.abbrev}</div>
             <div className="text-white/55 text-sm mt-2 font-medium">{h.wins ?? '–'}-{h.losses ?? '–'}</div>
-            <div className="text-accent-blue font-black text-2xl mt-4 tabular-nums">{fmtPct(mdl.p_home)} <span className="text-white/40 text-[10px] tracking-[0.22em] ml-1">WIN PROB</span></div>
+            <div className="text-accent-blue font-black text-2xl mt-4 tabular-nums">{fmtPct(pHomeDisplay)} <span className="text-white/40 text-[10px] tracking-[0.22em] ml-1">{isLiveWp ? 'WIN PROB · LIVE' : 'WIN PROB'}</span></div>
+            {isLiveWp && mdl.p_home != null && (
+              <div className="text-white/30 text-[10px] tracking-[0.18em] uppercase mt-1 tabular-nums">pregame {fmtPct(mdl.p_home)}</div>
+            )}
           </div>
           {/* Recommendation panel */}
           {recommendation && (
@@ -1325,6 +2798,13 @@ function DetailBody({ d }) {
           )}
         </div>
       </div>
+
+      {/* WIN PROBABILITY TIMELINE — live for in-progress games, final curve for finished */}
+      {(isLive || hasResult) && (
+        <div className="mb-5">
+          <WinProbabilityChart pk={d.game_pk} awayAbbr={a.abbrev} homeAbbr={h.abbrev}/>
+        </div>
+      )}
 
       {/* 4 METRIC CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -1486,95 +2966,133 @@ function MetricCard({ icon, label, value, sub, accent }) {
 
 function buildGameAnalysis({ d, a, h, ap, hp, v, mdl, recommendation, confidence, confLevel, valueGood }) {
   const cleanNum = (n) => n == null || Number.isNaN(Number(n)) ? null : Number(n);
-  const pitcherSummary = (team, pitcher) => {
-    if (!pitcher?.name) return `${team.abbrev}: abridor por confirmar; la lectura del matchup queda abierta hasta tener pitcher oficial.`;
+  const ctx = d.context || {};
+
+  // ── Pitcher narrative — name, handedness, recent form ───────────────────────
+  const pitcherStory = (team, pitcher) => {
+    if (!pitcher?.name) return `Abridor de ${team.abbrev} por confirmar.`;
     const s = pitcher.season || {};
-    const parts = [];
-    if (cleanNum(s.era) != null) parts.push(`${cleanNum(s.era).toFixed(2)} ERA`);
-    if (cleanNum(s.whip) != null) parts.push(`${cleanNum(s.whip).toFixed(2)} WHIP`);
-    if (cleanNum(s.k_pct) != null) parts.push(`${(cleanNum(s.k_pct) * 100).toFixed(1)}% K`);
-    if (cleanNum(s.bb9) != null) parts.push(`${cleanNum(s.bb9).toFixed(2)} BB/9`);
-    if (cleanNum(pitcher.starter_xwoba_l15) != null) parts.push(`${fmt3(pitcher.starter_xwoba_l15)} xwOBA L15`);
-    return `${team.abbrev}: ${pitcher.name}${pitcher.throws ? ` (${pitcher.throws}HP)` : ''}${parts.length ? ` — ${parts.join(', ')}` : ' — sin muestra reciente suficiente'}.`;
-  };
-  const teamMoment = (team) => {
+    const hand = pitcher.throws ? `${pitcher.throws === 'L' ? 'zurdo' : 'derecho'}` : '';
+    const era = cleanNum(s.era);
+    const k = cleanNum(s.k_pct);
+    const bb = cleanNum(s.bb9);
+    const xwoba = cleanNum(pitcher.starter_xwoba_l15);
     const bits = [];
-    if (cleanNum(team.runs_scored_l10) != null) bits.push(`${cleanNum(team.runs_scored_l10).toFixed(1)} carreras anotadas L10`);
-    if (cleanNum(team.runs_allowed_l10) != null) bits.push(`${cleanNum(team.runs_allowed_l10).toFixed(1)} permitidas L10`);
-    if (cleanNum(team.win_pct_l30) != null) bits.push(`${pct(team.win_pct_l30)} win% L30`);
-    if (cleanNum(team.off_xwoba_l30) != null) bits.push(`${fmt3(team.off_xwoba_l30)} xwOBA ofensiva`);
-    if (cleanNum(team.def_xwoba_l30) != null) bits.push(`${fmt3(team.def_xwoba_l30)} xwOBA recibida`);
-    if (cleanNum(team.off_barrel_rate_l30) != null) bits.push(`${pct(team.off_barrel_rate_l30)} barrel%`);
-    if (cleanNum(team.off_k_pct_l30) != null) bits.push(`${pct(team.off_k_pct_l30)} K% ofensivo`);
-    return `${team.abbrev}: ${bits.length ? bits.join(', ') : 'muestra reciente incompleta'}.`;
+    if (era != null)   bits.push(`${era.toFixed(2)} ERA`);
+    if (k != null)     bits.push(`${(k*100).toFixed(0)}% K`);
+    if (bb != null)    bits.push(`${bb.toFixed(2)} BB/9`);
+    if (xwoba != null) bits.push(`${xwoba.toFixed(3)} xwOBA L15`);
+    return `${team.abbrev}: ${pitcher.name}${hand ? ` (${hand})` : ''}${bits.length ? ` — ${bits.join(', ')}` : ''}.`;
   };
+
+  // ── Team form narrative — last 10 runs scored/allowed, win% L30 ─────────────
+  const teamForm = (team) => {
+    const rs = cleanNum(team.runs_scored_l10);
+    const ra = cleanNum(team.runs_allowed_l10);
+    const wp = cleanNum(team.win_pct_l30);
+    const parts = [];
+    if (wp != null) parts.push(`${pct(wp)} en L30`);
+    if (rs != null) parts.push(`${rs.toFixed(1)} carreras anotadas`);
+    if (ra != null) parts.push(`${ra.toFixed(1)} permitidas en L10`);
+    return `${team.abbrev}: ${parts.length ? parts.join(', ') : 'forma reciente sin datos suficientes'}.`;
+  };
+
+  // ── Pick lead — short, game-focused ──────────────────────────────────────────
   const pick = recommendation?.team || (mdl.p_home >= 0.5 ? h.abbrev : a.abbrev);
-  const favName = mdl.p_home >= 0.5 ? (h.name || h.abbrev) : (a.name || a.abbrev);
-  const dogName = mdl.p_home >= 0.5 ? (a.name || a.abbrev) : (h.name || h.abbrev);
-  const favProb = Math.max(mdl.p_home ?? 0.5, mdl.p_away ?? 0.5);
-  const edge = recommendation?.edge;
-  const total = mdl.pred_total_runs != null ? Number(mdl.pred_total_runs) : null;
-  const marketTotal = d.market?.total != null ? Number(d.market.total) : null;
-  const totalLean = Number.isFinite(total) && Number.isFinite(marketTotal)
-    ? (total > marketTotal ? `El modelo proyecta ${total.toFixed(1)} carreras, por encima de la línea ${marketTotal.toFixed(1)}.` :
-       total < marketTotal ? `El modelo proyecta ${total.toFixed(1)} carreras, por debajo de la línea ${marketTotal.toFixed(1)}.` :
-       `El total proyectado empata prácticamente con la línea de mercado en ${marketTotal.toFixed(1)}.`)
-    : `El total proyectado por el modelo es ${Number.isFinite(total) ? total.toFixed(1) : '–'} carreras.`;
-  const awayRunsL10 = a.runs_scored_l10 != null ? Number(a.runs_scored_l10) : null;
-  const homeRunsL10 = h.runs_scored_l10 != null ? Number(h.runs_scored_l10) : null;
-  const runEdge = (Number.isFinite(awayRunsL10) && Number.isFinite(homeRunsL10))
-    ? `${a.abbrev} llega con ${awayRunsL10.toFixed(1)} carreras por juego en L10 y ${h.abbrev} con ${homeRunsL10.toFixed(1)}.`
-    : 'La forma ofensiva reciente no está completa para ambos equipos.';
-  const xwobaEdge = (a.off_xwoba_l30 != null && h.off_xwoba_l30 != null)
-    ? `${a.abbrev} trae xwOBA ofensiva ${fmt3(a.off_xwoba_l30)} vs ${fmt3(h.off_xwoba_l30)} de ${h.abbrev}.`
-    : 'La lectura de contacto ofensivo queda limitada por datos incompletos.';
-  const awayEra = ap?.season?.era != null ? Number(ap.season.era) : null;
-  const homeEra = hp?.season?.era != null ? Number(hp.season.era) : null;
-  const pitcherEdge = (Number.isFinite(awayEra) && Number.isFinite(homeEra))
-    ? `La comparación de ERA entre abridores queda en ${awayEra.toFixed(2)} para ${ap?.name || a.abbrev} y ${homeEra.toFixed(2)} para ${hp?.name || h.abbrev}.`
-    : `El matchup de abridores queda sensible a confirmación: ${ap?.name || 'TBD'} vs ${hp?.name || 'TBD'}.`;
-  const reasonText = {
-    slot_boost: 'El slot histórico refuerza la dirección del modelo.',
-    slot_skip: 'El slot histórico pide cautela: el mejor valor puede ser no forzar apuesta.',
-    slot_sharp: 'El mercado ha sido más confiable en este tipo de slot, por eso se respeta la señal MKT.',
-    slot_flip: 'El perfil histórico de este slot favorece invertir el lean original.',
-    dog_46_48: 'Hay override por dog 46–48%, una zona donde los underdogs han tenido rendimiento interesante.',
-    low_conf_market: 'El modelo estaba en zona de baja confianza y se prefiere seguir al mercado.',
-    base: 'La recomendación sale de la lectura base modelo vs mercado.',
-  }[v.ev_grade_reason] || 'La recomendación combina modelo, mercado y contexto del slot.';
+  const pickName = pick === h.abbrev ? (h.name || h.abbrev) : (a.name || a.abbrev);
+  const dog     = pick === h.abbrev ? a.abbrev : h.abbrev;
+  const pickProb = pick === h.abbrev ? mdl.p_home : (1 - (mdl.p_home ?? 0.5));
+
+  // Why each side leads — derive from concrete factors
+  const reasons = [];
+  // Pitcher matchup factor
+  if (ap?.season?.era != null && hp?.season?.era != null) {
+    const pickPitcher  = pick === h.abbrev ? hp : ap;
+    const oppPitcher   = pick === h.abbrev ? ap : hp;
+    const pickEra = Number(pickPitcher.season.era);
+    const oppEra  = Number(oppPitcher.season.era);
+    if (oppEra - pickEra >= 0.5) {
+      reasons.push(`tiene a ${pickPitcher.name} (${pickEra.toFixed(2)} ERA) contra ${oppPitcher.name} (${oppEra.toFixed(2)} ERA)`);
+    } else if (Math.abs(oppEra - pickEra) < 0.4) {
+      reasons.push(`mide a un duelo parejo de abridores`);
+    }
+  }
+  // Recent form factor
+  const pickTeam = pick === h.abbrev ? h : a;
+  const oppTeam  = pick === h.abbrev ? a : h;
+  if (pickTeam.win_pct_l30 != null && oppTeam.win_pct_l30 != null) {
+    const dw = pickTeam.win_pct_l30 - oppTeam.win_pct_l30;
+    if (dw >= 0.1) reasons.push(`viene mejor (${pct(pickTeam.win_pct_l30)} vs ${pct(oppTeam.win_pct_l30)} en L30)`);
+    else if (dw <= -0.1) reasons.push(`llega más frío en forma reciente`);
+  }
+  // Burn factor — note it's actually a tailwind, not a hangover
+  const pickBurn = pick === h.abbrev ? ctx.ctx_burn_home : ctx.ctx_burn_away;
+  const oppBurn  = pick === h.abbrev ? ctx.ctx_burn_away : ctx.ctx_burn_home;
+  if (oppBurn >= 65) {
+    reasons.push(`enfrenta a un ${dog} que ayer quemó fuerte el bullpen (burn ${oppBurn})`);
+  } else if (pickBurn >= 65) {
+    reasons.push(`viene de un partido intenso ayer (burn ${pickBurn} — históricamente neutral o leve tailwind)`);
+  }
+
   const title = valueGood
-    ? `Valor detectado en ${pick}`
+    ? `Valor en ${pickName}`
     : v.ev_grade === 'overconfident'
-      ? `Señal riesgosa en ${pick}`
-      : `Lean principal hacia ${pick}`;
-  const verdict = valueGood
-    ? `La jugada tiene edge de ${edge != null ? `${edge >= 0 ? '+' : ''}${edge.toFixed(1)}pp` : 'valor positivo'} y confianza ${confLevel.toLowerCase()}.`
-    : v.ev_grade === 'no_edge'
-      ? `No hay suficiente edge para convertir el lean en apuesta fuerte.`
-      : `El pick queda como lectura de modelo con confianza ${confLevel.toLowerCase()}.`;
+      ? `${pickName}, con cautela`
+      : `Lean hacia ${pickName}`;
+
+  // ── Lead paragraph — story first ────────────────────────────────────────────
+  const lead = reasons.length > 0
+    ? `${pickName} es el lado con valor porque ${reasons.join(', y ')}.`
+    : `${pickName} es el lado preferido con probabilidad implícita ${pct(pickProb)}.`;
+
+  // ── Weather paragraph ──────────────────────────────────────────────────────
+  const w = d.weather || {};
+  const indoor = ctx.ctx_roof_type && /closed|dome/i.test(ctx.ctx_roof_type);
+  let weatherText = null;
+  if (indoor) {
+    weatherText = `Se juega en estadio techado, así que el clima no influye.`;
+  } else if (w.temp_f != null || w.condition) {
+    const bits = [];
+    if (w.temp_f != null) bits.push(`${Math.round(Number(w.temp_f))}°F`);
+    if (w.condition)      bits.push(w.condition);
+    if (w.wind)           bits.push(`viento ${w.wind}`);
+    weatherText = `Condiciones: ${bits.join(', ')}.`;
+  }
+
+  // ── Burn aftermath paragraph (if either team burned hard yesterday) ─────────
+  let burnPara = null;
+  const burnA = ctx.ctx_burn_away ?? 0;
+  const burnH = ctx.ctx_burn_home ?? 0;
+  const burnedTeams = [];
+  if (burnA >= 50) burnedTeams.push({ abbrev: a.abbrev, score: burnA, tags: ctx.ctx_burn_away_tags || [] });
+  if (burnH >= 50) burnedTeams.push({ abbrev: h.abbrev, score: burnH, tags: ctx.ctx_burn_home_tags || [] });
+  if (burnedTeams.length > 0) {
+    burnPara = burnedTeams.map(t =>
+      `${t.abbrev} venía ayer con la "carne al asador" (burn ${t.score}${t.tags.length ? `: ${t.tags.join(', ')}` : ''}).`
+    ).join(' ') + ' En promedio histórico esto no afecta el día siguiente — los datos dicen +3pp WR, no menos.';
+  }
 
   return {
     title,
-    verdict,
     paragraphs: [
-      `El modelo tiene una inclinación moderada hacia ${favName} con ${fmtPct(favProb)}, mientras ${dogName} queda como el lado de menor probabilidad. ${verdict}`,
-      `${reasonText} ${pitcherEdge}`,
-      `${runEdge} ${xwobaEdge} ${totalLean}`,
-    ],
+      lead,
+      weatherText,
+      burnPara,
+    ].filter(Boolean),
     sections: [
       {
-        title: 'Abridores',
-        items: [pitcherSummary(a, ap), pitcherSummary(h, hp)],
+        title: 'El duelo en la loma',
+        items: [pitcherStory(a, ap), pitcherStory(h, hp)],
       },
       {
-        title: 'Momento de equipos',
-        items: [teamMoment(a), teamMoment(h)],
+        title: 'Cómo llegan',
+        items: [teamForm(a), teamForm(h)],
       },
     ],
     bullets: [
-      { label: 'Pick sugerido', value: recommendation?.dec != null ? `${pick} @ ${recommendation.dec.toFixed(2)}` : pick },
-      { label: 'Confianza', value: `${confLevel} · ${fmtPct(confidence)}` },
-      { label: 'Edge', value: edge != null ? `${edge >= 0 ? '+' : ''}${edge.toFixed(1)} pp` : 'Sin edge claro' },
+      { label: 'Pick', value: recommendation?.dec != null ? `${pick} @ ${recommendation.dec.toFixed(2)}` : pick },
+      { label: 'Probabilidad', value: pickProb != null ? pct(pickProb) : '–' },
+      { label: 'Total est.', value: mdl.pred_total_runs != null ? `${Number(mdl.pred_total_runs).toFixed(1)} carreras` : '–' },
       { label: 'Park factor', value: d.park_runs_factor != null ? d.park_runs_factor.toFixed(2) : '–' },
     ],
   };
@@ -1883,6 +3401,20 @@ function App() {
   const [performance, setPerformance] = useState(null);
   const [performanceLoading, setPerformanceLoading] = useState(false);
   const [performanceError, setPerformanceError] = useState(null);
+  const [teamRanking, setTeamRanking] = useState(null);
+  const [teamRankingLoading, setTeamRankingLoading] = useState(false);
+  const [teamRankingDays, setTeamRankingDays] = useState(60);
+  const [yesterday, setYesterday] = useState(null);
+  const [yesterdayLoading, setYesterdayLoading] = useState(false);
+  const [burnData, setBurnData] = useState(null);
+  const [burnLoading, setBurnLoading] = useState(false);
+  const [comebacks, setComebacks] = useState(null);
+  const [comebacksLoading, setComebacksLoading] = useState(false);
+  const [comebacksSeason, setComebacksSeason] = useState(2026);
+  const [errors, setErrors] = useState(null);
+  const [errorsLoading, setErrorsLoading] = useState(false);
+  const [errorsSeason, setErrorsSeason] = useState(2026);
+  const [remontasView, setRemontasView] = useState('comebacks'); // 'comebacks' | 'errors'
 
   const pageRef = useRef(null);
   const pageContentRef = useRef(null);
@@ -1929,6 +3461,59 @@ function App() {
       .then(d => { setPerformance(d); setPerformanceLoading(false); })
       .catch((err) => { setPerformanceError(err.message || 'Error'); setPerformanceLoading(false); });
   }, [activeId, performance, performanceLoading]);
+
+  useEffect(() => {
+    if (activeId !== 'ranking') return;
+    setTeamRankingLoading(true);
+    fetch(`/api/team-ranking?days=${teamRankingDays}&t=${Date.now()}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => { setTeamRanking(d); setTeamRankingLoading(false); })
+      .catch(() => { setTeamRanking(null); setTeamRankingLoading(false); });
+  }, [activeId, teamRankingDays]);
+
+  // Fetch yesterday stats on first visit to 'hoy'
+  useEffect(() => {
+    if (activeId !== 'hoy' || yesterdayLoading || yesterday) return;
+    setYesterdayLoading(true);
+    fetch('/api/performance?days=2')
+      .then(r => r.json())
+      .then(d => { setYesterday(d); setYesterdayLoading(false); })
+      .catch(() => setYesterdayLoading(false));
+  }, [activeId, yesterday, yesterdayLoading]);
+
+  // Fetch burn report when 'hoy' is visited (and when date changes)
+  useEffect(() => {
+    if (activeId !== 'hoy') return;
+    setBurnLoading(true);
+    fetch(`/api/burn?date=${date}&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setBurnData(d); setBurnLoading(false); })
+      .catch(() => setBurnLoading(false));
+  }, [activeId, date]);
+
+  // Fetch comebacks when visiting 'remontas' or when season changes
+  useEffect(() => {
+    if (activeId !== 'remontas') return;
+    setComebacksLoading(true);
+    fetch(`/api/comebacks?season=${comebacksSeason}&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setComebacks(d); setComebacksLoading(false); })
+      .catch(() => setComebacksLoading(false));
+  }, [activeId, comebacksSeason]);
+
+  // Fetch error analysis when switching to errors sub-view
+  useEffect(() => {
+    if (activeId !== 'remontas' || remontasView !== 'errors') return;
+    if (errors && errors.season === errorsSeason) return;
+    setErrorsLoading(true);
+    fetch(`/api/errors?season=${errorsSeason}&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setErrors(d); setErrorsLoading(false); })
+      .catch(() => setErrorsLoading(false));
+  }, [activeId, remontasView, errorsSeason]);
 
   // Page scroll state
   useEffect(() => {
@@ -2008,12 +3593,22 @@ function App() {
   const valueList = games.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal');
   const stats = useMemo(() => {
     if (!finished.length) return null;
-    let mlW=0, mlT=0;
+    let mlW=0, mlT=0, totalW=0, totalT=0;
     finished.forEach(g => {
-      const homeWon = g.home_score > g.away_score;
-      if (g.pick_abbrev) { mlT++; if ((g.pick_abbrev === g.home_abbrev) === homeWon) mlW++; }
+      const homeWon = (g.home_score != null && g.away_score != null) ? g.home_score > g.away_score : null;
+      if (homeWon === null) return;
+      const pick = displayMlPick(g);
+      // All model picks (total accuracy)
+      if (pick.side) { totalT++; if ((pick.side === 'HOME') === homeWon) totalW++; }
+      // Only value picks (sweet/marginal)
+      if (pick.side && pick.valueShown) { mlT++; if ((pick.side === 'HOME') === homeWon) mlW++; }
     });
-    return { mlAcc: mlT ? mlW/mlT*100 : 0, mlT };
+    return {
+      mlAcc: mlT ? mlW/mlT*100 : null,
+      mlT,
+      totalAcc: totalT ? totalW/totalT*100 : null,
+      totalT,
+    };
   }, [finished]);
 
   return (
@@ -2032,13 +3627,9 @@ function App() {
             )}
             {activeId === 'hoy' && (
               <>
-              <HeroBlock
-                kicker="01 · Slate del día"
-                title={<>{fmtDateLong(date)}</>}
-                lead={`${games.length} partidos en la pizarra. ${valueList.length} con valor identificado por el modelo.`}
-                statValue={games.length} statLabel="partidos del día" accent="red"
-              />
-              <GridList items={games} onOpen={openDetail} emptyText="Sin partidos en esta fecha." title="Todos los eventos" />
+              <HoyExpandableRow games={games} onOpen={openDetail} date={date} />
+              <YesterdayBanner data={yesterday} />
+              <BurnPanel data={burnData} />
               </>
             )}
             {activeId === 'flash' && (
@@ -2079,8 +3670,10 @@ function App() {
               <HeroBlock
                 kicker="05 · Resultados"
                 title={<>Cómo<br/>cerraron.</>}
-                lead={stats ? `${stats.mlT} picks ML evaluados, accuracy ${stats.mlAcc.toFixed(1)}%.` : 'Aún no hay partidos cerrados en esta fecha.'}
-                statValue={stats ? stats.mlAcc : 0} statSuffix="%" statLabel="accuracy en picks ML" accent="green"
+                lead={stats
+                  ? `${stats.totalT} predicciones evaluadas · modelo total: ${stats.totalAcc != null ? stats.totalAcc.toFixed(1) : '—'}%${stats.mlT ? ` · valor (${stats.mlT}): ${stats.mlAcc != null ? stats.mlAcc.toFixed(1) : '—'}%` : ''} · sistema walk-forward: 55.5%`
+                  : 'Aún no hay partidos cerrados. Sistema walk-forward (4,411 juegos): 55.5%.'}
+                statValue={stats ? (stats.totalAcc ?? 55.5) : 55.5} statSuffix="%" statLabel={stats ? "accuracy modelo hoy (total)" : "accuracy sistema walk-forward"} accent="green"
               />
               <GridList items={finished} onOpen={openDetail} emptyText="No hay resultados en esta fecha." title="Eventos cerrados" />
               </>
@@ -2097,6 +3690,43 @@ function App() {
                 accent={(performance?.summary?.value_roi ?? 0) >= 0 ? 'green' : 'red'}
               />
               <PerformancePage data={performance} loading={performanceLoading} error={performanceError} />
+              </>
+            )}
+            {activeId === 'ranking' && (
+              <TeamRankingPage
+                data={teamRanking}
+                loading={teamRankingLoading}
+                days={teamRankingDays}
+                onDaysChange={setTeamRankingDays}
+              />
+            )}
+            {activeId === 'remontas' && (
+              <>
+              <div className="flex gap-2 px-10 pt-8 pb-0">
+                {[['comebacks','Remontas'],['errors','Errores defensivos']].map(([v,l]) => (
+                  <button key={v} onClick={() => setRemontasView(v)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-wider uppercase border transition-all
+                      ${remontasView===v ? 'bg-white/10 border-white/30 text-white' : 'border-white/[0.07] text-white/35 hover:border-white/20'}`}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              {remontasView === 'comebacks' && (
+                <RemontasPage
+                  data={comebacks}
+                  loading={comebacksLoading}
+                  season={comebacksSeason}
+                  onSeasonChange={s => { setComebacksSeason(s); setComebacks(null); }}
+                />
+              )}
+              {remontasView === 'errors' && (
+                <ErrorPage
+                  data={errors}
+                  loading={errorsLoading}
+                  season={errorsSeason}
+                  onSeasonChange={s => { setErrorsSeason(s); setErrors(null); }}
+                />
+              )}
               </>
             )}
             {activeId === 'modelo' && (
