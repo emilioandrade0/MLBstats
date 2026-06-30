@@ -98,6 +98,18 @@
   /* Page swap container — flex of two side-by-side viewports */
   .swap-container { display: flex; width: 200vw; height: 100vh; will-change: transform; }
   .swap-pane { width: 100vw; height: 100vh; flex-shrink: 0; }
+  @media (max-width: 767px) {
+    html, body, #root { width: 100%; max-width: 100%; overflow-x: hidden; }
+    .swap-container { max-width: 200vw; overflow-x: hidden; }
+    .swap-pane { max-width: 100vw; overflow-x: hidden; }
+    .mobile-tab-select {
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,.7) 50%), linear-gradient(135deg, rgba(255,255,255,.7) 50%, transparent 50%);
+      background-position: calc(100% - 13px) 50%, calc(100% - 9px) 50%;
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+    }
+  }
 </style>
 </head>
 <body>
@@ -275,10 +287,10 @@ function TopNav({ activeId, onNavigate, date, setDate, scrolled }) {
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500
       ${scrolled ? 'glass border-b border-white/[0.06]' : 'bg-transparent'}`}>
-      <div className="max-w-[1600px] mx-auto px-10 h-[72px] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full border-2 border-accent-red flex items-center justify-center text-accent-red font-mega text-xs">SC</div>
-          <div className="font-mega text-[22px] tracking-tight">STRIKE<span className="text-accent-red">CAST</span></div>
+      <div className="max-w-[1600px] mx-auto px-3 md:px-10 h-[64px] md:h-[72px] flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-accent-red flex items-center justify-center text-accent-red font-mega text-[10px] md:text-xs">SC</div>
+          <div className="font-mega text-[18px] md:text-[22px] tracking-tight max-[420px]:hidden">STRIKE<span className="text-accent-red">CAST</span></div>
         </div>
         <nav className="hidden md:flex items-center gap-1 glass rounded-full px-2 py-1.5 border border-white/[0.06]">
           {SECTIONS.map(s => (
@@ -289,13 +301,20 @@ function TopNav({ activeId, onNavigate, date, setDate, scrolled }) {
             </button>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
+        <label className="md:hidden relative min-w-0 flex-1 max-w-[128px]">
+          <span className="sr-only">Seleccionar pestaña</span>
+          <select value={activeId} onChange={(e) => onNavigate(e.target.value)}
+            className="mobile-tab-select w-full h-9 rounded-lg border border-white/10 bg-ink-2 px-3 pr-7 text-[11px] font-bold text-white outline-none">
+            {SECTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </label>
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
           <button onClick={() => setDate(shiftDate(date,-1))} className="w-8 h-8 rounded-full glass border border-white/[0.06] hover:bg-white/[0.08] text-white/70 text-sm">‹</button>
           <input type="date" value={date} onChange={(e)=>setDate(e.target.value)}
-            className="glass border border-white/[0.06] rounded-full px-3 py-1.5 text-xs text-white/80 cursor-pointer outline-none" />
+            className="hidden sm:block w-[120px] lg:w-auto glass border border-white/[0.06] rounded-full px-3 py-1.5 text-[10px] lg:text-xs text-white/80 cursor-pointer outline-none" />
           <button onClick={() => setDate(shiftDate(date,1))} className="w-8 h-8 rounded-full glass border border-white/[0.06] hover:bg-white/[0.08] text-white/70 text-sm">›</button>
-          <button onClick={() => setDate(todayISO())} className="ml-1 px-3 py-1.5 rounded-full text-[11px] tracking-[0.18em] uppercase font-bold text-accent-gold border border-accent-gold/40 hover:bg-accent-gold/10">Hoy</button>
-          <RefreshIndicator />
+          <button onClick={() => setDate(todayISO())} className="hidden lg:block ml-1 px-3 py-1.5 rounded-full text-[11px] tracking-[0.18em] uppercase font-bold text-accent-gold border border-accent-gold/40 hover:bg-accent-gold/10">Hoy</button>
+          <span className="hidden xl:block"><RefreshIndicator /></span>
         </div>
       </div>
     </header>
@@ -1258,18 +1277,18 @@ function HoyExpandableRow({
       ref={rowRef}
       className="min-h-screen pt-28 pb-16">
       {/* ── Integrated header (aligned to cards row) ─────────────────────── */}
-      <div ref={headRef} className="max-w-[1900px] mx-auto px-8 mb-8">
+      <div ref={headRef} className="max-w-[1900px] mx-auto px-4 md:px-8 mb-8">
         <div data-fade className="text-[11px] tracking-[0.32em] uppercase font-bold text-accent-red mb-3">
           {kicker}
         </div>
         <div className="flex items-end justify-between gap-8 flex-wrap">
           <h1 data-fade className="mega text-[clamp(54px,7vw,108px)] leading-[0.88]">{dateStr}</h1>
-          <div data-fade className="flex items-baseline gap-6 pb-3">
+          <div data-fade className="w-full lg:w-auto grid grid-cols-2 sm:flex items-end sm:items-baseline gap-5 sm:gap-6 pb-3">
             <div className="text-right">
               <div className="mega text-accent-red text-[clamp(46px,5.5vw,88px)] leading-none tabular-nums">{items.length}</div>
               <div className="text-[10px] tracking-[0.28em] uppercase text-white/40 font-black mt-1">{primaryLabel}</div>
             </div>
-            <div className="h-16 w-px bg-white/[0.08]"/>
+            <div className="hidden sm:block h-16 w-px bg-white/[0.08]"/>
             <div>
               <div className="mega text-accent-gold text-[clamp(46px,5.5vw,88px)] leading-none tabular-nums">
                 {secondaryValue == null ? valueCount : secondaryValue}{secondarySuffix}
@@ -1278,7 +1297,7 @@ function HoyExpandableRow({
             </div>
             {extraStats.map((stat, index) => (
               <React.Fragment key={stat.label}>
-                <div className="h-16 w-px bg-white/[0.08]"/>
+                <div className="hidden sm:block h-16 w-px bg-white/[0.08]"/>
                 <div>
                   <div className="mega text-[clamp(38px,4.5vw,72px)] leading-none tabular-nums" style={{ color: stat.color || '#4DABF7' }}>
                     {stat.value}{stat.suffix || ''}
@@ -1295,7 +1314,7 @@ function HoyExpandableRow({
       </div>
 
       {/* ── Tall book-page cards ────────────────────────────────────────────── */}
-      <div className="max-w-[1900px] mx-auto px-8">
+      <div className="max-w-[1900px] mx-auto px-4 md:px-8">
         <div
           ref={scrollRef}
           onMouseLeave={() => setHoveredPk(null)}
@@ -1552,7 +1571,7 @@ function FlashcoreBoard({ games, onOpen, date }) {
   return (
     <div className="px-4 md:px-10 pb-32 max-w-[1540px] mx-auto -mt-8">
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(820px,1fr)_360px] gap-5 items-start">
-      <div className="overflow-hidden rounded-xl border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.42)]">
+      <div className="overflow-x-auto rounded-xl border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.42)]">
         <div className="min-w-[780px]">
         <div className="h-14 px-5 flex items-center justify-between bg-[linear-gradient(90deg,#0c3150,#0a263d)] border-b border-white/[0.08]">
           <div className="flex items-center gap-3">
@@ -1679,7 +1698,7 @@ function HeroPage({ todayCount, valueCount, onCta }) {
           ◆ {valueCount} picks de valor
         </button>
       </div>
-      <div data-fade className="mt-20 grid grid-cols-3 gap-12">
+      <div data-fade className="mt-16 md:mt-20 grid grid-cols-3 gap-3 md:gap-12 w-full max-w-[620px]">
         <MiniStat value={11803} label="Partidos en base" />
         <MiniStat value={todayCount} label="Eventos hoy" />
         <MiniStat value={56.1} suffix="%" decimals={1} label="Accuracy walk-fwd" />
@@ -1693,10 +1712,10 @@ function HeroPage({ todayCount, valueCount, onCta }) {
 function MiniStat({ value, suffix, decimals=0, label }) {
   return (
     <div>
-      <div className="mega text-5xl text-white tabular-nums">
+      <div className="mega text-[30px] sm:text-4xl md:text-5xl text-white tabular-nums whitespace-nowrap">
         <Counter value={value} decimals={decimals} suffix={suffix||''} />
       </div>
-      <div className="text-[10px] tracking-[0.25em] uppercase text-white/45 mt-2">{label}</div>
+      <div className="text-[8px] sm:text-[9px] md:text-[10px] tracking-[0.12em] md:tracking-[0.25em] uppercase text-white/45 mt-2 leading-tight">{label}</div>
     </div>
   );
 }
@@ -1717,7 +1736,7 @@ function BurnPanel({ data }) {
               { label:'USÓ RECURSOS',    color:'text-accent-blue/80', bg:'bg-accent-blue/10 border-accent-blue/30' };
 
   return (
-    <section className="max-w-[1600px] mx-auto px-10 py-8">
+    <section className="max-w-[1600px] mx-auto px-4 md:px-10 py-8">
       <div className="flex items-baseline justify-between mb-4">
         <div>
           <div className="text-[10px] tracking-[0.32em] uppercase text-white/35 font-bold mb-1">Ayer en MLB</div>
