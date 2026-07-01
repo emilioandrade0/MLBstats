@@ -92,6 +92,11 @@
   /* Hoy expandable row — invisible scrollbar, mouse wheel → horizontal scroll */
   .hoy-row { scrollbar-width: none; -ms-overflow-style: none; }
   .hoy-row::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  /* Sharp-value badge subtle glow pulse */
+  @keyframes sharpPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(255,212,59,0.20); }
+    50%      { box-shadow: 0 0 26px rgba(255,212,59,0.42); }
+  }
   /* Scroll snap container */
   .snap-container { scroll-snap-type: y mandatory; overflow-y: auto; height: 100vh; }
   .snap-section { scroll-snap-align: start; min-height: 100vh; }
@@ -283,7 +288,39 @@ function Counter({ value, decimals = 0, suffix = '' }) {
 }
 
 // ─── TOP NAV (sticky, scroll-aware) ──────────────────────────────────────────
-function TopNav({ activeId, onNavigate, date, setDate, scrolled }) {
+// Parse MLB Stats API feed/live response into our live_score format
+function parseMlbFeedLive(feed) {
+  if (!feed) return null;
+  const status = ((feed.gameData || {}).status) || {};
+  const abstract = status.abstractGameState;
+  const coded    = status.codedGameState;
+  const state = {
+    abstract, coded, detailed: status.detailedState,
+    is_live:  abstract === 'Live' || ['I','M','N'].includes(coded),
+    is_final: abstract === 'Final' || coded === 'F',
+  };
+  const ls   = ((feed.liveData || {}).linescore) || {};
+  const teams   = ls.teams   || {};
+  const offense = ls.offense || {};
+  const mkTeam  = side => { const t = teams[side] || {}; return { runs: t.runs??null, hits: t.hits??null, errors: t.errors??null, left_on_base: t.leftOnBase??null }; };
+  const mkRunner = base => { const r = offense[base]; return r ? { id: r.id, name: r.fullName||r.name } : null; };
+  const innings = (ls.innings || []).map(inn => ({
+    num: inn.num, ordinal: inn.ordinalNum,
+    away: { runs:(inn.away||{}).runs??null, hits:(inn.away||{}).hits??null, errors:(inn.away||{}).errors??null, left_on_base:(inn.away||{}).leftOnBase??null },
+    home: { runs:(inn.home||{}).runs??null, hits:(inn.home||{}).hits??null, errors:(inn.home||{}).errors??null, left_on_base:(inn.home||{}).leftOnBase??null },
+  }));
+  return {
+    state,
+    inning: ls.currentInning??null, inning_ordinal: ls.currentInningOrdinal??null,
+    inning_state: ls.inningState??null, inning_half: ls.inningHalf??null,
+    balls: ls.balls??null, strikes: ls.strikes??null, outs: ls.outs??null,
+    bases: { first: mkRunner('first'), second: mkRunner('second'), third: mkRunner('third') },
+    away: mkTeam('away'), home: mkTeam('home'), innings,
+  };
+}
+
+// ─── TOP NAV (sticky, scroll-aware) ──────────────────────────────────────────
+function TopNav({ activeId, onNavigate, date, setDate, scrolled, snapshot }) {
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500
       ${scrolled ? 'glass border-b border-white/[0.06]' : 'bg-transparent'}`}>
@@ -314,43 +351,29 @@ function TopNav({ activeId, onNavigate, date, setDate, scrolled }) {
             className="hidden sm:block w-[120px] lg:w-auto glass border border-white/[0.06] rounded-full px-3 py-1.5 text-[10px] lg:text-xs text-white/80 cursor-pointer outline-none" />
           <button onClick={() => setDate(shiftDate(date,1))} className="w-8 h-8 rounded-full glass border border-white/[0.06] hover:bg-white/[0.08] text-white/70 text-sm">›</button>
           <button onClick={() => setDate(todayISO())} className="hidden lg:block ml-1 px-3 py-1.5 rounded-full text-[11px] tracking-[0.18em] uppercase font-bold text-accent-gold border border-accent-gold/40 hover:bg-accent-gold/10">Hoy</button>
-          <span className="hidden xl:block"><RefreshIndicator /></span>
+          <span className="hidden xl:block"><SnapshotBadge snapshot={snapshot} /></span>
         </div>
       </div>
     </header>
   );
 }
 
-function RefreshIndicator() {
-  const [st, setSt] = useState(null);
-  useEffect(() => {
-    const fetchStatus = () => fetch('/api/refresh-status').then(r => r.json()).then(setSt).catch(() => {});
-    fetchStatus();
-    const t = setInterval(fetchStatus, 10000);
-    return () => clearInterval(t);
-  }, []);
-  const ago = st?.seconds_since_last_ok;
-  const label = st?.running_now ? 'refrescando…'
-              : ago == null ? '— sin datos —'
-              : ago < 60 ? 'recién actualizado'
-              : `hace ${Math.round(ago/60)} min`;
-  const staleCount = (st?.feed_stale_past || 0) + (st?.feed_missing_past || 0);
-  const staleLabel = staleCount > 0 ? `data atrasada ${staleCount}` : null;
-  const color = st?.running_now ? 'text-accent-blue'
-              : staleCount > 0 ? 'text-accent-red'
-              : ago == null || ago > 1800 ? 'text-accent-red'
-              : ago < 300 ? 'text-accent-green'
-              : 'text-accent-gold';
-  const trigger = async () => {
-    await fetch('/api/refresh-now', { method: 'POST' });
-    setTimeout(() => fetch('/api/refresh-status').then(r=>r.json()).then(setSt), 300);
-  };
+function SnapshotBadge({ snapshot }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick(n => n+1), 30000); return () => clearInterval(t); }, []);
+  if (!snapshot?.published_at) return (
+    <span className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] tracking-[0.16em] uppercase font-bold glass border border-white/[0.08] text-white/30">
+      <span className="w-1.5 h-1.5 rounded-full bg-current"/>sin datos
+    </span>
+  );
+  const minAgo = Math.round((Date.now() - new Date(snapshot.published_at)) / 60000);
+  const label  = minAgo < 1 ? 'recién publicado' : minAgo < 60 ? `publicado hace ${minAgo} min` : `publicado hace ${Math.round(minAgo/60)}h`;
+  const color  = minAgo > 180 ? 'text-accent-red' : minAgo > 60 ? 'text-accent-gold' : 'text-accent-green';
   return (
-    <button onClick={trigger} title="Forzar refresh"
-      className={`ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] tracking-[0.16em] uppercase font-bold glass border border-white/[0.08] hover:bg-white/[0.05] ${color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full bg-current ${st?.running_now ? 'animate-pulse' : ''}`}/>
-      {staleLabel || label}
-    </button>
+    <span className={`ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] tracking-[0.16em] uppercase font-bold glass border border-white/[0.08] ${color}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current"/>
+      {label}
+    </span>
   );
 }
 
@@ -363,11 +386,13 @@ function displayMlPick(g) {
     : team === g.home_abbrev ? 'HOME'
     : team === g.away_abbrev ? 'AWAY'
     : null;
-  const decimal = valueShown ? g.value_decimal
+  // Line shopping: prefer the best available book price for value picks.
+  const decimal = valueShown ? (g.value_best_decimal ?? g.value_decimal)
     : team === g.home_abbrev ? g.market_home_decimal
     : team === g.away_abbrev ? g.market_away_decimal
     : null;
-  return { team, side, decimal, valueShown };
+  const bestBook = valueShown ? (g.value_best_book || null) : null;
+  return { team, side, decimal, valueShown, bestBook };
 }
 
 function GameCard({ g, onOpen, index = 0 }) {
@@ -588,7 +613,9 @@ function GameCard({ g, onOpen, index = 0 }) {
         {valueShown && g.value_side && g.p_home != null && g.market_home_implied != null && (
           <div className="w-full mt-2 text-[9px] tabular-nums text-white/30">
             {(() => {
-              const pm = g.value_side === 'HOME' ? g.p_home : 1 - g.p_home;
+              // Use the model-only value probability to justify the edge
+              const pv = g.p_home_value != null ? g.p_home_value : g.p_home;
+              const pm = g.value_side === 'HOME' ? pv : 1 - pv;
               const pk = g.value_side === 'HOME' ? g.market_home_implied : g.market_away_implied;
               if (pm == null || pk == null) return null;
               return `Modelo ${(pm*100).toFixed(1)}% · Mercado ${(pk*100).toFixed(1)}%`;
@@ -817,15 +844,26 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
     } catch { return '—'; }
   };
 
+  // Confidence tier (who-wins reliability). LOCK ~71% hit rate historically.
+  const TIER_META = {
+    lock:     { label: 'LOCK',     icon: '🔒', cls: 'bg-accent-green/18 text-accent-green border-accent-green/45' },
+    fuerte:   { label: 'FUERTE',   icon: '💪', cls: 'bg-accent-blue/18 text-accent-blue border-accent-blue/45' },
+    moderado: { label: 'MODERADO', icon: '◆',  cls: 'bg-white/[0.06] text-white/55 border-white/[0.10]' },
+    parejo:   { label: 'PAREJO',   icon: '〰', cls: 'bg-white/[0.03] text-white/35 border-white/[0.07]' },
+  };
+  const tierMeta = g.confidence_tier ? TIER_META[g.confidence_tier] : null;
+  const tierPickAbbr = g.p_home != null ? (g.p_home >= 0.5 ? g.home_abbrev : g.away_abbrev) : null;
+
   return (
     <div
       onMouseEnter={() => onHover?.(g.game_pk)}
       onClick={() => onOpen(g)}
       className={`flex-none w-[215px] rounded-[20px] border ${borderCls} cursor-pointer transition-all duration-500 relative overflow-hidden
                   ${surfaceCls}
+                  ${g.pin_value_side && g.pin_value_book ? 'ring-1 ring-accent-gold/45' : ''}
                   ${expanded ? 'scale-[1.03] -translate-y-1 ring-1 ring-white/15' : 'hover:-translate-y-1 hover:brightness-110'}`}>
       <div className="absolute inset-x-0 top-0 h-[5px] opacity-100"
-           style={{ background:`linear-gradient(90deg, transparent, ${resultColor}, transparent)` }}/>
+           style={{ background:`linear-gradient(90deg, transparent, ${(g.pin_value_side && g.pin_value_book) ? '#FFD43B' : resultColor}, transparent)` }}/>
 
       {/* ── Header: slot+time, status ─────────────────────────────────────── */}
       <div className="px-4 pt-4 flex items-center justify-between">
@@ -843,6 +881,17 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
       {g.venue && (
         <div className="px-4 mt-2 text-[8.5px] tracking-[0.22em] uppercase text-white/32 font-bold truncate text-center">
           {g.venue}
+        </div>
+      )}
+
+      {/* ── Confidence tier badge ────────────────────────────────────────────── */}
+      {tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr && (
+        <div className="px-4 mt-2 flex justify-center">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8.5px] font-black tracking-[0.14em] uppercase ${tierMeta.cls}`}>
+            <span>{tierMeta.icon}</span>
+            <span>{tierMeta.label} {tierPickAbbr}</span>
+            {g.tier_hit_rate != null && <span className="opacity-70">· {g.tier_hit_rate.toFixed(0)}%</span>}
+          </span>
         </div>
       )}
 
@@ -945,12 +994,36 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
             </span>
           </div>
         )}
+        {valueShown && shownPick.bestBook && (
+          <div className="text-[8.5px] text-center text-accent-gold/75 font-bold tracking-wide mt-1.5">
+            🏷 Mejor precio en {shownPick.bestBook}
+            {g.value_shop_gain_pp > 0 && <span className="text-white/30"> · +{g.value_shop_gain_pp.toFixed(1)}pp</span>}
+          </div>
+        )}
+        {/* Pinnacle sharp value — soft book pays over the sharpest book's fair line */}
+        {g.pin_value_side && g.pin_value_book && (
+          <div className="mt-2.5 rounded-xl border border-accent-gold/55 bg-gradient-to-r from-accent-gold/20 via-accent-gold/12 to-accent-gold/[0.06]
+                          px-2.5 py-2 text-center shadow-[0_0_20px_rgba(255,212,59,0.28)] animate-[sharpPulse_2.4s_ease-in-out_infinite]">
+            <div className="flex items-center justify-center gap-1.5 text-[10px] font-black tracking-[0.14em] uppercase text-accent-gold">
+              <span className="text-[12px]">🎯</span>
+              <span>VALOR SHARP</span>
+            </div>
+            <div className="text-[11px] font-black text-white/90 mt-0.5 tabular-nums">
+              {g.pin_value_side === 'HOME' ? g.home_abbrev : g.away_abbrev}
+              <span className="text-accent-gold"> +{g.pin_value_edge_pp.toFixed(1)}pp</span>
+              <span className="text-white/45"> · {g.pin_value_book}</span>
+            </div>
+            <div className="text-[7.5px] text-white/35 tracking-wide uppercase mt-0.5">paga sobre Pinnacle</div>
+          </div>
+        )}
         {verdict === 'win'  && <div className="text-[11px] text-center text-ink-0 bg-accent-green border border-accent-green rounded-xl font-black mt-2 py-2 tracking-[0.18em] shadow-[0_0_22px_rgba(81,207,102,0.28)]">✓ GANÓ</div>}
         {verdict === 'loss' && <div className="text-[11px] text-center text-white bg-accent-red border border-accent-red rounded-xl font-black mt-2 py-2 tracking-[0.18em] shadow-[0_0_22px_rgba(230,57,70,0.30)]">✗ PERDIÓ</div>}
         {valueShown && g.value_side && g.p_home != null && g.market_home_implied != null && (
           <div className="text-[9px] text-center text-white/35 tabular-nums mt-2">
             {(() => {
-              const pm = g.value_side === 'HOME' ? g.p_home : 1 - g.p_home;
+              // Use the model-only value probability to justify the edge
+              const pv = g.p_home_value != null ? g.p_home_value : g.p_home;
+              const pm = g.value_side === 'HOME' ? pv : 1 - pv;
               const pk = g.value_side === 'HOME' ? g.market_home_implied : g.market_away_implied;
               if (pm == null || pk == null) return null;
               return `Modelo ${(pm*100).toFixed(1)}% · Mercado ${(pk*100).toFixed(1)}%`;
@@ -1226,10 +1299,14 @@ function HoyExpandableRow({
   emptyText = 'No hay partidos para mostrar en esta fecha.',
 }) {
   const [hoveredPk, setHoveredPk] = useState(null);
+  const [lockOnly, setLockOnly] = useState(false);
+  const [sharpOnly, setSharpOnly] = useState(false);
   const rowRef = useRef(null);
   const headRef = useRef(null);
   const scrollRef = useRef(null);
   const valueCount = games?.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal').length || 0;
+  const lockCount = games?.filter(g => g.confidence_tier === 'lock' || g.confidence_tier === 'fuerte').length || 0;
+  const sharpCount = games?.filter(g => g.pin_value_side && g.pin_value_book).length || 0;
 
   // Convert vertical wheel to horizontal scroll while hovering the row.
   useEffect(() => {
@@ -1266,7 +1343,11 @@ function HoyExpandableRow({
       "-=0.35");
   }, [games.length, date]);
 
-  const items = games || [];
+  const allItems = games || [];
+  const items = allItems.filter(g =>
+    (!lockOnly || g.confidence_tier === 'lock' || g.confidence_tier === 'fuerte') &&
+    (!sharpOnly || (g.pin_value_side && g.pin_value_book))
+  );
   const hovered = items.find(g => g.game_pk === hoveredPk);
 
   const dateObj = date ? new Date(date + 'T12:00:00') : new Date();
@@ -1311,6 +1392,36 @@ function HoyExpandableRow({
         <p data-fade className="text-[12px] text-white/45 max-w-[680px] mt-5 leading-relaxed">
           {description}
         </p>
+        {/* Filter toggles */}
+        {(lockCount > 0 || sharpCount > 0) && (
+          <div data-fade className="mt-5 flex items-center gap-3 flex-wrap">
+            {lockCount > 0 && (
+              <button
+                onClick={() => { setLockOnly(v => !v); setSharpOnly(false); }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-[11px] font-black tracking-[0.14em] uppercase transition
+                  ${lockOnly
+                    ? 'bg-accent-green/20 text-accent-green border-accent-green/50'
+                    : 'bg-white/[0.04] text-white/55 border-white/[0.12] hover:border-accent-green/40 hover:text-accent-green/80'}`}>
+                <span>🔒</span>
+                {lockOnly ? `Mostrando ${lockCount} de máxima confianza` : `Ver solo máxima confianza (${lockCount})`}
+              </button>
+            )}
+            {sharpCount > 0 && (
+              <button
+                onClick={() => { setSharpOnly(v => !v); setLockOnly(false); }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-[11px] font-black tracking-[0.14em] uppercase transition
+                  ${sharpOnly
+                    ? 'bg-accent-gold/20 text-accent-gold border-accent-gold/55'
+                    : 'bg-white/[0.04] text-white/55 border-white/[0.12] hover:border-accent-gold/45 hover:text-accent-gold/85'}`}>
+                <span>🎯</span>
+                {sharpOnly ? `Mostrando ${sharpCount} con valor sharp` : `Ver solo valor sharp (${sharpCount})`}
+              </button>
+            )}
+            <span className="text-[10px] text-white/35 tracking-wide">
+              LOCK ≈ 71% · SHARP = book blando paga sobre Pinnacle
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Tall book-page cards ────────────────────────────────────────────── */}
@@ -2590,13 +2701,64 @@ function LiveDiamond({ liveScore, isLive }) {
 }
 
 // ─── DETAIL PAGE (full-page push-in) ─────────────────────────────────────────
-function DetailPage({ pk, onBack }) {
-  const [detail, setDetail] = useState(null);
+// Adapt a flat snapshot game object to the nested detail structure expected by DetailBody
+function adaptSnapshotToDetail(g) {
+  if (!g) return null;
+  return {
+    game_pk:  g.game_pk,
+    date:     g.date,
+    venue:    g.venue,
+    weather:  { temp_f: g.ctx_weather_temp, condition: g.ctx_weather_cond, wind: g.ctx_weather_wind },
+    away_team: { abbrev: g.away_abbrev, name: TEAM_NAMES[g.away_abbrev] || g.away_abbrev, wins: null, losses: null, logo: `https://www.mlbstatic.com/team-logos/${TEAM_ID[g.away_abbrev]||0}.svg` },
+    home_team: { abbrev: g.home_abbrev, name: TEAM_NAMES[g.home_abbrev] || g.home_abbrev, wins: null, losses: null, logo: `https://www.mlbstatic.com/team-logos/${TEAM_ID[g.home_abbrev]||0}.svg` },
+    away_pitcher: { name: g.pitcher_away?.name, throws: g.pitcher_away?.throws, season: null, days_rest: null },
+    home_pitcher: { name: g.pitcher_home?.name, throws: g.pitcher_home?.throws, season: null, days_rest: null },
+    model: {
+      p_home: g.p_home, p_away: g.p_away,
+      live_p_home: g.live_p_home,
+      pred_total_runs: g.pred_total,
+      fair_home_ml: g.fair_home_ml,
+      fair_away_ml: g.fair_away_ml,
+    },
+    market: { p_home: g.market_p_home, total: g.market_total },
+    value: {
+      value_side: g.value_side,
+      value_decimal: g.value_decimal,
+      value_edge_pp: g.value_edge_pp,
+      value_team_abbrev: g.value_team_abbrev,
+      ev_grade: g.ev_grade,
+      ev_per_dollar: g.ev_per_dollar,
+      market_home_decimal: g.market_home_decimal,
+      market_away_decimal: g.market_away_decimal,
+      market_home_ml: g.market_home_ml,
+      market_away_ml: g.market_away_ml,
+      home_edge_pp: g.home_edge_pp,
+      away_edge_pp: g.away_edge_pp,
+    },
+    result: { played: g.is_played, home_score: g.home_score, away_score: g.away_score },
+    live_score: g.live_score || null,
+    starter_actual: { away: null, home: null },
+    f5: { f5_p_home: g.f5_p_home, f5_p_away: g.f5_p_away, f5_pred_total: g.f5_pred_total,
+          f5_fair_home_ml: g.f5_fair_home_ml, f5_fair_away_ml: g.f5_fair_away_ml,
+          f5_played: g.f5_played, f5_home_score: g.f5_home_score, f5_away_score: g.f5_away_score },
+    context: { ctx_weather_temp: g.ctx_weather_temp, ctx_weather_cond: g.ctx_weather_cond, ctx_weather_wind: g.ctx_weather_wind },
+    park_runs_factor: null,
+    slot: g.slot,
+  };
+}
+
+function DetailPage({ pk, onBack, snapshotGame }) {
+  const [detail, setDetail] = useState(() => adaptSnapshotToDetail(snapshotGame));
   useEffect(() => {
     if (!pk) return;
-    setDetail(null);
-    fetch(`/api/games/${pk}?t=${Date.now()}`).then(r=>r.json()).then(setDetail);
-    // Light refresh every 30s for live games
+    fetch(`/api/games/${pk}?t=${Date.now()}`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(setDetail)
+      .catch(() => {
+        // In web mode (no backend), use snapshot data
+        if (snapshotGame) setDetail(adaptSnapshotToDetail(snapshotGame));
+      });
+    // Light refresh every 30s for live games (no-op in web mode)
     const t = setInterval(() => {
       fetch(`/api/games/${pk}?t=${Date.now()}`).then(r=>r.json()).then(setDetail).catch(()=>{});
     }, 30000);
@@ -3488,6 +3650,8 @@ function App() {
   const [scrolled, setScrolled] = useState(false);
   const [openPk, setOpenPk] = useState(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [snapshot, setSnapshot] = useState(null);
+  const [liveScores, setLiveScores] = useState({});
   const [performance, setPerformance] = useState(null);
   const [performanceLoading, setPerformanceLoading] = useState(false);
   const [performanceError, setPerformanceError] = useState(null);
@@ -3522,88 +3686,54 @@ function App() {
     }
   }, []);
 
-  // Fetch games when date changes
+  // ── Snapshot: load once on mount ───────────────────────────────────────────
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`)
+    fetch('/snapshot.json?t=' + Date.now())
       .then(r => r.json())
-      .then(d => { setGames(d); setLoading(false); })
+      .then(snap => {
+        setSnapshot(snap);
+        if (snap.performance)    { setPerformance(snap.performance);     setPerformanceLoading(false); }
+        if (snap.team_ranking)   { setTeamRanking(snap.team_ranking);    setTeamRankingLoading(false); }
+        if (snap.performance_2d) { setYesterday(snap.performance_2d);    setYesterdayLoading(false); }
+        if (snap.burn)           { setBurnData(snap.burn);               setBurnLoading(false); }
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
-  }, [date]);
+  }, []);
 
-  // Auto refresh
+  // ── Filter games from snapshot when date changes ────────────────────────────
   useEffect(() => {
-    const t = setInterval(() => {
-      fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`).then(r=>r.json()).then(setGames).catch(()=>{});
-    }, 30000);
+    if (!snapshot) return;
+    setGames((snapshot.games || []).filter(g => g.date === date));
+  }, [snapshot, date]);
+
+  // ── Poll live scores from MLB Stats API (no backend needed) ────────────────
+  useEffect(() => {
+    const today = todayISO();
+    const toUpdate = games.filter(g => g.date === today);
+    if (!toUpdate.length) return;
+    const FIELDS = [
+      'liveData,linescore,teams,runs,hits,errors,innings',
+      'currentInning,currentInningOrdinal,inningState,inningHalf',
+      'balls,strikes,outs,gameData,status',
+      'abstractGameState,codedGameState,detailedState,offense,first,second,third',
+    ].join(',');
+    const poll = async () => {
+      for (const g of toUpdate) {
+        if (liveScores[g.game_pk]?.state?.is_final) continue;
+        try {
+          const r = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${g.game_pk}/feed/live?fields=${FIELDS}`);
+          if (!r.ok) continue;
+          const live = parseMlbFeedLive(await r.json());
+          if (live) setLiveScores(prev => ({ ...prev, [g.game_pk]: live }));
+        } catch(e) {}
+      }
+    };
+    poll();
+    const t = setInterval(poll, 30000);
     return () => clearInterval(t);
-  }, [date]);
-
-  useEffect(() => {
-    if (activeId !== 'resumen' || performanceLoading || performance) return;
-    setPerformanceLoading(true);
-    setPerformanceError(null);
-    fetch(`/api/performance?days=60&t=${Date.now()}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(d => { setPerformance(d); setPerformanceLoading(false); })
-      .catch((err) => { setPerformanceError(err.message || 'Error'); setPerformanceLoading(false); });
-  }, [activeId, performance, performanceLoading]);
-
-  useEffect(() => {
-    if (activeId !== 'ranking') return;
-    setTeamRankingLoading(true);
-    fetch(`/api/team-ranking?days=${teamRankingDays}&t=${Date.now()}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(d => { setTeamRanking(d); setTeamRankingLoading(false); })
-      .catch(() => { setTeamRanking(null); setTeamRankingLoading(false); });
-  }, [activeId, teamRankingDays]);
-
-  // Fetch yesterday stats on first visit to 'hoy'
-  useEffect(() => {
-    if (activeId !== 'hoy' || yesterdayLoading || yesterday) return;
-    setYesterdayLoading(true);
-    fetch('/api/performance?days=2')
-      .then(r => r.json())
-      .then(d => { setYesterday(d); setYesterdayLoading(false); })
-      .catch(() => setYesterdayLoading(false));
-  }, [activeId, yesterday, yesterdayLoading]);
-
-  // Fetch burn report when 'hoy' is visited (and when date changes)
-  useEffect(() => {
-    if (activeId !== 'hoy') return;
-    setBurnLoading(true);
-    fetch(`/api/burn?date=${date}&t=${Date.now()}`)
-      .then(r => r.json())
-      .then(d => { setBurnData(d); setBurnLoading(false); })
-      .catch(() => setBurnLoading(false));
-  }, [activeId, date]);
-
-  // Fetch comebacks when visiting 'remontas' or when season changes
-  useEffect(() => {
-    if (activeId !== 'remontas') return;
-    setComebacksLoading(true);
-    fetch(`/api/comebacks?season=${comebacksSeason}&t=${Date.now()}`)
-      .then(r => r.json())
-      .then(d => { setComebacks(d); setComebacksLoading(false); })
-      .catch(() => setComebacksLoading(false));
-  }, [activeId, comebacksSeason]);
-
-  // Fetch error analysis when switching to errors sub-view
-  useEffect(() => {
-    if (activeId !== 'remontas' || remontasView !== 'errors') return;
-    if (errors && errors.season === errorsSeason) return;
-    setErrorsLoading(true);
-    fetch(`/api/errors?season=${errorsSeason}&t=${Date.now()}`)
-      .then(r => r.json())
-      .then(d => { setErrors(d); setErrorsLoading(false); })
-      .catch(() => setErrorsLoading(false));
-  }, [activeId, remontasView, errorsSeason]);
+  }, [games]);
 
   // Page scroll state
   useEffect(() => {
@@ -3676,11 +3806,28 @@ function App() {
     });
   }, [transitioning]);
 
-  const live = games.filter(g => g.is_live);
-  const finished = games.filter(g => g.is_played);
+  // Merge live score updates from MLB API into the snapshot games
+  const displayGames = useMemo(() => games.map(g => {
+    const live = liveScores[g.game_pk];
+    if (!live) return g;
+    const isFinal = live.state?.is_final;
+    const isLive  = live.state?.is_live;
+    return {
+      ...g,
+      live_score: live,
+      game_state: live.state,
+      is_live:    isLive,
+      is_played:  isFinal,
+      away_score: (isFinal || isLive) ? (live.away?.runs ?? g.away_score) : g.away_score,
+      home_score: (isFinal || isLive) ? (live.home?.runs ?? g.home_score) : g.home_score,
+    };
+  }), [games, liveScores]);
+
+  const live = displayGames.filter(g => g.is_live);
+  const finished = displayGames.filter(g => g.is_played);
   // +EV picks: empirical sweet spot from walk-forward (edge vs book in [0%, 2%]).
   // Excludes 'overconfident' band (edge ≥ 2%) where the model is consistently wrong.
-  const valueList = games.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal');
+  const valueList = displayGames.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal');
   const sweetValueCount = valueList.filter(g => g.ev_grade === 'sweet').length;
   const stats = useMemo(() => {
     if (!finished.length) return null;
@@ -3725,21 +3872,21 @@ function App() {
 
   return (
     <>
-      {!openPk && <TopNav activeId={activeId} onNavigate={goPage} date={date} setDate={setDate} scrolled={scrolled} />}
+      {!openPk && <TopNav activeId={activeId} onNavigate={goPage} date={date} setDate={setDate} scrolled={scrolled} snapshot={snapshot} />}
       <div ref={swapRef} className="swap-container relative z-10">
         {/* LEFT PANE: active page */}
         <main ref={pageRef} className="swap-pane overflow-y-auto">
           <div ref={pageContentRef} className="min-h-screen will-change-transform">
             {activeId === 'hero' && (
               <HeroPage
-                todayCount={games.length}
+                todayCount={displayGames.length}
                 valueCount={valueList.length}
                 onCta={goPage}
               />
             )}
             {activeId === 'hoy' && (
               <>
-              <HoyExpandableRow games={games} onOpen={openDetail} date={date} />
+              <HoyExpandableRow games={displayGames} onOpen={openDetail} date={date} />
               <YesterdayBanner data={yesterday} />
               <BurnPanel data={burnData} />
               </>
@@ -3750,9 +3897,9 @@ function App() {
                 kicker="02 · Vista Flash"
                 title={<>Eventos<br/>del día.</>}
                 lead="Una pizarra compacta con estado, marcador y cuotas 1/2 para revisar toda la jornada de un vistazo."
-                statValue={games.length} statLabel="eventos en tablero" accent="blue"
+                statValue={displayGames.length} statLabel="eventos en tablero" accent="blue"
               />
-              <FlashcoreBoard games={games} onOpen={openDetail} date={date} />
+              <FlashcoreBoard games={displayGames} onOpen={openDetail} date={date} />
               </>
             )}
             {activeId === 'envivo' && (
@@ -3858,7 +4005,7 @@ function App() {
 
         {/* RIGHT PANE: detail page */}
         <div className="swap-pane">
-          {openPk && <DetailPage pk={openPk} onBack={closeDetail}/>}
+          {openPk && <DetailPage pk={openPk} onBack={closeDetail} snapshotGame={displayGames.find(g => g.game_pk === openPk) || null}/>}
         </div>
       </div>
       {loading && (
