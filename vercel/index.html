@@ -627,7 +627,7 @@ function GameCard({ g, onOpen, index = 0 }) {
         const fmtML = (v) => v == null ? null : (v > 0 ? `+${Math.round(v)}` : `${Math.round(v)}`);
         const ouLine    = g.total_close ?? g.market_total;
         const hasOU     = ouLine != null || g.over_odds != null;
-        const hasRL     = g.run_line != null;
+        const hasRL     = g.run_line != null && g.run_line !== 0;
         const hasK      = g.proj_k_away != null || g.proj_k_home != null;
         if (!hasOU && !hasRL && !hasK) return null;
 
@@ -822,9 +822,13 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
                    (ouPick === 'OVER' ? actualTotal > ouLine : actualTotal < ouLine) ? 'win' : 'loss');
 
   // Run line — always recommend the dog (+1.5)
-  const awayRLVal = g.run_line;
-  const homeRLVal = g.run_line != null ? -g.run_line : null;
-  const rlLean = g.run_line != null ? {
+  // Treat run_line=0 as missing data (0 isn't a valid MLB spread) — some ESPN
+  // feeds return 0 when the market hasn't posted a line, which was causing the
+  // pickHome / team selection to disagree and mark losses as wins.
+  const hasValidRL = g.run_line != null && g.run_line !== 0;
+  const awayRLVal = hasValidRL ? g.run_line : null;
+  const homeRLVal = hasValidRL ? -g.run_line : null;
+  const rlLean = hasValidRL ? {
     team: g.run_line > 0 ? g.away_abbrev : g.home_abbrev,
     side: g.run_line > 0 ? g.run_line : Math.abs(g.run_line),
     pickHome: g.run_line < 0,
@@ -1068,7 +1072,7 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
                 {g.home_abbrev} {fmtRL(homeRLVal)}
               </div>
               <div className="text-[10px] font-black text-accent-gold/85 tracking-wider mt-auto flex items-center justify-center gap-0.5">
-                → {rlLean.team} +1.5
+                → {rlLean.team} +{rlLean.side}
                 {rlResult === 'win' && <span className="text-accent-green">✓</span>}
                 {rlResult === 'loss' && <span className="text-accent-red">✗</span>}
               </div>
@@ -3939,7 +3943,7 @@ function App() {
         }
       }
 
-      if (g.run_line != null) {
+      if (g.run_line != null && g.run_line !== 0) {
         const dogIsHome = g.run_line < 0;
         const dogMargin = dogIsHome ? g.home_score - g.away_score : g.away_score - g.home_score;
         rlT++;
