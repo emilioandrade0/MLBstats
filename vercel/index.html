@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>STRIKECAST · Predicciones MLB</title>
+<title>PICKGOLD · Predicciones MLB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.tailwindcss.com">
@@ -155,10 +155,8 @@ const SECTIONS = [
   { id:'envivo',  label:'En vivo' },
   { id:'valor',   label:'+EV' },
   { id:'final',   label:'Resultados' },
-  { id:'resumen',  label:'Resumen' },
-  { id:'ranking',  label:'Ranking' },
-  { id:'remontas', label:'Remontas' },
-  { id:'modelo',   label:'Modelo' },
+  { id:'resumen', label:'Resumen' },
+  { id:'ranking', label:'Ranking' },
 ];
 
 // ─── THREE.JS PARTICLE SPHERE (cursor-reactive) ──────────────────────────────
@@ -326,8 +324,8 @@ function TopNav({ activeId, onNavigate, date, setDate, scrolled, snapshot }) {
       ${scrolled ? 'glass border-b border-white/[0.06]' : 'bg-transparent'}`}>
       <div className="max-w-[1600px] mx-auto px-3 md:px-10 h-[64px] md:h-[72px] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-accent-red flex items-center justify-center text-accent-red font-mega text-[10px] md:text-xs">SC</div>
-          <div className="font-mega text-[18px] md:text-[22px] tracking-tight max-[420px]:hidden">STRIKE<span className="text-accent-red">CAST</span></div>
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-accent-gold flex items-center justify-center text-accent-gold font-mega text-[10px] md:text-xs">PG</div>
+          <div className="font-mega text-[18px] md:text-[22px] tracking-tight max-[420px]:hidden">PICK<span className="text-accent-gold">GOLD</span></div>
         </div>
         <nav className="hidden md:flex items-center gap-1 glass rounded-full px-2 py-1.5 border border-white/[0.06]">
           {SECTIONS.map(s => (
@@ -2097,6 +2095,96 @@ function WeeklyPerformanceChart({ data }) {
   );
 }
 
+function DailySummaryPage({ data, loading, error }) {
+  const wrapRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!wrapRef.current || !data) return;
+    gsap.fromTo(wrapRef.current.querySelectorAll('[data-fade]'),
+      { opacity: 0, y: 26 },
+      { opacity: 1, y: 0, duration: 0.72, ease: 'power3.out', stagger: 0.05 });
+  }, [data]);
+  if ((loading && !data) || (!data && !error)) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-10 pb-24">
+        <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/45 tracking-[0.22em] uppercase text-xs animate-pulse">
+          Calculando resumen diario…
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-10 pb-24">
+        <div className="glass border border-accent-red/25 rounded-[28px] p-10">
+          <div className="text-accent-red text-[11px] tracking-[0.28em] uppercase font-black mb-3">No se pudo cargar el resumen diario</div>
+          <div className="text-white/70 leading-relaxed">
+            El snapshot todavía no incluye el agrupado diario. Vuelve a publicar desde el servidor local.
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!data || !data.summary || !data.summary.games) {
+    return (
+      <div className="max-w-[1400px] mx-auto px-10 pb-24">
+        <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/55">
+          No hay suficientes juegos cerrados para mostrar el resumen diario.
+        </div>
+      </div>
+    );
+  }
+  const s = data.summary;
+  const rows = [...(data.daily || [])].reverse();
+  return (
+    <div ref={wrapRef} className="max-w-[1400px] mx-auto px-10 pb-24">
+      <div data-fade className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <PerformanceMetric label="Ventana" value={data.days} sub={`${data.start} a ${data.end}`} accent="blue" />
+        <PerformanceMetric label="Juegos cerrados" value={s.games} sub={`${rows.length} días con acción`} accent="gold" />
+        <PerformanceMetric label="Accuracy modelo" value={perfPct(s.model_accuracy)} sub="todos los picks ML" accent="blue" />
+        <PerformanceMetric label="ROI +EV" value={perfPct(s.value_roi)} sub={`${perfUnits(s.value_profit_units)} netas`} accent={(s.value_roi ?? 0) >= 0 ? 'green' : 'red'} />
+      </div>
+      <div data-fade className="glass border border-white/[0.06] rounded-[28px] p-7 mt-5">
+        <div className="flex items-end justify-between gap-4 mb-6">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.28em] text-accent-gold font-black">Últimos 3 meses · por día</div>
+            <div className="text-white/45 text-sm mt-2">Cada fila resume cómo le fue al modelo en una fecha cerrada.</div>
+          </div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">{rows.length} días</div>
+        </div>
+        <div className="overflow-x-auto">
+        <div className="space-y-2 min-w-[640px]">
+          <div className="grid grid-cols-[108px_64px_84px_84px_72px_72px_78px] gap-3 px-4 text-[10px] uppercase tracking-[0.18em] text-white/28 font-black">
+            <div>Fecha</div>
+            <div className="text-right">Juegos</div>
+            <div className="text-right">Modelo</div>
+            <div className="text-right">Mercado</div>
+            <div className="text-right">+EV</div>
+            <div className="text-right">ROI</div>
+            <div className="text-right">Unidades</div>
+          </div>
+          {rows.map(r => {
+            const hasValue = Number(r.value_picks || 0) > 0;
+            const roi = Number(r.value_roi || 0);
+            const roiColor = hasValue ? (roi >= 0 ? 'text-accent-green' : 'text-accent-red') : 'text-white/28';
+            return (
+              <div key={r.date} className="grid grid-cols-[108px_64px_84px_84px_72px_72px_78px] gap-3 items-center rounded-2xl bg-white/[0.025] border border-white/[0.045] px-4 py-3">
+                <div className="font-black text-white/82 tabular-nums">{r.date}</div>
+                <div className="text-right text-white/70 tabular-nums">{r.games}</div>
+                <div className="text-right text-accent-blue font-black tabular-nums">{perfPct(r.model_accuracy)}</div>
+                <div className="text-right text-white/60 font-black tabular-nums">{perfPct(r.market_accuracy)}</div>
+                <div className="text-right text-accent-gold font-black tabular-nums">{r.value_picks}</div>
+                <div className={`text-right font-black tabular-nums ${roiColor}`}>{hasValue ? perfPct(r.value_roi) : '—'}</div>
+                <div className={`text-right font-black tabular-nums ${roiColor}`}>{hasValue ? perfUnits(r.value_profit_units) : '—'}</div>
+              </div>
+            );
+          })}
+        </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GradeBreakdown({ grades }) {
   const order = ['sweet', 'marginal', 'no_edge', 'overconfident', 'skip', 'no_data'];
   const sorted = [...grades].sort((a,b) => order.indexOf(a.grade) - order.indexOf(b.grade));
@@ -2614,7 +2702,7 @@ function ModeloPage() {
           <div className="text-[11px] tracking-[0.28em] uppercase text-accent-blue/80 mb-4">Filosofía</div>
           <p className="text-white/85 text-lg leading-relaxed">
             El closing line con info pública es <span className="text-accent-gold">prácticamente imperdible</span>.
-            STRIKECAST se enfoca en identificar <span className="text-accent-gold">mispricing entre books</span> —
+            PICKGOLD se enfoca en identificar <span className="text-accent-gold">mispricing entre books</span> —
             ahí está el edge sostenible.
           </p>
         </div>
@@ -2771,7 +2859,7 @@ function DetailPage({ pk, onBack, snapshotGame }) {
           className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent-red text-white hover:bg-accent-red/85 text-sm font-bold tracking-[0.16em] uppercase transition shadow-lg shadow-accent-red/30">
           <span className="text-base">←</span> Volver al dashboard
         </button>
-        <div className="font-mega text-2xl tracking-tight">STRIKE<span className="text-accent-red">CAST</span></div>
+        <div className="font-mega text-2xl tracking-tight">PICK<span className="text-accent-gold">GOLD</span></div>
         <div className="text-[11px] tracking-[0.22em] uppercase text-white/55 min-w-[260px] text-right">
           {detail && `${detail.venue} · ${fmtDateLong(detail.date)}`}
         </div>
@@ -3949,15 +4037,14 @@ function App() {
             {activeId === 'resumen' && (
               <>
               <HeroBlock
-                kicker="06 · Track record"
-                title={<>Rendimiento<br/>del modelo.</>}
-                lead="Resumen de los últimos 60 días: accuracy, ROI, picks de valor y comparación contra el mercado para saber si realmente está rindiendo."
-                statValue={performance?.summary?.value_roi ?? 0}
-                statSuffix="%"
-                statLabel="ROI picks +EV"
-                accent={(performance?.summary?.value_roi ?? 0) >= 0 ? 'green' : 'red'}
+                kicker="06 · Archivo diario"
+                title={<>Últimos 3 meses,<br/>por día.</>}
+                lead="Resumen diario del rendimiento del modelo de predicciones: juegos evaluados, accuracy contra mercado y retorno de picks +EV fecha por fecha."
+                statValue={performance?.daily?.length ?? 0}
+                statLabel="días resumidos"
+                accent="gold"
               />
-              <PerformancePage data={performance} loading={performanceLoading} error={performanceError} />
+              <DailySummaryPage data={performance} loading={performanceLoading} error={performanceError} />
               </>
             )}
             {activeId === 'ranking' && (
