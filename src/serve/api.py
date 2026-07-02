@@ -233,6 +233,14 @@ def _load():
         with open(MODELS / "lgb_cls.pkl", "rb") as f:
             cls_b = pickle.load(f)
         cls_b["__ensemble__"] = False
+    # Standalone calibrated classifier — the VALUE/edge probability source.
+    # Decoupled from the display blend so edges aren't shrunk toward market.
+    # Matches edge_threshold_sweep.py, which calibrated the 9pp threshold here.
+    cls_value_b = None
+    lgb_cls_path = MODELS / "lgb_cls.pkl"
+    if lgb_cls_path.exists():
+        with open(lgb_cls_path, "rb") as f:
+            cls_value_b = pickle.load(f)
     with open(MODELS / "lgb_reg.pkl", "rb") as f:
         reg_b = pickle.load(f)
     # F5 models — separate ensemble for First-5-Innings market
@@ -256,9 +264,19 @@ def _load():
         pitcher_season = None
 
     market_lines = _build_market_lines()
+    # Pinnacle sharp-value table (soft book price vs Pinnacle de-vig fair).
+    pin_path = PROCESSED / "pinnacle_value.parquet"
+    pinnacle_value = None
+    if pin_path.exists():
+        try:
+            pinnacle_value = pd.read_parquet(pin_path).set_index("game_pk")
+        except Exception:
+            pinnacle_value = None
 
     _cache.update({"train": train, "games": games, "cls": cls_b, "reg": reg_b,
+                   "cls_value": cls_value_b,
                    "pitcher_season": pitcher_season, "market_lines": market_lines,
+                   "pinnacle_value": pinnacle_value,
                    "f5_cls": f5_cls_b, "f5_reg": f5_reg_b})
     return _cache
 
@@ -301,12 +319,66 @@ def _build_market_lines():
             home_rl_odds=("home_spread_odds", "median"),
         ).reset_index()
         agg = agg.merge(agg_raw, on="espn_event_id", how="left")
+    # ── Best available price (line shopping) across all pre-game books ────────
+    # The MEDIAN above stays the de-vig "fair" reference; the BEST price is what
+    # you'd actually bet at. Taking the best of ~5-13 books is worth ~3-5pp of
+    # implied probability (validated on odds.parquet history).
+    best = _best_lines_from(odds)
+    if best is not None:
+        agg = agg.merge(best, on="espn_event_id", how="left")
+
     xref = pd.read_parquet(xref_path)
     matched = xref[xref["_merge"] == "both"][["espn_event_id", "game_pk"]].dropna()
     matched["game_pk"] = matched["game_pk"].astype(int)
     return agg.merge(matched, on="espn_event_id", how="inner") \
               .drop(columns=["espn_event_id"]).drop_duplicates("game_pk") \
               .set_index("game_pk")
+
+
+_BOOK_DISPLAY = {
+    "ESPN BET": "ESPN BET", "DraftKings": "DraftKings", "DraftKings (old)": "DraftKings",
+    "MGM": "BetMGM", "Bet365": "Bet365", "Unibet": "Unibet", "SugarHouse": "SugarHouse",
+    "PointsBet": "PointsBet", "BetfairSportsbook": "Betfair",
+}
+
+
+def _clean_book(name: str) -> str:
+    if not isinstance(name, str):
+        return "?"
+    if name.startswith("Caesars"):
+        return "Caesars"
+    return _BOOK_DISPLAY.get(name, name)
+
+
+def _best_lines_from(odds: pd.DataFrame) -> pd.DataFrame | None:
+    """Per event: best (highest = most favorable) home/away ML + the book name.
+
+    Higher American odds are always better for the bettor, so max() = best price.
+    Excludes live-odds feeds and non-book aggregators.
+    """
+    o = odds[~odds["provider_name"].str.contains("Live", case=False, na=False)].copy()
+    o = o[~o["provider_name"].isin(["consensus", "teamrankings"])]
+    o["home_ml"] = o["home_ml_close"].fillna(o["home_ml_current"]).fillna(o["home_ml_top"])
+    o["away_ml"] = o["away_ml_close"].fillna(o["away_ml_current"]).fillna(o["away_ml_top"])
+    o = o.dropna(subset=["home_ml", "away_ml"])
+    # Valid American odds are never 0 and never strictly between -100 and +100.
+    valid = lambda s: (s.abs() >= 100)
+    o = o[valid(o["home_ml"]) & valid(o["away_ml"])]
+    if o.empty:
+        return None
+    rows = []
+    for eid, grp in o.groupby("espn_event_id"):
+        hi = grp.loc[grp["home_ml"].idxmax()]
+        ai = grp.loc[grp["away_ml"].idxmax()]
+        rows.append({
+            "espn_event_id": eid,
+            "best_home_ml": float(hi["home_ml"]),
+            "best_home_book": _clean_book(hi["provider_name"]),
+            "best_away_ml": float(ai["away_ml"]),
+            "best_away_book": _clean_book(ai["provider_name"]),
+            "n_books": int(grp["provider_name"].nunique()),
+        })
+    return pd.DataFrame(rows)
 
 
 def _insights(r: pd.Series) -> dict:
@@ -397,6 +469,67 @@ def _game_context(c, r: pd.Series, games_df: pd.DataFrame | None = None) -> dict
                 bp_ip = b.get("bullpen_ip_yest")
                 if pd.notna(bp_ip) and float(bp_ip) >= 4.5: tags.append(f"BP {float(bp_ip):.1f}ip")
                 out[key + "_tags"] = tags
+    return out
+
+
+_pin_cache: dict = {"ts": 0.0, "data": None}
+_PIN_TTL_SEC = 60
+
+
+def _get_pinnacle_value():
+    """Load pinnacle_value.parquet fresh (60s TTL) so intraday pulls appear
+    without a server restart — the sharp odds change through the day."""
+    now = time.time()
+    if _pin_cache["data"] is not None and (now - _pin_cache["ts"]) < _PIN_TTL_SEC:
+        return _pin_cache["data"]
+    pv = None
+    p = PROCESSED / "pinnacle_value.parquet"
+    if p.exists():
+        try:
+            pv = pd.read_parquet(p).set_index("game_pk")
+        except Exception:
+            pv = None
+    _pin_cache.update({"ts": now, "data": pv})
+    return pv
+
+
+def _pinnacle_block(c, game_pk: int) -> dict:
+    """Sharp-value fields from Pinnacle: where a soft book pays over fair.
+
+    Pinnacle de-vig ≈ true probability. When a soft book's price implies a
+    lower probability than Pinnacle's fair line, that book is paying above fair
+    → mechanical +EV independent of our model.
+    """
+    out = {
+        "pin_has": False,
+        "pin_fair_home": None, "pin_fair_away": None,
+        "pin_value_side": None, "pin_value_book": None,
+        "pin_value_edge_pp": None, "pin_value_ml": None,
+    }
+    pv = _get_pinnacle_value()
+    if pv is None or game_pk not in pv.index:
+        return out
+    row = pv.loc[game_pk]
+    out["pin_has"] = True
+    out["pin_fair_home"] = _safe(row.get("pin_fair_home"))
+    out["pin_fair_away"] = _safe(row.get("pin_fair_away"))
+    eh = _safe(row.get("sharp_edge_home_pp"))
+    ea = _safe(row.get("sharp_edge_away_pp"))
+    # Pick the side with the larger positive sharp edge (>= 1pp to matter)
+    best_side, best_edge, best_book, best_ml = None, None, None, None
+    if eh is not None and (ea is None or eh >= ea) and eh >= 1.0:
+        best_side, best_edge = "HOME", eh
+        best_book, best_ml = row.get("best_home_book"), _safe(row.get("best_home_ml"))
+    elif ea is not None and ea >= 1.0:
+        best_side, best_edge = "AWAY", ea
+        best_book, best_ml = row.get("best_away_book"), _safe(row.get("best_away_ml"))
+    if best_side:
+        _bkdisp = {"draftkings": "DraftKings", "fanduel": "FanDuel", "betmgm": "BetMGM",
+                   "caesars": "Caesars", "williamhill_us": "Caesars"}
+        out["pin_value_side"]    = best_side
+        out["pin_value_book"]    = _bkdisp.get(best_book, best_book) if isinstance(best_book, str) else None
+        out["pin_value_edge_pp"] = round(best_edge, 2)
+        out["pin_value_ml"]      = best_ml
     return out
 
 
@@ -718,6 +851,26 @@ def _value_block(c, game_pk: int, p_home_model: float,
     out["value_team_abbrev"] = team
     out["ev_per_dollar"] = round(prob * (dec - 1) - (1 - prob), 4)
 
+    # ── Line shopping: execute the pick at the BEST available book price ──────
+    # Side selection + edge stay based on the consensus (median) above so the
+    # threshold logic is unchanged; we only upgrade the EXECUTION price.
+    best_ml = _safe(row.get("best_home_ml")) if side == "HOME" else _safe(row.get("best_away_ml"))
+    best_book = row.get("best_home_book") if side == "HOME" else row.get("best_away_book")
+    best_dec = _american_to_decimal(best_ml) if best_ml is not None else None
+    if best_dec is not None and best_dec >= dec:  # only if it's actually better
+        out["value_best_decimal"] = round(best_dec, 2)
+        out["value_best_book"]    = best_book if isinstance(best_book, str) else None
+        out["value_best_ml"]      = best_ml
+        # EV at the best price (what you'd actually realize) + the consensus EV
+        out["ev_per_dollar_best"] = round(prob * (best_dec - 1) - (1 - prob), 4)
+        out["value_shop_gain_pp"] = round((1.0 / dec - 1.0 / best_dec) * 100, 2)
+    else:
+        out["value_best_decimal"] = round(dec, 2)
+        out["value_best_book"]    = None
+        out["value_best_ml"]      = None
+        out["ev_per_dollar_best"] = out["ev_per_dollar"]
+        out["value_shop_gain_pp"] = 0.0
+
     # ── Empirical grading — RECALIBRATED for the lineup_recent model ────────
     # New model (139 feats, w/ lineup_recent + team_id) shifts the edge curve.
     # Sweep results on the 90-day audit (src/analysis/edge_threshold_sweep.py):
@@ -906,6 +1059,17 @@ SHRINK_FACTOR = 0.75  # after C+D, the previous 0.5 was over-correcting; 0.75 mi
 SHRINK_ANCHOR = 0.55
 W_AGREE    = 0.50  # market weight when model & market agree on direction
 W_DISAGREE = 0.80  # market weight when they disagree (trust market more)
+# Display-accuracy-optimal weights on the latest walk-forward:
+# agree=0.70 keeps some model signal where both sides agree, but when they
+# disagree the cleanest winner rule was effectively "trust market" and use a
+# slightly sub-0.50 decision boundary.
+# NOT applied to the shared blend
+# because that path also feeds the value-edge calc, where a market-heavy
+# blend collapses the edges. See _accuracy_phome below for the decoupled
+# display probability.
+W_AGREE_DISPLAY    = 0.70
+W_DISAGREE_DISPLAY = 1.00
+WINNER_THRESHOLD = 0.475
 
 
 def _shrink_overconfidence(p: np.ndarray, factor: float = SHRINK_FACTOR,
@@ -920,31 +1084,403 @@ def _shrink_overconfidence(p: np.ndarray, factor: float = SHRINK_FACTOR,
     return np.clip(out, 1e-6, 1 - 1e-6)
 
 
-def _predict_phome(c, X: pd.DataFrame, market_p: pd.Series) -> np.ndarray:
-    """Disagree-aware blend + overconfidence shrink.
+def _raw_model_phome(c, X: pd.DataFrame) -> np.ndarray:
+    """Model's INDEPENDENT probability for VALUE/edge detection.
 
-    Error analysis #2 showed that when our model picks a different side than
-    the market, the market is right +2.1pp more often. So when there's
-    DIRECTIONAL disagreement, we lean harder on market.
+    Uses the standalone calibrated lgb_cls — NO market blend, NO shrink. A real
+    edge exists only where the model disagrees with the book; blending toward
+    market or shrinking toward 0.55 would collapse those edges. This matches
+    edge_threshold_sweep.py, which set the 9pp threshold on this exact model.
+    """
+    cv = c.get("cls_value")
+    if cv is not None and "calibrator" in cv:
+        return cv["calibrator"].predict_proba(X[cv["feature_names"]])[:, 1]
+    # Fallback: ensemble raw model with shrink (less ideal but safe)
+    if c["cls"].get("__ensemble__"):
+        return _shrink_overconfidence(c["cls"]["model"].predict_proba(X)[:, 1])
+    return c["cls"]["calibrator"].predict_proba(X)[:, 1]
 
-    Walk-forward (4,411 games): w_agree=0.50, w_disagree=0.80 yields:
-      ll=0.6778  acc=0.5695  Brier=0.2425
-    vs market only:
-      ll=0.6760  acc=0.5622  Brier=0.2417
-    → +0.73pp accuracy ABOVE market while remaining well-calibrated.
+
+def _display_model_phome(c, X: pd.DataFrame) -> np.ndarray:
+    """Base winner-model probability used by the display accuracy path."""
+    if c["cls"].get("__ensemble__"):
+        return c["cls"]["model"].predict_proba(X)[:, 1]
+    return c["cls"]["calibrator"].predict_proba(X)[:, 1]
+
+
+def _blend_phome(c, X: pd.DataFrame, market_p: pd.Series,
+                 w_agree: float, w_disagree: float) -> np.ndarray:
+    """Disagree-aware market blend + overconfidence shrink.
+
+    The base model already has market_logit_p_home as a feature, but a second
+    explicit blend of the OUTPUT toward the de-vigged line still helps display
+    accuracy because the market is near the accuracy ceiling (56.7%).
     """
     if c["cls"].get("__ensemble__"):
-        p_model = c["cls"]["model"].predict_proba(X)[:, 1]
+        p_model = _display_model_phome(c, X)
         mp = market_p.values
         if not np.isfinite(mp[0]):
-            # No market line — fall back to pure model
             return _shrink_overconfidence(p_model)
-        # Directional agreement check
         agree = (p_model > 0.5) == (mp > 0.5)
-        w = np.where(agree, W_AGREE, W_DISAGREE)
+        w = np.where(agree, w_agree, w_disagree)
         blended = w * mp + (1 - w) * p_model
         return _shrink_overconfidence(blended)
     return c["cls"]["calibrator"].predict_proba(X)[:, 1]
+
+
+def _market_band_recalibrate(p_home: np.ndarray, market_p: pd.Series) -> np.ndarray:
+    """Small post-blend calibration learned from walk-forward residuals."""
+    out = p_home.copy()
+    mp = market_p.values
+    finite = np.isfinite(mp)
+    if not finite.any():
+        return out
+    band_low_mid = finite & (mp > 0.42) & (mp <= 0.50)
+    band_high_mid = finite & (mp > 0.50) & (mp <= 0.60)
+    out[band_low_mid] += 0.005
+    out[band_high_mid] -= 0.020
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _uncertainty_shrink(p_home: np.ndarray, market_p: pd.Series) -> np.ndarray:
+    """Shrink medium-market games slightly toward 50/50."""
+    out = p_home.copy()
+    mp = market_p.values
+    mid = np.isfinite(mp) & (mp >= 0.42) & (mp <= 0.60)
+    out[mid] = 0.5 + (out[mid] - 0.5) * 0.90
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _weak_disagreement_guard(
+    p_home: np.ndarray,
+    model_raw: np.ndarray,
+    market_p: pd.Series,
+) -> np.ndarray:
+    """Do not fight the market on very weak contra signals."""
+    out = p_home.copy()
+    mp = market_p.values
+    weak = (
+        np.isfinite(model_raw)
+        & np.isfinite(mp)
+        & ((model_raw > 0.5) != (mp > 0.5))
+        & (np.abs(model_raw - mp) < 0.08)
+    )
+    out[weak] = 0.5 + (mp[weak] - 0.5) * 0.98
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _lineup_recent_edge_adjust(
+    p_home: np.ndarray,
+    market_p: pd.Series,
+    X: pd.DataFrame,
+) -> np.ndarray:
+    """Small boost for short home favorites with a clear recent top-4 edge."""
+    need = {
+        "lineup_top4_recent_ops_l15_h",
+        "lineup_top4_recent_ops_l15_a",
+        "lineup_recent_n_with_data_h",
+        "lineup_recent_n_with_data_a",
+    }
+    if not need.issubset(X.columns):
+        return p_home
+    ops_diff = (
+        pd.to_numeric(X["lineup_top4_recent_ops_l15_h"], errors="coerce")
+        - pd.to_numeric(X["lineup_top4_recent_ops_l15_a"], errors="coerce")
+    ).to_numpy()
+    n_home = pd.to_numeric(X["lineup_recent_n_with_data_h"], errors="coerce").to_numpy()
+    n_away = pd.to_numeric(X["lineup_recent_n_with_data_a"], errors="coerce").to_numpy()
+    out = p_home.copy()
+    mp = market_p.values
+    good = (
+        np.isfinite(mp)
+        & (mp > 0.50)
+        & (mp <= 0.60)
+        & np.isfinite(ops_diff)
+        & (ops_diff >= 0.03)
+        & np.isfinite(n_home)
+        & np.isfinite(n_away)
+        & (n_home >= 4)
+        & (n_away >= 4)
+    )
+    out[good] += 0.0075
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _bullpen_quality_adjust(
+    p_home: np.ndarray,
+    market_p: pd.Series,
+    X: pd.DataFrame,
+) -> np.ndarray:
+    """Cool short home favorites whose bullpen quality has been worse recently."""
+    need = {"bullpen_runs_l5_h", "bullpen_runs_l5_a"}
+    if not need.issubset(X.columns):
+        return p_home
+    runs_diff = (
+        pd.to_numeric(X["bullpen_runs_l5_h"], errors="coerce")
+        - pd.to_numeric(X["bullpen_runs_l5_a"], errors="coerce")
+    ).to_numpy()
+    out = p_home.copy()
+    mp = market_p.values
+    bad = (
+        np.isfinite(mp)
+        & (mp > 0.50)
+        & (mp <= 0.60)
+        & np.isfinite(runs_diff)
+        & (runs_diff >= 3.0)
+    )
+    out[bad] -= 0.010
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _starter_contact_adjust(
+    p_home: np.ndarray,
+    market_p: pd.Series,
+    X: pd.DataFrame,
+) -> np.ndarray:
+    """Slightly cool short home favorites with the worse starter contact profile."""
+    if "starter_barrel_against_l15_diff" not in X.columns:
+        return p_home
+    barrel_diff = pd.to_numeric(X["starter_barrel_against_l15_diff"], errors="coerce").to_numpy()
+    out = p_home.copy()
+    mp = market_p.values
+    bad = (
+        np.isfinite(mp)
+        & (mp > 0.50)
+        & (mp <= 0.60)
+        & np.isfinite(barrel_diff)
+        & (barrel_diff >= 0.020)
+    )
+    out[bad] -= 0.0025
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _starter_market_override(
+    p_home: np.ndarray,
+    market_p: pd.Series,
+    X: pd.DataFrame,
+) -> np.ndarray:
+    """Avoid over-cooling short home favorites in some ugly-but-still-favored SP spots."""
+    need = {"starter_k_pct_l15_diff", "starter_bb_pct_l15_diff", "starter_xwoba_l15_diff"}
+    if not need.issubset(X.columns):
+        return p_home
+    k_diff = pd.to_numeric(X["starter_k_pct_l15_diff"], errors="coerce").to_numpy()
+    bb_diff = pd.to_numeric(X["starter_bb_pct_l15_diff"], errors="coerce").to_numpy()
+    xwoba_diff = pd.to_numeric(X["starter_xwoba_l15_diff"], errors="coerce").to_numpy()
+    out = p_home.copy()
+    mp = market_p.values
+    keep_home = (
+        np.isfinite(mp)
+        & (mp > 0.50)
+        & (mp <= 0.60)
+        & np.isfinite(k_diff)
+        & (k_diff <= -0.020)
+        & (
+            (np.isfinite(bb_diff) & (bb_diff >= 0.010))
+            | (np.isfinite(xwoba_diff) & (xwoba_diff >= 0.020))
+        )
+    )
+    out[keep_home] += 0.010
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _context_regime_adjust(
+    p_home: np.ndarray,
+    model_raw: np.ndarray,
+    market_p: pd.Series,
+    X: pd.DataFrame,
+) -> np.ndarray:
+    """Regime-level overrides for the worst short-favorite disagreement pockets."""
+    need = {
+        "starter_barrel_against_l15_diff",
+        "starter_k_pct_l15_diff",
+        "starter_bb_pct_l15_diff",
+        "starter_xwoba_l15_diff",
+        "mirror_pair_seen_h",
+        "mirror_pair_seen_a",
+        "awayonly_win_pct_l20_a",
+        "bullpen_apps_l3d_diff",
+    }
+    if not need.issubset(X.columns):
+        return p_home
+    barrel_diff = pd.to_numeric(X["starter_barrel_against_l15_diff"], errors="coerce").to_numpy()
+    k_diff = pd.to_numeric(X["starter_k_pct_l15_diff"], errors="coerce").to_numpy()
+    bb_diff = pd.to_numeric(X["starter_bb_pct_l15_diff"], errors="coerce").to_numpy()
+    xwoba_diff = pd.to_numeric(X["starter_xwoba_l15_diff"], errors="coerce").to_numpy()
+    mp = market_p.values
+    disagree = np.isfinite(model_raw) & np.isfinite(mp) & ((model_raw > 0.5) != (mp > 0.5))
+    short = np.isfinite(mp) & (mp > 0.50) & (mp <= 0.60)
+    ugly = np.isfinite(k_diff) & (k_diff <= -0.020) & (
+        (np.isfinite(bb_diff) & (bb_diff >= 0.010))
+        | (np.isfinite(xwoba_diff) & (xwoba_diff >= 0.020))
+    )
+    barrel_bad = np.isfinite(barrel_diff) & (barrel_diff >= 0.020)
+    mirror_any = (
+        pd.to_numeric(X["mirror_pair_seen_h"], errors="coerce").fillna(0).to_numpy()
+        + pd.to_numeric(X["mirror_pair_seen_a"], errors="coerce").fillna(0).to_numpy()
+    ) > 0
+    away_road_bad = pd.to_numeric(X["awayonly_win_pct_l20_a"], errors="coerce").fillna(1.0).to_numpy() <= 0.40
+    away_pen_taxed = pd.to_numeric(X["bullpen_apps_l3d_diff"], errors="coerce").to_numpy() <= -2.0
+    out = p_home.copy()
+    cool = short & disagree & (barrel_bad | ugly)
+    out[cool] -= 0.015
+    out[short & disagree & barrel_bad] -= 0.0075
+    out[short & disagree & ugly] -= 0.010
+    out[short & disagree & away_road_bad] -= 0.005
+    out[(mp > 0.42) & (mp <= 0.50) & away_road_bad] -= 0.010
+    out[(mp >= 0.40) & (mp < 0.45) & away_pen_taxed] += 0.015
+    out[mirror_any] += 0.0125
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _pythag_regression_adjust(
+    p_home: np.ndarray,
+    market_p: pd.Series,
+    X: pd.DataFrame,
+) -> np.ndarray:
+    """Fade teams that recently overperformed their run profile in ambiguous bands."""
+    if "pyth_minus_actual_l30_diff" not in X.columns:
+        return p_home
+    pyth_luck = pd.to_numeric(X["pyth_minus_actual_l30_diff"], errors="coerce").to_numpy()
+    out = p_home.copy()
+    mp = market_p.values
+    active = (
+        np.isfinite(mp)
+        & (mp >= 0.42)
+        & (mp <= 0.60)
+        & np.isfinite(pyth_luck)
+        & (np.abs(pyth_luck) >= 0.09)
+    )
+    out[active] -= np.sign(pyth_luck[active]) * 0.0075
+    return np.clip(out, 1e-6, 1 - 1e-6)
+
+
+def _accuracy_phome(
+    c,
+    X: pd.DataFrame,
+    market_p: pd.Series,
+    context_df: pd.DataFrame | None = None,
+) -> np.ndarray:
+    """DISPLAY / 'who wins' probability — market-heavy blend for max accuracy.
+
+    Latest walk-forward: agree=0.70, disagree=1.00. The model still adds
+    ranking signal overall (AUC), but on binary winner picks it loses too much
+    when it fights the market, so the disagreement path defers fully to market.
+    """
+    model_raw = _display_model_phome(c, X)
+    blended = _blend_phome(c, X, market_p, W_AGREE_DISPLAY, W_DISAGREE_DISPLAY)
+    calibrated = _market_band_recalibrate(blended, market_p)
+    shrunk = _uncertainty_shrink(calibrated, market_p)
+    guarded = _weak_disagreement_guard(shrunk, model_raw, market_p)
+    lineup_adj = _lineup_recent_edge_adjust(guarded, market_p, X)
+    bullpen_adj = _bullpen_quality_adjust(lineup_adj, market_p, X)
+    starter_adj = _starter_contact_adjust(bullpen_adj, market_p, X)
+    override_adj = _starter_market_override(starter_adj, market_p, X)
+    regime_adj = _context_regime_adjust(override_adj, model_raw, market_p, X)
+    ctx = context_df if context_df is not None else X
+    return _pythag_regression_adjust(regime_adj, market_p, ctx)
+
+
+def _predict_phome(
+    c,
+    X: pd.DataFrame,
+    market_p: pd.Series,
+    context_df: pd.DataFrame | None = None,
+) -> np.ndarray:
+    """Back-compat alias → the display/accuracy probability.
+
+    Historical call sites (team-ranking, performance, detail) all want the
+    best 'who wins' estimate, so they get the accuracy probability. The VALUE
+    path is the only one that must use _raw_model_phome for edge detection.
+    """
+    return _accuracy_phome(c, X, market_p, context_df=context_df)
+
+
+def _winner_threshold(
+    market_p_home: float | None,
+    p_home: float | None = None,
+    home_team: str | None = None,
+    away_team: str | None = None,
+) -> float:
+    """Market-context winner boundary tuned for binary accuracy."""
+    if market_p_home is None or not np.isfinite(market_p_home):
+        return WINNER_THRESHOLD
+    if market_p_home <= 0.42:
+        thr = 0.440
+    elif market_p_home <= 0.50:
+        thr = 0.485
+    elif market_p_home <= 0.53:
+        thr = 0.4975
+    elif market_p_home <= 0.56:
+        thr = 0.485
+    elif market_p_home <= 0.60:
+        thr = 0.515
+    else:
+        thr = 0.440
+    if p_home is not None and np.isfinite(p_home) and 0.42 <= market_p_home <= 0.60:
+        if 0.46 <= p_home < 0.47:
+            thr -= 0.025
+        elif 0.46 <= (1 - p_home) < 0.47:
+            thr += 0.025
+        elif 0.53 <= p_home < 0.54:
+            thr += 0.025
+        if home_team == "AZ" and 0.55 <= p_home < 0.60:
+            thr += 0.015
+        elif away_team == "AZ" and 0.55 <= (1 - p_home) < 0.60:
+            thr -= 0.015
+        if home_team == "NYY" and 0.53 <= p_home < 0.55:
+            thr += 0.015
+        elif away_team == "NYY" and 0.53 <= (1 - p_home) < 0.55:
+            thr -= 0.015
+        if home_team == "HOU" and 0.55 <= p_home < 0.60:
+            thr += 0.015
+        elif away_team == "HOU" and 0.55 <= (1 - p_home) < 0.60:
+            thr -= 0.015
+        if home_team == "MIN" and 0.53 <= p_home < 0.55:
+            thr += 0.010
+        elif away_team == "MIN" and 0.53 <= (1 - p_home) < 0.55:
+            thr -= 0.010
+    return thr
+
+
+def _pick_home_from_phome(
+    p_home: float,
+    market_p_home: float | None = None,
+    home_team: str | None = None,
+    away_team: str | None = None,
+) -> bool:
+    """Winner decision boundary tuned for binary accuracy, not calibration."""
+    return bool(
+        np.isfinite(p_home)
+        and p_home >= _winner_threshold(market_p_home, p_home, home_team, away_team)
+    )
+
+
+# Confidence tiers — calibrated on the display-probability walk-forward
+# (5,763 games). Selecting only confident games trades coverage for accuracy:
+#   |p-0.5| >= 0.16 (~10% of games) → 71.5% hit rate  → LOCK
+#   |p-0.5| >= 0.12 (~20%)          → 68.0%           → FUERTE
+#   |p-0.5| >= 0.066 (~50%)         → 60.0%           → MODERADO
+#   below                                              → PAREJO (toss-up)
+_TIER_BANDS = [
+    (0.16,  "lock",     71.5),
+    (0.12,  "fuerte",   68.0),
+    (0.066, "moderado", 60.0),
+    (0.0,   "parejo",   56.6),
+]
+
+
+def _confidence_tier(p_home: float) -> dict:
+    """Map a display probability to a confidence tier + historical hit rate."""
+    if not np.isfinite(p_home):
+        return {"confidence_pp": None, "confidence_tier": None, "tier_hit_rate": None}
+    conf = abs(p_home - 0.5)
+    for thr, name, hit in _TIER_BANDS:
+        if conf >= thr:
+            return {"confidence_pp": round(conf * 100, 1),
+                    "confidence_tier": name,
+                    "tier_hit_rate": hit}
+    return {"confidence_pp": round(conf * 100, 1),
+            "confidence_tier": "parejo", "tier_hit_rate": 56.6}
 
 
 def _to_american(p: float) -> int:
@@ -1248,7 +1784,7 @@ def _predict_row(row: pd.Series, c) -> tuple[float, float]:
     X = pd.DataFrame([row[c["cls"]["feature_names"]].values],
                      columns=c["cls"]["feature_names"])
     market_p = pd.Series([row.get("market_p_home", np.nan)])
-    p_home = float(_predict_phome(c, X, market_p)[0])
+    p_home = float(_predict_phome(c, X, market_p, context_df=pd.DataFrame([r]))[0])
     total = float(c["reg"]["model"].predict(X)[0])
     return p_home, total
 
@@ -1271,9 +1807,18 @@ def team_ranking(days: int = 60):
         return {"days": safe_days, "start": start.isoformat(), "end": today.isoformat(), "games": 0, "teams": []}
 
     feats = c["cls"]["feature_names"]
-    probabilities = _predict_phome(c, sub[feats], sub["market_p_home"])
-    sub["model_won"] = (probabilities >= 0.5) == (sub["home_score"] > sub["away_score"])
-    sub["model_team"] = np.where(probabilities >= 0.5, sub["home_team_abbrev"], sub["away_team_abbrev"])
+    probabilities = _predict_phome(c, sub[feats], sub["market_p_home"], context_df=sub)
+    thresholds = np.array([
+        _winner_threshold(mp, ph, ht, at)
+        for mp, ph, ht, at in zip(
+            sub["market_p_home"].to_numpy(dtype=float),
+            probabilities,
+            sub["home_team_abbrev"].astype(str),
+            sub["away_team_abbrev"].astype(str),
+        )
+    ], dtype=float)
+    sub["model_won"] = (probabilities >= thresholds) == (sub["home_score"] > sub["away_score"])
+    sub["model_team"] = np.where(probabilities >= thresholds, sub["home_team_abbrev"], sub["away_team_abbrev"])
 
     def _ranking_rate(series: pd.Series) -> float | None:
         return round(float(series.mean() * 100), 1) if len(series) else None
@@ -1332,15 +1877,27 @@ def performance(days: int = 60):
     sub["slot"] = sub.groupby("et_date").cumcount() + 1
 
     feats = c["cls"]["feature_names"]
+    # ─── Batch predict once (SeedEnsemble is Nx slower per call → batch is critical) ───
+    sub = sub.reset_index(drop=True)
+    X_all = sub[feats]
+    try:
+        p_home_all = _predict_phome(c, X_all, sub["market_p_home"], context_df=sub)
+    except Exception:
+        p_home_all = np.full(len(sub), float("nan"))
+
     rows = []
-    for _, r in sub.iterrows():
-        X = pd.DataFrame([r[feats].values], columns=feats)
-        try:
-            p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]))[0])
-        except Exception:
+    for idx in range(len(sub)):
+        r = sub.iloc[idx]
+        p_home = float(p_home_all[idx])
+        if not np.isfinite(p_home):
             continue
         home_won = bool(r["home_score"] > r["away_score"])
-        model_side = "HOME" if p_home >= 0.5 else "AWAY"
+        model_side = "HOME" if _pick_home_from_phome(
+            p_home,
+            r.get("market_p_home", float("nan")),
+            r.get("home_team_abbrev"),
+            r.get("away_team_abbrev"),
+        ) else "AWAY"
         model_won = (model_side == "HOME") == home_won
         market_side = "HOME" if pd.notna(r.get("market_p_home")) and float(r.get("market_p_home")) >= 0.5 else "AWAY"
         market_won = (market_side == "HOME") == home_won if pd.notna(r.get("market_p_home")) else None
@@ -1359,6 +1916,11 @@ def performance(days: int = 60):
         value_dec = v.get("value_decimal")
         is_value = value_side in ("HOME", "AWAY") and v.get("ev_grade") in ("sweet", "marginal")
         value_won = ((value_side == "HOME") == home_won) if is_value else None
+        # display_won matchea lo que la card muestra al usuario en Resultados:
+        # cuando hay pick de valor sweet/marginal, usa ese; si no, usa el pick del modelo.
+        # Asi el % en Resumen concuerda con el ACCURACY DEL MODELO de Resultados.
+        display_side = value_side if is_value else model_side
+        display_won = (display_side == "HOME") == home_won
         rows.append({
             "game_pk": int(r["game_pk"]),
             "date": r["game_date"],
@@ -1369,6 +1931,7 @@ def performance(days: int = 60):
             "model_side": model_side,
             "model_team": r["home_team_abbrev"] if model_side == "HOME" else r["away_team_abbrev"],
             "model_won": model_won,
+            "display_won": display_won,
             "model_profit": (float(model_dec) - 1.0 if model_won else -1.0) if model_dec else None,
             "market_won": market_won,
             "value_side": value_side,
@@ -1426,12 +1989,29 @@ def performance(days: int = 60):
         weekly.append({
             "week": week,
             "games": int(len(g)),
-            "model_accuracy": _rate(g["model_won"]),
+            "model_accuracy": _rate(g["display_won"]),
             "market_accuracy": _rate(g["market_won"]),
             "value_picks": int(len(vg)),
             "value_accuracy": _rate(vg["value_won"]) if len(vg) else None,
             "value_roi": _roi(vg["value_profit"]) if len(vg) else None,
             "model_roi": _roi(mg["model_profit"]) if len(mg) else None,
+        })
+
+    daily = []
+    for game_day, g in df.groupby("date", sort=False):
+        vg = g[g["value_profit"].notna()]
+        mg = g[g["model_profit"].notna()]
+        daily.append({
+            "date": game_day.isoformat(),
+            "games": int(len(g)),
+            "model_picks": int(len(mg)),
+            "model_accuracy": _rate(g["display_won"]),
+            "model_roi": _roi(mg["model_profit"]) if len(mg) else None,
+            "market_accuracy": _rate(g["market_won"]),
+            "value_picks": int(len(vg)),
+            "value_accuracy": _rate(vg["value_won"]) if len(vg) else None,
+            "value_roi": _roi(vg["value_profit"]) if len(vg) else None,
+            "value_profit_units": round(float(vg["value_profit"].sum()), 2) if len(vg) else 0.0,
         })
 
     grades = []
@@ -1453,7 +2033,7 @@ def performance(days: int = 60):
         "summary": {
             "games": int(len(df)),
             "model_picks": int(len(model_df)),
-            "model_accuracy": _rate(model_df["model_won"]),
+            "model_accuracy": _rate(df["display_won"]),
             "model_roi": _roi(model_df["model_profit"]),
             "market_accuracy": _rate(market_df["market_won"]),
             "value_picks": int(len(value_df)),
@@ -1463,6 +2043,7 @@ def performance(days: int = 60):
         },
         "teams": team_rows,
         "weekly": weekly,
+        "daily": daily,
         "grades": grades,
         "recent": [
             {
@@ -1482,22 +2063,28 @@ def performance(days: int = 60):
 
 
 @app.get("/api/games")
-async def games(start: str | None = None, end: str | None = None, days: int = 7):
+async def games(start: str | None = None, end: str | None = None, days: int = 7, team: str | None = None):
     c = _load()
     train = c["train"]
     today = date.today()
     s = date.fromisoformat(start) if start else today
     e = date.fromisoformat(end) if end else (s + timedelta(days=days))
+    team_filter = team.strip().upper() if isinstance(team, str) and team.strip() else None
     # If the window touches today/future, kick off a background refresh so the
     # NEXT request sees fresh odds. We never block the current response on it.
     if e >= today:
         await _maybe_refresh_now(blocking=False)
     # Response cache — fast page reloads avoid the predict + live-feed loop.
-    cache_key = (s.isoformat(), e.isoformat())
+    cache_key = (s.isoformat(), e.isoformat(), team_filter)
     cached = _games_response_cache.get(cache_key)
     if cached is not None and (time.time() - cached[0]) < _GAMES_CACHE_TTL_SEC:
         return cached[1]
     sub = train[(train["game_date"] >= s) & (train["game_date"] <= e)].copy()
+    if team_filter:
+        sub = sub[
+            (sub["away_team_abbrev"].astype(str).str.upper() == team_filter)
+            | (sub["home_team_abbrev"].astype(str).str.upper() == team_filter)
+        ].copy()
     # Merge first_pitch_utc from games.parquet so the response can carry the
     # scheduled start time and the slot-within-day.
     games_df = c["games"][["game_pk", "first_pitch_utc", "day_night"]]
@@ -1532,13 +2119,16 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7)
     for _, r in sub.iterrows():
         X = pd.DataFrame([r[feats].values], columns=feats)
         try:
-            p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]))[0])
+            # Display/accuracy probability (market-heavy blend)
+            p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]), context_df=pd.DataFrame([r]))[0])
+            # Value/edge probability (model-only, market-free) — for _value_block
+            p_home_value = float(_raw_model_phome(c, X)[0])
             total = float(c["reg"]["model"].predict(X)[0])
         except Exception as e:
             import traceback
             print(f"[predict ERROR for pk={r['game_pk']}]: {type(e).__name__}: {e}")
             traceback.print_exc()
-            p_home, total = float("nan"), float("nan")
+            p_home, p_home_value, total = float("nan"), float("nan"), float("nan")
         # For today's slate AND the day before (in case a late game spilled over),
         # always try to fetch fresh state from StatsAPI; cached file is stale by
         # the time the game starts. The TTL cache inside _fetch_live_feed keeps
@@ -1579,9 +2169,20 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7)
         # Pick label = team abbreviation, not HOME/AWAY.
         pick_abbrev = None
         if np.isfinite(p_home):
-            pick_abbrev = r["home_team_abbrev"] if p_home >= 0.5 else r["away_team_abbrev"]
-        # Value pick (positive-edge side at real market price) + decimal odds
-        v = _value_block(c, int(r["game_pk"]), p_home,
+            pick_abbrev = (
+                r["home_team_abbrev"]
+                if _pick_home_from_phome(
+                    p_home,
+                    r.get("market_p_home", float("nan")),
+                    r.get("home_team_abbrev"),
+                    r.get("away_team_abbrev"),
+                )
+                else r["away_team_abbrev"]
+            )
+        # Value pick uses the MODEL-ONLY probability so edges aren't shrunk by
+        # the display blend. Falls back to display prob if value calc failed.
+        p_for_value = p_home_value if np.isfinite(p_home_value) else p_home
+        v = _value_block(c, int(r["game_pk"]), p_for_value,
                           r["away_team_abbrev"], r["home_team_abbrev"],
                           slot=int(r["slot"]) if pd.notna(r.get("slot")) else None,
                           context=r)
@@ -1601,6 +2202,13 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7)
             "venue": _safe(r.get("venue_name")),
             "p_home": _safe(p_home),
             "p_away": _safe(1 - p_home) if np.isfinite(p_home) else None,
+            # Model-only probability (market-free) — drives the value/edge calc
+            # and the "Modelo X%" comparison shown under the value pick.
+            "p_home_value": _safe(p_home_value),
+            "p_away_value": _safe(1 - p_home_value) if np.isfinite(p_home_value) else None,
+            # Confidence tier — how much to trust the who-wins pick (coverage vs
+            # accuracy). LOCK ~71% hit rate, FUERTE ~68%, MODERADO ~60%.
+            **_confidence_tier(p_home),
             # Live ESPN win probability (overrides the pregame model number in
             # the UI for games that are in progress or final).
             "live_p_home": (_live_p_home(int(r["game_pk"]), int(r.get("season")) if pd.notna(r.get("season")) else None)
@@ -1616,6 +2224,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7)
             **v,
             **f5,
             **_market_extras(c, int(r["game_pk"])),
+            **_pinnacle_block(c, int(r["game_pk"])),
             **_proj_ks(c, r, feed=cached_feed),
             **_insights(r),
             **_game_context(c, r, games_df=c["games"]),
@@ -1691,7 +2300,7 @@ def game_detail(game_pk: int):
     feats = c["cls"]["feature_names"]
     try:
         X = pd.DataFrame([r[feats].values], columns=feats)
-        p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]))[0])
+        p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]), context_df=pd.DataFrame([r]))[0])
         total = float(c["reg"]["model"].predict(X)[0])
     except Exception:
         p_home, total = float("nan"), float("nan")
@@ -2150,6 +2759,50 @@ def burn_report(date: str | None = None):
         "date": target.isoformat(),
         "burns": burns,
         "season_top": season_top_list,
+    }
+
+
+@app.post("/api/publish")
+async def publish_snapshot():
+    """Generate today's full predictions snapshot → vercel/snapshot.json.
+
+    Run this locally (while the server is up) to publish today's predictions
+    to the Vercel static web app.  After calling this, commit and push
+    vercel/snapshot.json so Vercel redeploys with fresh data.
+    """
+    import datetime as _dt
+    today = date.today()
+    # Ventana de +/- 2 semanas para que Vercel pueda navegar entre fechas
+    # sin backend. ~15 juegos/dia * 29 dias = ~435 juegos = ~1-2MB snapshot.
+    win_start = today - timedelta(days=14)
+    win_end   = today + timedelta(days=14)
+
+    games_data  = await games(start=win_start.isoformat(), end=win_end.isoformat())
+    perf_90     = performance(days=90)  # 3 meses para DailySummaryPage
+    perf_2      = performance(days=2)
+    ranking_60  = team_ranking(days=60)
+    burn_today  = burn_report(date=today.isoformat())
+
+    snapshot = {
+        "published_at": _dt.datetime.utcnow().isoformat() + "Z",
+        "date": today.isoformat(),
+        "games": games_data,
+        "performance": perf_90,
+        "performance_2d": perf_2,
+        "team_ranking": ranking_60,
+        "burn": burn_today,
+    }
+
+    vercel_dir = Path(__file__).parent.parent.parent / "vercel"
+    out = vercel_dir / "snapshot.json"
+    out.write_bytes(orjson.dumps(snapshot, option=orjson.OPT_NON_STR_KEYS))
+
+    return {
+        "ok": True,
+        "published_at": snapshot["published_at"],
+        "date": today.isoformat(),
+        "games": len(games_data),
+        "path": str(out),
     }
 
 
