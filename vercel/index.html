@@ -3801,25 +3801,27 @@ function App() {
   }, [snapshot, date]);
 
   // ── Poll live scores from MLB Stats API (no backend needed) ────────────────
+  // Nota: SIN el parametro fields= porque MLB API lo trata como whitelist
+  // estricto y filtra claves anidadas (home/away/leftOnBase). Respuesta full
+  // es ~100KB por juego, aceptable con polling cada 30s.
   useEffect(() => {
     const today = todayISO();
     const toUpdate = games.filter(g => g.date === today);
     if (!toUpdate.length) return;
-    const FIELDS = [
-      'liveData,linescore,teams,runs,hits,errors,innings',
-      'currentInning,currentInningOrdinal,inningState,inningHalf',
-      'balls,strikes,outs,gameData,status',
-      'abstractGameState,codedGameState,detailedState,offense,first,second,third',
-    ].join(',');
     const poll = async () => {
       for (const g of toUpdate) {
         if (liveScores[g.game_pk]?.state?.is_final) continue;
         try {
-          const r = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${g.game_pk}/feed/live?fields=${FIELDS}`);
-          if (!r.ok) continue;
+          const r = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${g.game_pk}/feed/live`);
+          if (!r.ok) {
+            console.warn(`[live] pk=${g.game_pk} HTTP ${r.status}`);
+            continue;
+          }
           const live = parseMlbFeedLive(await r.json());
           if (live) setLiveScores(prev => ({ ...prev, [g.game_pk]: live }));
-        } catch(e) {}
+        } catch(e) {
+          console.error(`[live] pk=${g.game_pk} fetch error:`, e);
+        }
       }
     };
     poll();
