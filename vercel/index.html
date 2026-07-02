@@ -97,6 +97,187 @@
     0%, 100% { box-shadow: 0 0 16px rgba(255,212,59,0.20); }
     50%      { box-shadow: 0 0 26px rgba(255,212,59,0.42); }
   }
+  /* Run-scored celebration overlay */
+  @keyframes baseballZoom {
+    0%   { transform: translate3d(var(--start-x), var(--start-y), 0) scale(0.1) rotate(-22deg); opacity: 0; }
+    10%  { opacity: 0.9; }
+    46%  { transform: translate3d(calc(var(--start-x) * 0.35), calc(var(--start-y) * 0.25 - 10vh), 0) scale(0.7) rotate(-8deg); opacity: 1; }
+    78%  { opacity: 1; }
+    100% { transform: translate3d(0, 4vh, 0) scale(5.6) rotate(18deg); opacity: 0; }
+  }
+  @keyframes baseballGlow {
+    0%   { opacity: 0; transform: scale(0.2); }
+    22%  { opacity: 0.5; }
+    100% { opacity: 0; transform: scale(2.2); }
+  }
+  @keyframes batterLoadIn {
+    0%   { opacity: 0; transform: translate3d(-4vw, 4vh, 0) scale(0.82); }
+    100% { opacity: 0.95; transform: translate3d(0, 0, 0) scale(1); }
+  }
+  @keyframes batterSwing {
+    0%, 24% { transform: rotate(18deg) translate3d(0,0,0); }
+    46%     { transform: rotate(-8deg) translate3d(0,-2px,0); }
+    100%    { transform: rotate(-14deg) translate3d(8px,-3px,0); }
+  }
+  @keyframes contactFlash {
+    0%, 24% { opacity: 0; transform: scale(0.3); }
+    34%     { opacity: 0.95; transform: scale(1); }
+    100%    { opacity: 0; transform: scale(2.6); }
+  }
+  @keyframes flightTrail {
+    0%   { opacity: 0; transform: translate3d(-12vw, 10vh, 0) scaleX(0.2); }
+    24%  { opacity: 0; }
+    42%  { opacity: 0.8; }
+    100% { opacity: 0; transform: translate3d(6vw, -10vh, 0) scaleX(1); }
+  }
+  @keyframes labelRise {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.9); }
+    20%  { opacity: 0; }
+    30%  { opacity: 1; }
+    78%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(1.04); }
+  }
+  .run-burst-layer {
+    position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 120;
+  }
+  .run-burst {
+    position: absolute; inset: 0;
+  }
+  .run-burst-stage {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 50% 46%, rgba(255,214,59,0.08), transparent 16%),
+      linear-gradient(180deg, rgba(255,255,255,0.02), transparent 36%, rgba(0,0,0,0.18));
+  }
+  .run-burst-stage::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 14% 18%, rgba(255,255,255,0.22), transparent 12%),
+      radial-gradient(circle at 86% 16%, rgba(255,255,255,0.18), transparent 11%),
+      radial-gradient(circle at 50% 12%, rgba(77,171,247,0.12), transparent 20%);
+    opacity: 0.75;
+  }
+  .run-burst-stage::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0; height: 34vh;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(81,207,102,0.12), transparent 56%),
+      linear-gradient(180deg, transparent, rgba(4,10,18,0.58));
+  }
+  .run-burst-batter {
+    position: absolute; left: 15%; bottom: 12%; width: 120px; height: 120px;
+    opacity: 0; animation: batterLoadIn 260ms ease-out forwards;
+  }
+  .run-burst-batter::before {
+    content: ""; position: absolute; left: 40px; top: 12px; width: 20px; height: 20px; border-radius: 999px;
+    background: rgba(255,255,255,0.92); box-shadow: 0 0 18px rgba(255,255,255,0.18);
+  }
+  .run-burst-body {
+    position: absolute; left: 34px; top: 28px; width: 52px; height: 78px;
+    transform-origin: 50% 55%; animation: batterSwing 2200ms cubic-bezier(0.2,0.7,0.1,1) forwards;
+  }
+  .run-burst-torso {
+    position: absolute; left: 14px; top: 8px; width: 26px; height: 36px; border-radius: 14px 14px 10px 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(77,171,247,0.7));
+  }
+  .run-burst-leg-a,
+  .run-burst-leg-b,
+  .run-burst-arm-a,
+  .run-burst-arm-b,
+  .run-burst-bat-stick {
+    position: absolute; border-radius: 999px; background: rgba(255,255,255,0.88);
+  }
+  .run-burst-leg-a { left: 16px; top: 38px; width: 8px; height: 34px; transform: rotate(18deg); }
+  .run-burst-leg-b { left: 30px; top: 38px; width: 8px; height: 36px; transform: rotate(-18deg); }
+  .run-burst-arm-a { left: 6px; top: 18px; width: 8px; height: 28px; transform: rotate(34deg); }
+  .run-burst-arm-b { left: 34px; top: 12px; width: 8px; height: 30px; transform: rotate(-42deg); }
+  .run-burst-bat-stick {
+    left: 34px; top: 0; width: 58px; height: 6px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.75), rgba(255,212,59,0.92));
+    box-shadow: 0 0 18px rgba(255,212,59,0.22);
+    transform: rotate(-34deg);
+  }
+  .run-burst-trail {
+    position: absolute; left: 27%; top: 44%; width: 38vw; max-width: 520px; height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255,214,59,0), rgba(255,214,59,0.72), rgba(255,255,255,0.12));
+    filter: blur(2px);
+    transform-origin: left center;
+    animation: flightTrail 2200ms cubic-bezier(0.2,0.7,0.1,1) forwards;
+  }
+  .run-burst-smoke {
+    position: absolute; left: 24%; top: 40%; width: 32vw; max-width: 420px; height: 16vh;
+    background:
+      radial-gradient(circle at 22% 64%, rgba(255,255,255,0.16), transparent 22%),
+      radial-gradient(circle at 36% 52%, rgba(255,255,255,0.14), transparent 24%),
+      radial-gradient(circle at 56% 42%, rgba(255,255,255,0.12), transparent 26%),
+      radial-gradient(circle at 70% 32%, rgba(255,255,255,0.10), transparent 24%);
+    filter: blur(10px);
+    opacity: 0;
+    animation: baseballGlow 2200ms ease-out forwards;
+  }
+  .run-burst-lights {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 10% 20%, rgba(255,255,255,0.12), transparent 10%),
+      radial-gradient(circle at 90% 20%, rgba(255,255,255,0.12), transparent 10%),
+      linear-gradient(180deg, rgba(255,255,255,0.05), transparent 18%);
+    mix-blend-mode: screen;
+    opacity: 0.7;
+  }
+  .run-burst-contact {
+    position: absolute; left: 29%; top: 47%; width: 18px; height: 18px; border-radius: 999px;
+    background: radial-gradient(circle, rgba(255,255,255,1), rgba(255,214,59,0.88) 42%, transparent 72%);
+    filter: blur(1px);
+    animation: contactFlash 2200ms ease-out forwards;
+  }
+  .run-burst-core {
+    position: absolute; left: 50%; top: 36%; width: 72px; height: 72px; margin-left: -36px; margin-top: -36px; border-radius: 999px;
+    background: radial-gradient(circle at 35% 32%, rgba(255,255,255,0.98), rgba(255,247,242,0.98) 42%, rgba(236,229,223,0.99) 72%, rgba(216,210,205,1) 100%);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.45) inset, 0 16px 40px rgba(0,0,0,0.34);
+    animation: baseballZoom 2200ms cubic-bezier(0.18,0.82,0.16,1) forwards;
+  }
+  .run-burst-core::before,
+  .run-burst-core::after {
+    content: "";
+    position: absolute;
+    top: 18%;
+    width: 44%;
+    height: 52%;
+    border: 2px solid transparent;
+    border-top-color: #c33;
+    border-radius: 50%;
+    opacity: 0.95;
+  }
+  .run-burst-core::before { left: 10%; transform: rotate(-22deg); }
+  .run-burst-core::after  { right: 10%; transform: rotate(22deg); }
+  .run-burst-glow {
+    position: absolute; left: 50%; top: 36%; width: 118px; height: 118px; margin-left: -59px; margin-top: -59px; border-radius: 999px;
+    background: radial-gradient(circle, rgba(255,214,59,0.6), rgba(77,171,247,0.18) 45%, transparent 72%);
+    filter: blur(10px);
+    animation: baseballGlow 2200ms ease-out forwards;
+  }
+  .run-burst-label {
+    position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%);
+    min-width: 210px; padding: 10px 16px; border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.14); background: rgba(5,11,22,0.82);
+    color: rgba(255,255,255,0.94); font-size: 10px; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.28);
+    animation: labelRise 2200ms cubic-bezier(0.18,0.82,0.16,1) forwards;
+  }
+  .run-burst-label-row {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .run-burst-label-logo {
+    width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+  }
+  .run-burst-label-main {
+    font-size: 13px; letter-spacing: 0.08em; font-weight: 900; color: #fff;
+  }
+  .run-burst-label-sub {
+    margin-top: 4px; text-align: center; font-size: 9px; letter-spacing: 0.24em; color: rgba(255,255,255,0.58);
+  }
   /* Scroll snap container */
   .snap-container { scroll-snap-type: y mandatory; overflow-y: auto; height: 100vh; }
   .snap-section { scroll-snap-align: start; min-height: 100vh; }
@@ -147,6 +328,14 @@ const TEAM_NAMES = {
   SD:'San Diego Padres', SF:'San Francisco Giants', SEA:'Seattle Mariners', STL:'St. Louis Cardinals',
   TB:'Tampa Bay Rays', TEX:'Texas Rangers', TOR:'Toronto Blue Jays', WSH:'Washington Nationals',
 };
+
+// Tabs donde la animacion de carrera anotada se dispara.
+const RUN_BURST_TABS = new Set(['hoy', 'envivo', 'final']);
+
+function gameTotalRuns(g) {
+  if (g?.away_score == null || g?.home_score == null) return null;
+  return Number(g.away_score) + Number(g.home_score);
+}
 
 const SECTIONS = [
   { id:'hero',    label:'Inicio' },
@@ -315,6 +504,45 @@ function parseMlbFeedLive(feed) {
     bases: { first: mkRunner('first'), second: mkRunner('second'), third: mkRunner('third') },
     away: mkTeam('away'), home: mkTeam('home'), innings,
   };
+}
+
+// ─── RUN-SCORED CELEBRATION OVERLAY ──────────────────────────────────────────
+function RunBurstOverlay({ bursts }) {
+  return (
+    <div className="run-burst-layer" aria-hidden="true">
+      {bursts.map((burst) => (
+        <div
+          key={burst.id}
+          className="run-burst"
+          style={{ '--start-x': burst.startX, '--start-y': burst.startY }}>
+          <div className="run-burst-stage"/>
+          <div className="run-burst-lights"/>
+          <div className="run-burst-batter">
+            <div className="run-burst-body">
+              <div className="run-burst-torso"/>
+              <div className="run-burst-leg-a"/>
+              <div className="run-burst-leg-b"/>
+              <div className="run-burst-arm-a"/>
+              <div className="run-burst-arm-b"/>
+              <div className="run-burst-bat-stick"/>
+            </div>
+          </div>
+          <div className="run-burst-trail"/>
+          <div className="run-burst-smoke"/>
+          <div className="run-burst-contact"/>
+          <div className="run-burst-glow"/>
+          <div className="run-burst-core"/>
+          <div className="run-burst-label">
+            <div className="run-burst-label-row">
+              {burst.team ? <img className="run-burst-label-logo" src={teamLogo(burst.team)} alt={burst.team} /> : null}
+              <div className="run-burst-label-main">{burst.teamName || burst.team || 'Carrera'}</div>
+            </div>
+            <div className="run-burst-label-sub">{burst.subLabel || burst.label}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ─── TOP NAV (sticky, scroll-aware) ──────────────────────────────────────────
@@ -3761,11 +3989,51 @@ function App() {
   const [errorsLoading, setErrorsLoading] = useState(false);
   const [errorsSeason, setErrorsSeason] = useState(2026);
   const [remontasView, setRemontasView] = useState('comebacks'); // 'comebacks' | 'errors'
+  const [runBursts, setRunBursts] = useState([]);
 
   const pageRef = useRef(null);
   const pageContentRef = useRef(null);
   const pageAnimatingRef = useRef(false);
   const swapRef = useRef(null);
+  const previousDisplayGamesRef = useRef(null);
+  const activeIdRef = useRef(activeId);
+  const pendingRunBurstsRef = useRef([]);
+  const pageHiddenRef = useRef(typeof document !== 'undefined' ? document.hidden : false);
+
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+
+  const releaseBursts = useCallback((bursts) => {
+    if (!bursts.length) return;
+    setRunBursts((current) => [...current, ...bursts]);
+    bursts.forEach((burst, index) => {
+      window.setTimeout(() => {
+        setRunBursts((current) => current.filter((item) => item.id !== burst.id));
+      }, 2550 + index * 260);
+    });
+  }, []);
+
+  const flushPendingBursts = useCallback(() => {
+    if (pageHiddenRef.current) return;
+    if (!RUN_BURST_TABS.has(activeIdRef.current)) return;
+    if (!pendingRunBurstsRef.current.length) return;
+    const bursts = pendingRunBurstsRef.current.splice(0, pendingRunBurstsRef.current.length);
+    const staged = bursts.map((burst, index) => ({
+      ...burst,
+      id: `${burst.id}-flush-${index}-${Date.now()}`,
+    }));
+    releaseBursts(staged);
+  }, [releaseBursts]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      pageHiddenRef.current = document.hidden;
+      if (!document.hidden) flushPendingBursts();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [flushPendingBursts]);
+
+  useEffect(() => { flushPendingBursts(); }, [activeId, flushPendingBursts]);
 
   // Start Three.js once
   useEffect(() => {
@@ -3916,6 +4184,46 @@ function App() {
       home_score: (isFinal || isLive) ? (live.home?.runs ?? g.home_score) : g.home_score,
     };
   }), [games, liveScores]);
+
+  // ── Detect score changes → celebrate with baseball burst overlay ─────────
+  useEffect(() => {
+    const prev = previousDisplayGamesRef.current;
+    if (prev) {
+      const prevMap = new Map(prev.map((g) => [g.game_pk, g]));
+      const bursts = [];
+      for (const game of displayGames) {
+        const oldGame = prevMap.get(game.game_pk);
+        if (!oldGame) continue;
+        const oldRuns = gameTotalRuns(oldGame);
+        const newRuns = gameTotalRuns(game);
+        if (oldRuns == null || newRuns == null || newRuns <= oldRuns) continue;
+        const gained = Math.min(3, newRuns - oldRuns);
+        const scorer =
+          Number(game.home_score ?? 0) > Number(oldGame.home_score ?? 0) ? game.home_abbrev :
+          Number(game.away_score ?? 0) > Number(oldGame.away_score ?? 0) ? game.away_abbrev :
+          (game.home_abbrev || game.away_abbrev || 'Run');
+        for (let i = 0; i < gained; i++) {
+          bursts.push({
+            id: `${game.game_pk}-${Date.now()}-${i}`,
+            label: `${scorer} anota`,
+            subLabel: gained > 1 ? `RALLY ${gained} CARRERAS` : 'CARRERA ANOTADA',
+            team: scorer,
+            teamName: TEAM_NAMES[scorer] || scorer,
+            startX: `${(Math.random() * 40 - 20).toFixed(1)}vw`,
+            startY: `${(Math.random() * 18 - 9).toFixed(1)}vh`,
+          });
+        }
+      }
+      if (bursts.length) {
+        if (pageHiddenRef.current || !RUN_BURST_TABS.has(activeIdRef.current)) {
+          pendingRunBurstsRef.current.push(...bursts);
+        } else {
+          releaseBursts(bursts);
+        }
+      }
+    }
+    previousDisplayGamesRef.current = displayGames;
+  }, [displayGames, releaseBursts]);
 
   const live = displayGames.filter(g => g.is_live);
   const finished = displayGames.filter(g => g.is_played);
@@ -4106,6 +4414,7 @@ function App() {
           <div className="text-white/40 text-sm tracking-[0.32em] uppercase animate-pulse">Cargando partidos…</div>
         </div>
       )}
+      <RunBurstOverlay bursts={runBursts} />
     </>
   );
 }
