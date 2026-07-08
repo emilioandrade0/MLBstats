@@ -43,16 +43,45 @@ def build() -> Path:
     df = df.loc[valid].copy()
     df["p_h_devig"] = df["p_h"] / total[valid]
 
-    # totals
+    # Opening implied prob (undevigged — we care about DIRECTION of movement)
+    df["p_h_open"] = df["home_ml_open"].map(_implied)
+    df["p_a_open"] = df["away_ml_open"].map(_implied)
+    total_open = df["p_h_open"] + df["p_a_open"]
+    valid_open = total_open.between(1.00, 1.20)
+    df["p_h_open_devig"] = np.where(valid_open, df["p_h_open"] / total_open, np.nan)
+
+    # totals + spreads
     df["total_close_num"] = pd.to_numeric(df["total_close"], errors="coerce")
+    df["total_open_num"]  = pd.to_numeric(df["total_open"],  errors="coerce")
+    df["spread_close_num"] = pd.to_numeric(df["spread_close"], errors="coerce")
+    df["spread_open_num"]  = pd.to_numeric(df["spread_open"],  errors="coerce")
 
     market = df.groupby("espn_event_id").agg(
         market_p_home=("p_h_devig", "mean"),  # mean across DK + ESPN BET (n=1 or 2)
+        market_p_home_open=("p_h_open_devig", "mean"),  # promedio opening
         market_over_under=("total_close_num", "mean"),
-        market_spread=("spread_close", "mean"),
+        market_over_under_open=("total_open_num", "mean"),
+        market_spread=("spread_close_num", "mean"),
+        market_spread_open=("spread_open_num", "mean"),
         market_n_providers=("p_h_devig", "count"),
         market_p_home_std=("p_h_devig", "std"),
     ).reset_index()
+
+    # Signal: dinero sharp cuando la linea se mueve entre open y close.
+    # market_line_shift_home_pp > 0 = dinero entro al HOME, book subio p_home
+    # market_line_shift_home_pp < 0 = dinero al AWAY (sharps corrigen home overvalued)
+    market["market_line_shift_home_pp"] = (
+        (market["market_p_home"] - market["market_p_home_open"]) * 100
+    )
+    market["market_line_shift_abs_pp"] = market["market_line_shift_home_pp"].abs()
+    market["market_total_shift"]  = market["market_over_under"] - market["market_over_under_open"]
+    # NOTA: market_spread_shift removido — spread_close en el dataset es la ODDS
+    # de la run line (americanos), no el spread en runs; shift = ruido. Solo
+    # dejamos ML shift y total shift que si son limpios.
+    # Tampoco emitimos los opens al modelo (redundante con close + shift)
+    market = market.drop(columns=[
+        "market_p_home_open", "market_over_under_open", "market_spread_open"
+    ])
     # std with n=1 is NaN — replace with 0 so the model doesn't treat
     # single-book games as a special cohort.
     market["market_p_home_std"] = market["market_p_home_std"].fillna(0.0)

@@ -18,7 +18,7 @@
     fontFamily: { sans: ['Inter','system-ui','sans-serif'], mega: ['Anton','Impact','sans-serif'] },
     colors: {
       ink:    { 0:'#061019', 1:'#081521', 2:'#0d1e2e', 3:'#153149' },
-      accent: { red:'#E63946', blue:'#4DABF7', gold:'#FFD43B', green:'#51CF66' },
+      accent: { red:'#E63946', blue:'#4DABF7', gold:'#FFD43B', green:'#51CF66', orange:'#FF922B' },
     },
   }}};
 </script>
@@ -97,6 +97,187 @@
     0%, 100% { box-shadow: 0 0 16px rgba(255,212,59,0.20); }
     50%      { box-shadow: 0 0 26px rgba(255,212,59,0.42); }
   }
+  /* Run-scored celebration overlay */
+  @keyframes baseballZoom {
+    0%   { transform: translate3d(var(--start-x), var(--start-y), 0) scale(0.1) rotate(-22deg); opacity: 0; }
+    10%  { opacity: 0.9; }
+    46%  { transform: translate3d(calc(var(--start-x) * 0.35), calc(var(--start-y) * 0.25 - 10vh), 0) scale(0.7) rotate(-8deg); opacity: 1; }
+    78%  { opacity: 1; }
+    100% { transform: translate3d(0, 4vh, 0) scale(5.6) rotate(18deg); opacity: 0; }
+  }
+  @keyframes baseballGlow {
+    0%   { opacity: 0; transform: scale(0.2); }
+    22%  { opacity: 0.5; }
+    100% { opacity: 0; transform: scale(2.2); }
+  }
+  @keyframes batterLoadIn {
+    0%   { opacity: 0; transform: translate3d(-4vw, 4vh, 0) scale(0.82); }
+    100% { opacity: 0.95; transform: translate3d(0, 0, 0) scale(1); }
+  }
+  @keyframes batterSwing {
+    0%, 24% { transform: rotate(18deg) translate3d(0,0,0); }
+    46%     { transform: rotate(-8deg) translate3d(0,-2px,0); }
+    100%    { transform: rotate(-14deg) translate3d(8px,-3px,0); }
+  }
+  @keyframes contactFlash {
+    0%, 24% { opacity: 0; transform: scale(0.3); }
+    34%     { opacity: 0.95; transform: scale(1); }
+    100%    { opacity: 0; transform: scale(2.6); }
+  }
+  @keyframes flightTrail {
+    0%   { opacity: 0; transform: translate3d(-12vw, 10vh, 0) scaleX(0.2); }
+    24%  { opacity: 0; }
+    42%  { opacity: 0.8; }
+    100% { opacity: 0; transform: translate3d(6vw, -10vh, 0) scaleX(1); }
+  }
+  @keyframes labelRise {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.9); }
+    20%  { opacity: 0; }
+    30%  { opacity: 1; }
+    78%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(1.04); }
+  }
+  .run-burst-layer {
+    position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 120;
+  }
+  .run-burst {
+    position: absolute; inset: 0;
+  }
+  .run-burst-stage {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 50% 46%, rgba(255,214,59,0.08), transparent 16%),
+      linear-gradient(180deg, rgba(255,255,255,0.02), transparent 36%, rgba(0,0,0,0.18));
+  }
+  .run-burst-stage::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 14% 18%, rgba(255,255,255,0.22), transparent 12%),
+      radial-gradient(circle at 86% 16%, rgba(255,255,255,0.18), transparent 11%),
+      radial-gradient(circle at 50% 12%, rgba(77,171,247,0.12), transparent 20%);
+    opacity: 0.75;
+  }
+  .run-burst-stage::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0; height: 34vh;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(81,207,102,0.12), transparent 56%),
+      linear-gradient(180deg, transparent, rgba(4,10,18,0.58));
+  }
+  .run-burst-batter {
+    position: absolute; left: 15%; bottom: 12%; width: 120px; height: 120px;
+    opacity: 0; animation: batterLoadIn 260ms ease-out forwards;
+  }
+  .run-burst-batter::before {
+    content: ""; position: absolute; left: 40px; top: 12px; width: 20px; height: 20px; border-radius: 999px;
+    background: rgba(255,255,255,0.92); box-shadow: 0 0 18px rgba(255,255,255,0.18);
+  }
+  .run-burst-body {
+    position: absolute; left: 34px; top: 28px; width: 52px; height: 78px;
+    transform-origin: 50% 55%; animation: batterSwing 2200ms cubic-bezier(0.2,0.7,0.1,1) forwards;
+  }
+  .run-burst-torso {
+    position: absolute; left: 14px; top: 8px; width: 26px; height: 36px; border-radius: 14px 14px 10px 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(77,171,247,0.7));
+  }
+  .run-burst-leg-a,
+  .run-burst-leg-b,
+  .run-burst-arm-a,
+  .run-burst-arm-b,
+  .run-burst-bat-stick {
+    position: absolute; border-radius: 999px; background: rgba(255,255,255,0.88);
+  }
+  .run-burst-leg-a { left: 16px; top: 38px; width: 8px; height: 34px; transform: rotate(18deg); }
+  .run-burst-leg-b { left: 30px; top: 38px; width: 8px; height: 36px; transform: rotate(-18deg); }
+  .run-burst-arm-a { left: 6px; top: 18px; width: 8px; height: 28px; transform: rotate(34deg); }
+  .run-burst-arm-b { left: 34px; top: 12px; width: 8px; height: 30px; transform: rotate(-42deg); }
+  .run-burst-bat-stick {
+    left: 34px; top: 0; width: 58px; height: 6px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.75), rgba(255,212,59,0.92));
+    box-shadow: 0 0 18px rgba(255,212,59,0.22);
+    transform: rotate(-34deg);
+  }
+  .run-burst-trail {
+    position: absolute; left: 27%; top: 44%; width: 38vw; max-width: 520px; height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255,214,59,0), rgba(255,214,59,0.72), rgba(255,255,255,0.12));
+    filter: blur(2px);
+    transform-origin: left center;
+    animation: flightTrail 2200ms cubic-bezier(0.2,0.7,0.1,1) forwards;
+  }
+  .run-burst-smoke {
+    position: absolute; left: 24%; top: 40%; width: 32vw; max-width: 420px; height: 16vh;
+    background:
+      radial-gradient(circle at 22% 64%, rgba(255,255,255,0.16), transparent 22%),
+      radial-gradient(circle at 36% 52%, rgba(255,255,255,0.14), transparent 24%),
+      radial-gradient(circle at 56% 42%, rgba(255,255,255,0.12), transparent 26%),
+      radial-gradient(circle at 70% 32%, rgba(255,255,255,0.10), transparent 24%);
+    filter: blur(10px);
+    opacity: 0;
+    animation: baseballGlow 2200ms ease-out forwards;
+  }
+  .run-burst-lights {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 10% 20%, rgba(255,255,255,0.12), transparent 10%),
+      radial-gradient(circle at 90% 20%, rgba(255,255,255,0.12), transparent 10%),
+      linear-gradient(180deg, rgba(255,255,255,0.05), transparent 18%);
+    mix-blend-mode: screen;
+    opacity: 0.7;
+  }
+  .run-burst-contact {
+    position: absolute; left: 29%; top: 47%; width: 18px; height: 18px; border-radius: 999px;
+    background: radial-gradient(circle, rgba(255,255,255,1), rgba(255,214,59,0.88) 42%, transparent 72%);
+    filter: blur(1px);
+    animation: contactFlash 2200ms ease-out forwards;
+  }
+  .run-burst-core {
+    position: absolute; left: 50%; top: 36%; width: 72px; height: 72px; margin-left: -36px; margin-top: -36px; border-radius: 999px;
+    background: radial-gradient(circle at 35% 32%, rgba(255,255,255,0.98), rgba(255,247,242,0.98) 42%, rgba(236,229,223,0.99) 72%, rgba(216,210,205,1) 100%);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.45) inset, 0 16px 40px rgba(0,0,0,0.34);
+    animation: baseballZoom 2200ms cubic-bezier(0.18,0.82,0.16,1) forwards;
+  }
+  .run-burst-core::before,
+  .run-burst-core::after {
+    content: "";
+    position: absolute;
+    top: 18%;
+    width: 44%;
+    height: 52%;
+    border: 2px solid transparent;
+    border-top-color: #c33;
+    border-radius: 50%;
+    opacity: 0.95;
+  }
+  .run-burst-core::before { left: 10%; transform: rotate(-22deg); }
+  .run-burst-core::after  { right: 10%; transform: rotate(22deg); }
+  .run-burst-glow {
+    position: absolute; left: 50%; top: 36%; width: 118px; height: 118px; margin-left: -59px; margin-top: -59px; border-radius: 999px;
+    background: radial-gradient(circle, rgba(255,214,59,0.6), rgba(77,171,247,0.18) 45%, transparent 72%);
+    filter: blur(10px);
+    animation: baseballGlow 2200ms ease-out forwards;
+  }
+  .run-burst-label {
+    position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%);
+    min-width: 210px; padding: 10px 16px; border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.14); background: rgba(5,11,22,0.82);
+    color: rgba(255,255,255,0.94); font-size: 10px; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.28);
+    animation: labelRise 2200ms cubic-bezier(0.18,0.82,0.16,1) forwards;
+  }
+  .run-burst-label-row {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .run-burst-label-logo {
+    width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+  }
+  .run-burst-label-main {
+    font-size: 13px; letter-spacing: 0.08em; font-weight: 900; color: #fff;
+  }
+  .run-burst-label-sub {
+    margin-top: 4px; text-align: center; font-size: 9px; letter-spacing: 0.24em; color: rgba(255,255,255,0.58);
+  }
   /* Scroll snap container */
   .snap-container { scroll-snap-type: y mandatory; overflow-y: auto; height: 100vh; }
   .snap-section { scroll-snap-align: start; min-height: 100vh; }
@@ -147,6 +328,28 @@ const TEAM_NAMES = {
   SD:'San Diego Padres', SF:'San Francisco Giants', SEA:'Seattle Mariners', STL:'St. Louis Cardinals',
   TB:'Tampa Bay Rays', TEX:'Texas Rangers', TOR:'Toronto Blue Jays', WSH:'Washington Nationals',
 };
+const TEAM_SEARCH_POOL = [...new Set(Object.entries(TEAM_NAMES).map(([abbr, name]) => `${abbr}|${name}`))]
+  .map((entry) => {
+    const [abbr, name] = entry.split('|');
+    return { abbr, name };
+  });
+const RUN_BURST_TABS = new Set(['hoy', 'envivo', 'final']);
+function resolveTeamQuery(raw) {
+  const q = (raw || '').trim().toLowerCase();
+  if (!q) return null;
+  const exactAbbr = TEAM_SEARCH_POOL.find((t) => t.abbr.toLowerCase() === q);
+  if (exactAbbr) return exactAbbr.abbr;
+  const exactName = TEAM_SEARCH_POOL.find((t) => t.name.toLowerCase() === q);
+  if (exactName) return exactName.abbr;
+  const hits = TEAM_SEARCH_POOL.filter((t) =>
+    t.abbr.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
+  );
+  return hits.length === 1 ? hits[0].abbr : null;
+}
+function gameTotalRuns(g) {
+  if (g?.away_score == null || g?.home_score == null) return null;
+  return Number(g.away_score) + Number(g.home_score);
+}
 
 const SECTIONS = [
   { id:'hero',    label:'Inicio' },
@@ -155,6 +358,7 @@ const SECTIONS = [
   { id:'envivo',  label:'En vivo' },
   { id:'valor',   label:'+EV' },
   { id:'final',   label:'Resultados' },
+  { id:'equipo',   label:'Equipo' },
   { id:'resumen',  label:'Resumen' },
   { id:'ranking',  label:'Ranking' },
   { id:'remontas', label:'Remontas' },
@@ -870,7 +1074,7 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
     parejo:   { label: 'PAREJO',   icon: '〰', cls: 'bg-white/[0.03] text-white/35 border-white/[0.07]' },
   };
   const tierMeta = g.confidence_tier ? TIER_META[g.confidence_tier] : null;
-  const tierPickAbbr = g.p_home != null ? (g.p_home >= 0.5 ? g.home_abbrev : g.away_abbrev) : null;
+  const tierPickAbbr = g.pick_abbrev || (g.p_home != null ? (g.p_home >= 0.5 ? g.home_abbrev : g.away_abbrev) : null);
 
   return (
     <div
@@ -902,14 +1106,30 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
         </div>
       )}
 
-      {/* ── Confidence tier badge ────────────────────────────────────────────── */}
-      {tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr && (
-        <div className="px-4 mt-2 flex justify-center">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8.5px] font-black tracking-[0.14em] uppercase ${tierMeta.cls}`}>
-            <span>{tierMeta.icon}</span>
-            <span>{tierMeta.label} {tierPickAbbr}</span>
-            {g.tier_hit_rate != null && <span className="opacity-70">· {g.tier_hit_rate.toFixed(0)}%</span>}
-          </span>
+      {/* ── Confidence tier + flip badges ──────────────────────────────────── */}
+      {((tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr) || g.team_flip || g.day_flip) && (
+        <div className="px-4 mt-2 flex justify-center gap-1 flex-wrap">
+          {tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr && (
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8.5px] font-black tracking-[0.14em] uppercase ${tierMeta.cls}`}>
+              <span>{tierMeta.icon}</span>
+              <span>{tierMeta.label} {tierPickAbbr}</span>
+              {g.tier_hit_rate != null && <span className="opacity-70">· {g.tier_hit_rate.toFixed(0)}%</span>}
+            </span>
+          )}
+          {g.team_flip && (
+            <span
+              title="Ajuste equipo trampa: el modelo pickeaba LAA o contra MIL — histórico <50% acierto en las 4 temporadas. Pick invertido."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-orange/40 bg-accent-orange/10 text-accent-orange text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Ajuste equipo
+            </span>
+          )}
+          {g.day_flip && (
+            <span
+              title="Ajuste día trampa: el modelo pickeaba contra WSH un sábado — histórico <45% acierto en 3 temporadas. Pick invertido."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-gold/40 bg-accent-gold/10 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Ajuste día
+            </span>
+          )}
         </div>
       )}
 
@@ -1307,6 +1527,7 @@ function HoyExpandableRow({
   games,
   onOpen,
   date,
+  titleOverride = null,
   kicker = '01 · Slate del día',
   primaryLabel = 'partidos del día',
   secondaryValue = null,
@@ -1369,7 +1590,7 @@ function HoyExpandableRow({
   const hovered = items.find(g => g.game_pk === hoveredPk);
 
   const dateObj = date ? new Date(date + 'T12:00:00') : new Date();
-  const dateStr = dateObj.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+  const dateStr = titleOverride || dateObj.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
 
   return (
     <section
@@ -1482,6 +1703,148 @@ function HoyExpandableRow({
   );
 }
 
+function TeamSearchPage({ date, query, resolvedTeam, games, loading, onOpen, onQueryChange, winProbFilter, onWinProbFilterChange }) {
+  const normalized = query.trim().toLowerCase();
+  const targetWinProb = winProbFilter === '' ? null : Math.max(0, Math.min(100, Number(winProbFilter)));
+  const tolerance = 1.0;
+  const filtered = useMemo(() =>
+    (games || []).filter((g) => {
+      if (!g.is_played) return false;
+      if (!resolvedTeam) return true;
+      const teamProb = g.home_abbrev === resolvedTeam ? Number(g.p_home) * 100
+        : g.away_abbrev === resolvedTeam ? Number(g.p_away) * 100
+        : null;
+      if (teamProb == null || !Number.isFinite(teamProb)) return false;
+      if (targetWinProb == null) return true;
+      return Math.abs(Number(teamProb.toFixed(1)) - Number(targetWinProb.toFixed(1))) <= tolerance;
+    }).sort((a, b) => {
+      if (a.date === b.date) return (b.slot || 0) - (a.slot || 0);
+      return String(b.date).localeCompare(String(a.date));
+    }),
+  [games, resolvedTeam, targetWinProb]);
+  const matchingTeams = useMemo(() => {
+    const set = new Set();
+    TEAM_SEARCH_POOL.forEach((t) => {
+      if (!normalized) return;
+      if (t.abbr.toLowerCase().includes(normalized) || t.name.toLowerCase().includes(normalized)) set.add(t.abbr);
+    });
+    return [...set].filter(Boolean);
+  }, [normalized]);
+  const rangeStart = shiftDate(date, -89);
+  const titleOverride = resolvedTeam
+    ? `${TEAM_NAMES[resolvedTeam] || resolvedTeam} · últimos 90 días`
+    : normalized
+    ? `Coincidencias: ${query} · últimos 90 días`
+    : 'Busca un equipo';
+
+  return (
+    <>
+      <div className="pt-28 pb-6 px-10 max-w-[1600px] mx-auto">
+        <div className="glass border border-white/[0.07] rounded-[28px] p-6 md:p-8">
+          <div className="text-[11px] tracking-[0.32em] uppercase font-bold text-accent-blue mb-4">06 · Búsqueda por equipo</div>
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_auto] gap-5 items-end">
+            <div>
+              <div className="mega text-[clamp(34px,5vw,64px)] leading-[0.95]">Cards por equipo</div>
+              <p className="text-white/55 text-sm mt-3 max-w-[760px] leading-relaxed">
+                Escribe una abreviación o nombre como <span className="text-white">NYY</span>, <span className="text-white">Dodgers</span> o <span className="text-white">Philadelphia</span> y verás las mismas cards de Hoy filtradas para ese equipo en la ventana {rangeStart} a {date}, mostrando sólo juegos ya cerrados.
+              </p>
+            </div>
+            <div className="w-full xl:w-[460px]">
+              <input
+                type="text"
+                list="team-search-options"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                placeholder="Busca por equipo o abreviación…"
+                className="w-full rounded-2xl border border-white/[0.12] bg-white/[0.04] px-5 py-4 text-white placeholder:text-white/28 outline-none focus:border-accent-blue/55 focus:bg-white/[0.06] transition"
+              />
+              <datalist id="team-search-options">
+                {TEAM_SEARCH_POOL.map(({ abbr, name }) => (
+                  <option key={abbr} value={abbr}>{name}</option>
+                ))}
+              </datalist>
+            </div>
+            <div className="w-full xl:w-[220px]">
+              <div className="text-[10px] tracking-[0.2em] uppercase text-white/38 font-black mb-2">Win Probability Objetivo</div>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={winProbFilter}
+                  onChange={(e) => onWinProbFilterChange(e.target.value)}
+                  placeholder="Ej. 53.5"
+                  className="w-full rounded-2xl border border-white/[0.12] bg-white/[0.04] px-5 py-4 pr-12 text-white placeholder:text-white/28 outline-none focus:border-accent-gold/55 focus:bg-white/[0.06] transition"
+                />
+                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-white/35 text-sm font-black">%</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-5">
+            {['NYY', 'LAD', 'PHI', 'CHC', 'SEA', 'HOU', 'DET', 'SD'].map((abbr) => (
+              <button
+                key={abbr}
+                onClick={() => onQueryChange(abbr)}
+                className={`px-3 py-2 rounded-full border text-[11px] font-black tracking-[0.14em] uppercase transition ${
+                  query.trim().toUpperCase() === abbr
+                    ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/45'
+                    : 'bg-white/[0.03] text-white/50 border-white/[0.08] hover:border-white/[0.18] hover:text-white'
+                }`}>
+                {abbr}
+              </button>
+            ))}
+            {query && (
+              <button
+                onClick={() => { onQueryChange(''); onWinProbFilterChange(''); }}
+                className="px-3 py-2 rounded-full border border-white/[0.08] bg-white/[0.03] text-white/45 text-[11px] font-black tracking-[0.14em] uppercase hover:text-white hover:border-white/[0.18] transition">
+                Limpiar
+              </button>
+            )}
+            {winProbFilter !== '' && (
+              <button
+                onClick={() => onWinProbFilterChange('')}
+                className="px-3 py-2 rounded-full border border-accent-gold/25 bg-accent-gold/[0.06] text-accent-gold/75 text-[11px] font-black tracking-[0.14em] uppercase hover:border-accent-gold/45 hover:text-accent-gold transition">
+                Quitar filtro %
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="max-w-[1400px] mx-auto px-10 pb-24">
+          <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/45 tracking-[0.22em] uppercase text-xs animate-pulse">
+            Cargando histórico por equipo…
+          </div>
+        </div>
+      ) : (
+        <HoyExpandableRow
+          games={filtered}
+          onOpen={onOpen}
+          date={date}
+          titleOverride={titleOverride}
+          kicker="07 · Histórico filtrado"
+          primaryLabel="cards encontradas"
+          secondaryValue={targetWinProb == null ? matchingTeams.length : targetWinProb}
+          secondarySuffix={targetWinProb == null ? '' : '%'}
+          secondaryLabel={targetWinProb == null ? 'equipos coincidentes' : 'win prob objetivo'}
+          description={resolvedTeam
+            ? `Ventana de 90 días hasta ${date}. Las cards son exactamente las mismas de Hoy, filtradas desde el backend para ${TEAM_NAMES[resolvedTeam] || resolvedTeam} y ${targetWinProb == null ? 'limitadas a juegos finalizados para ver cómo le fue.' : `además recortadas a juegos donde su win probability mostrada cae dentro de ${Number(targetWinProb - tolerance).toFixed(1)}% a ${Number(targetWinProb + tolerance).toFixed(1)}%, sin importar si fue local o visita.`}`
+            : normalized
+            ? 'Tu búsqueda todavía coincide con varios equipos o con ninguno. Prueba con una abreviación exacta como NYY, LAD o PHI para cargar sólo ese historial.'
+            : 'Empieza escribiendo un equipo para ver únicamente sus cards y revisar su comportamiento reciente con el mismo formato visual de Hoy.'}
+          emptyText={resolvedTeam
+            ? `No encontré cards para "${query}"${targetWinProb == null ? '' : ` dentro del rango ${Number(targetWinProb - tolerance).toFixed(1)}% a ${Number(targetWinProb + tolerance).toFixed(1)}%`} en la ventana ${rangeStart} a ${date}.`
+            : normalized
+            ? `La búsqueda "${query}" no apunta todavía a un solo equipo.`
+            : 'Escribe un equipo para cargar sus cards.'}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── HERO HEADLINE BLOCK ─────────────────────────────────────────────────────
 function HeroBlock({ kicker, title, lead, statValue, statLabel, statSuffix, accent='red', ctaLabel, onCta }) {
   const wrapRef = useRef(null);
@@ -1552,6 +1915,44 @@ function GridList({ items, onOpen, emptyText, title }) {
           {items.map((g, i) => <GameCard key={g.game_pk} g={g} onOpen={onOpen} index={i} />)}
         </div>
       )}
+    </div>
+  );
+}
+
+function RunBurstOverlay({ bursts }) {
+  return (
+    <div className="run-burst-layer" aria-hidden="true">
+      {bursts.map((burst) => (
+        <div
+          key={burst.id}
+          className="run-burst"
+          style={{ '--start-x': burst.startX, '--start-y': burst.startY }}>
+          <div className="run-burst-stage"/>
+          <div className="run-burst-lights"/>
+          <div className="run-burst-batter">
+            <div className="run-burst-body">
+              <div className="run-burst-torso"/>
+              <div className="run-burst-leg-a"/>
+              <div className="run-burst-leg-b"/>
+              <div className="run-burst-arm-a"/>
+              <div className="run-burst-arm-b"/>
+              <div className="run-burst-bat-stick"/>
+            </div>
+          </div>
+          <div className="run-burst-trail"/>
+          <div className="run-burst-smoke"/>
+          <div className="run-burst-contact"/>
+          <div className="run-burst-glow"/>
+          <div className="run-burst-core"/>
+          <div className="run-burst-label">
+            <div className="run-burst-label-row">
+              {burst.team ? <img className="run-burst-label-logo" src={teamLogo(burst.team)} alt={burst.team} /> : null}
+              <div className="run-burst-label-main">{burst.teamName || burst.team || 'Carrera'}</div>
+            </div>
+            <div className="run-burst-label-sub">{burst.subLabel || burst.label}</div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -3713,6 +4114,7 @@ function StatCell({ value, label }) {
 function App() {
   const [date, setDate] = useState(todayISO());
   const [games, setGames] = useState([]);
+  const [runBursts, setRunBursts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState('hero');
   const [scrolled, setScrolled] = useState(false);
@@ -3724,6 +4126,10 @@ function App() {
   const [teamRanking, setTeamRanking] = useState(null);
   const [teamRankingLoading, setTeamRankingLoading] = useState(false);
   const [teamRankingDays, setTeamRankingDays] = useState(60);
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
+  const [teamWinProbFilter, setTeamWinProbFilter] = useState('');
+  const [teamHistoryGames, setTeamHistoryGames] = useState(null);
+  const [teamHistoryLoading, setTeamHistoryLoading] = useState(false);
   const [yesterday, setYesterday] = useState(null);
   const [yesterdayLoading, setYesterdayLoading] = useState(false);
   const [burnData, setBurnData] = useState(null);
@@ -3740,6 +4146,89 @@ function App() {
   const pageContentRef = useRef(null);
   const pageAnimatingRef = useRef(false);
   const swapRef = useRef(null);
+  const previousGamesRef = useRef(null);
+  const activeIdRef = useRef(activeId);
+  const pendingRunBurstsRef = useRef([]);
+  const pageHiddenRef = useRef(typeof document !== 'undefined' ? document.hidden : false);
+
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+
+  const releaseBursts = useCallback((bursts) => {
+    if (!bursts.length) return;
+    setRunBursts((current) => [...current, ...bursts]);
+    bursts.forEach((burst, index) => {
+      window.setTimeout(() => {
+        setRunBursts((current) => current.filter((item) => item.id !== burst.id));
+      }, 2550 + index * 260);
+    });
+  }, []);
+
+  const flushPendingBursts = useCallback(() => {
+    if (pageHiddenRef.current) return;
+    if (!RUN_BURST_TABS.has(activeIdRef.current)) return;
+    if (!pendingRunBurstsRef.current.length) return;
+    const bursts = pendingRunBurstsRef.current.splice(0, pendingRunBurstsRef.current.length);
+    const staged = bursts.map((burst, index) => ({
+      ...burst,
+      id: `${burst.id}-flush-${index}-${Date.now()}`,
+    }));
+    releaseBursts(staged);
+  }, [releaseBursts]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      pageHiddenRef.current = document.hidden;
+      if (!document.hidden) flushPendingBursts();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [flushPendingBursts]);
+
+  useEffect(() => {
+    flushPendingBursts();
+  }, [activeId, flushPendingBursts]);
+
+  const processIncomingGames = useCallback((incoming) => {
+    const prev = previousGamesRef.current;
+    const next = Array.isArray(incoming) ? incoming : [];
+    if (prev && RUN_BURST_TABS.has(activeIdRef.current)) {
+      const bursts = [];
+      for (const game of next) {
+        const oldGame = prev.get(game.game_pk);
+        if (!oldGame) continue;
+        const oldRuns = gameTotalRuns(oldGame);
+        const newRuns = gameTotalRuns(game);
+        if (oldRuns == null || newRuns == null || newRuns <= oldRuns) continue;
+        const gained = Math.min(3, newRuns - oldRuns);
+        const scorer =
+          Number(game.home_score ?? 0) > Number(oldGame.home_score ?? 0) ? game.home_abbrev :
+          Number(game.away_score ?? 0) > Number(oldGame.away_score ?? 0) ? game.away_abbrev :
+          (game.home_abbrev || game.away_abbrev || 'Run');
+        for (let i = 0; i < gained; i++) {
+          bursts.push({
+            id: `${game.game_pk}-${Date.now()}-${i}`,
+            label: `${scorer} anota`,
+            subLabel: gained > 1 ? `RALLY ${gained} CARRERAS` : 'CARRERA ANOTADA',
+            team: scorer,
+            teamName: TEAM_NAMES[scorer] || scorer,
+            startX: `${(Math.random() * 40 - 20).toFixed(1)}vw`,
+            startY: `${(Math.random() * 18 - 9).toFixed(1)}vh`,
+          });
+        }
+      }
+      if (bursts.length) {
+        if (pageHiddenRef.current) {
+          pendingRunBurstsRef.current.push(...bursts);
+        } else {
+          releaseBursts(bursts);
+        }
+      }
+    }
+    previousGamesRef.current = new Map(next.map((g) => [g.game_pk, g]));
+    return next;
+  }, [releaseBursts]);
 
   // Start Three.js once
   useEffect(() => {
@@ -3755,19 +4244,23 @@ function App() {
   // Fetch games when date changes
   useEffect(() => {
     setLoading(true);
+    previousGamesRef.current = null;
     fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`)
       .then(r => r.json())
-      .then(d => { setGames(d); setLoading(false); })
+      .then(d => { setGames(processIncomingGames(d)); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [date]);
+  }, [date, processIncomingGames]);
 
   // Auto refresh
   useEffect(() => {
     const t = setInterval(() => {
-      fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`).then(r=>r.json()).then(setGames).catch(()=>{});
+      fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`)
+        .then(r=>r.json())
+        .then(d => setGames(processIncomingGames(d)))
+        .catch(()=>{});
     }, 30000);
     return () => clearInterval(t);
-  }, [date]);
+  }, [date, processIncomingGames]);
 
   useEffect(() => {
     if (!['resumen', 'modelo'].includes(activeId) || performanceLoading || performance) return;
@@ -3793,6 +4286,25 @@ function App() {
       .then(d => { setTeamRanking(d); setTeamRankingLoading(false); })
       .catch(() => { setTeamRanking(null); setTeamRankingLoading(false); });
   }, [activeId, teamRankingDays]);
+
+  useEffect(() => {
+    if (activeId !== 'equipo') return;
+    const resolvedTeam = resolveTeamQuery(teamSearchQuery);
+    if (!resolvedTeam) {
+      setTeamHistoryGames([]);
+      setTeamHistoryLoading(false);
+      return;
+    }
+    const start = shiftDate(date, -89);
+    setTeamHistoryLoading(true);
+    fetch(`/api/games?start=${start}&end=${date}&team=${encodeURIComponent(resolvedTeam)}&t=${Date.now()}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => { setTeamHistoryGames(d); setTeamHistoryLoading(false); })
+      .catch(() => { setTeamHistoryGames([]); setTeamHistoryLoading(false); });
+  }, [activeId, date, teamSearchQuery]);
 
   // Fetch yesterday stats on first visit to 'hoy'
   useEffect(() => {
@@ -3955,6 +4467,7 @@ function App() {
 
   return (
     <>
+      <RunBurstOverlay bursts={runBursts} />
       {!openPk && <TopNav activeId={activeId} onNavigate={goPage} date={date} setDate={setDate} scrolled={scrolled} />}
       <div ref={swapRef} className="swap-container relative z-10">
         {/* LEFT PANE: active page */}
@@ -4027,6 +4540,19 @@ function App() {
                   ? `${stats.totalT} predicciones evaluadas. Las cards muestran en verde los picks ganados y en rojo los perdidos, junto con el marcador final y las métricas del matchup.`
                   : 'Todavía no hay predicciones finalizadas en esta fecha.'}
                 emptyText="Todavía no hay partidos finalizados en esta fecha."
+              />
+            )}
+            {activeId === 'equipo' && (
+              <TeamSearchPage
+                date={date}
+                query={teamSearchQuery}
+                resolvedTeam={resolveTeamQuery(teamSearchQuery)}
+                onQueryChange={setTeamSearchQuery}
+                winProbFilter={teamWinProbFilter}
+                onWinProbFilterChange={setTeamWinProbFilter}
+                games={teamHistoryGames}
+                loading={teamHistoryLoading}
+                onOpen={openDetail}
               />
             )}
             {activeId === 'resumen' && (

@@ -36,6 +36,10 @@ def build() -> Path:
     # Pitcher L5 (last 5 starts) tested — -0.35pp acc, -1.9 AUC vs baseline.
     # The 5-start window is too noisy: pitcher variance star-to-start is high,
     # so L15 already captures the stable signal. Kept on disk, disabled here.
+    # Pitcher trend (slope) + blowup rate tested — -0.19pp acc, -2.4 AUC.
+    # Hypothesis was that slope captures direction-of-form, but the L15 mean
+    # already absorbs the signal (a pitcher with blowups has high xwoba_l15).
+    # Kept on disk, disabled here.
     park = pd.read_parquet(PROCESSED / "features_park.parquet")
     market = pd.read_parquet(PROCESSED / "features_market.parquet")
     lineup_path = PROCESSED / "features_lineup.parquet"
@@ -59,12 +63,39 @@ def build() -> Path:
     cluster_luck = None
     cb_path = PROCESSED / "features_comeback.parquet"
     comeback = pd.read_parquet(cb_path) if cb_path.exists() else None
+    # Luck / BABIP regression tested — +0.28pp acc but -2.7 AUC, worse ll.
+    # The "fade lucky teams" hypothesis is backwards: high BABIP partly reflects
+    # real hitting quality (already in off_xwoba), so it's collinear. Disabled.
+    luck = None
+    # Creative batch (momentum/streak, fatigue, line movement, circadian travel)
+    # tested via creative_ablation.py. All have REAL raw correlations but none
+    # beat the model: the closing market line (already a feature) prices them in.
+    #   streak    -0.54pp ;  fatigue +0.03pp ;  linemove +0.10pp/-3.8 AUC
+    #   circadian -0.07pp/-2.4 AUC  (raw signal: +2.67pp home WR on 3-zone E travel)
+    # Kept on disk; disabled here.
+    creative_team = None
+    creative_game = None
+    circadian = None
+    # Weather/wind (game-level): wind_out_mph is a scoring-environment signal
+    # not currently in the model (temp already is). Validated +0.45 run swing
+    # out vs in. Primary target: the totals regressor.
+    wx_path = PROCESSED / "features_weather.parquet"
+    weather = pd.read_parquet(wx_path) if wx_path.exists() else None
+    # Calendar features (slate_size + dow) tested — Δacc +0.04pp, Δauc 0.00.
+    # Real statistical signal in the daily audit but too weak to move the
+    # model once combined with form/bullpen/team_id. Parquet stays on disk,
+    # disabled here.
+    calendar = None
     # lineup_recent (L15 top-4 batter form): improves model AUC by +7pts and
     # log_loss by -0.0024 in walk-forward. High-conf band gains +0.99pp acc.
     # Operationally shifts the edge threshold so the production 5pp filter
     # needs re-calibration to compensate (handled in _value_block).
     lr_path = PROCESSED / "features_lineup_recent.parquet"
     lineup_recent = pd.read_parquet(lr_path) if lr_path.exists() else None
+    # Team volatility (std of runs L10) tested — Δacc -0.04pp, Δauc -2.85.
+    # Hypothesis was that std vs mean would distinguish consistent vs roller-
+    # coaster offenses, but the L10/L30 means absorb the signal. Kept on disk.
+    team_vol = None
     # burn features (yesterday's bullpen/extra-innings — "carne al asador") tested
     # walk-forward (-0.49pp acc, -5.5 AUC). Hangover hypothesis didn't hold; the
     # parquet is kept for the web visualization but excluded from the model.
@@ -192,6 +223,64 @@ def build() -> Path:
         g = g.merge(home_cb, on="game_pk", how="left")
         g = g.merge(away_cb, on="game_pk", how="left")
         for c in cb_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- calendar features (slate_size, dow) — game-level, not _h/_a/_diff ---
+    if calendar is not None:
+        g = g.merge(calendar, on="game_pk", how="left")
+
+    # --- team_volatility features (std of runs L10) ---
+    if team_vol is not None:
+        tv_cols = [c for c in team_vol.columns if c not in ("game_pk", "side")]
+        home_tv = team_vol[team_vol["side"] == "home"].drop(columns=["side"])
+        away_tv = team_vol[team_vol["side"] == "away"].drop(columns=["side"])
+        home_tv = home_tv.rename(columns={c: f"{c}_h" for c in tv_cols})
+        away_tv = away_tv.rename(columns={c: f"{c}_a" for c in tv_cols})
+        g = g.merge(home_tv, on="game_pk", how="left")
+        g = g.merge(away_tv, on="game_pk", how="left")
+        for c in tv_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- weather/wind tested — hurts WIN (-0.28pp acc), -0.0044 MAE on totals
+    # (noise). Wind is symmetric for who-wins; temp (already a feature) + park
+    # factors capture the scoring environment. Disabled, kept on disk. ---
+
+    # --- creative team features (streak, density, day_after_night, rest_adv) ---
+    if creative_team is not None:
+        cr_cols = [c for c in creative_team.columns if c not in ("game_pk", "side")]
+        home_cr = creative_team[creative_team["side"] == "home"].drop(columns=["side"])
+        away_cr = creative_team[creative_team["side"] == "away"].drop(columns=["side"])
+        home_cr = home_cr.rename(columns={c: f"{c}_h" for c in cr_cols})
+        away_cr = away_cr.rename(columns={c: f"{c}_a" for c in cr_cols})
+        g = g.merge(home_cr, on="game_pk", how="left")
+        g = g.merge(away_cr, on="game_pk", how="left")
+        for c in cr_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- creative game features (line movement) ---
+    if creative_game is not None:
+        g = g.merge(creative_game, on="game_pk", how="left")
+
+    # --- circadian (game-level) ---
+    if circadian is not None:
+        g = g.merge(circadian, on="game_pk", how="left")
+
+    # --- luck / BABIP regression features ---
+    if luck is not None:
+        lk_cols = [c for c in luck.columns if c not in ("game_pk", "side")]
+        home_lk = luck[luck["side"] == "home"].drop(columns=["side"])
+        away_lk = luck[luck["side"] == "away"].drop(columns=["side"])
+        home_lk = home_lk.rename(columns={c: f"{c}_h" for c in lk_cols})
+        away_lk = away_lk.rename(columns={c: f"{c}_a" for c in lk_cols})
+        g = g.merge(home_lk, on="game_pk", how="left")
+        g = g.merge(away_lk, on="game_pk", how="left")
+        for c in lk_cols:
             h = f"{c}_h"; a = f"{c}_a"
             if h in g.columns and a in g.columns:
                 g[f"{c}_diff"] = g[h] - g[a]

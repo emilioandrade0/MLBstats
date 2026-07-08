@@ -5,6 +5,8 @@ Key: (game_pk, side)
 Columns (per side):
   runs_scored_l10, runs_allowed_l10, run_diff_l10
   win_pct_l30
+  homeonly_run_diff_l10, awayonly_run_diff_l10
+  homeonly_win_pct_l20, awayonly_win_pct_l20
   off_xwoba_l30  (rolling mean of team xwOBA from Statcast)
   def_xwoba_l30  (rolling mean of opponent xwOBA conceded)
   off_barrel_l30, def_barrel_l30
@@ -110,6 +112,68 @@ def _rolling_lagged(df: pd.DataFrame, team_col: str, date_col: str,
     return pd.concat([df, pd.DataFrame(out_cols, index=df.index)], axis=1)
 
 
+def _rolling_split_form(df: pd.DataFrame) -> pd.DataFrame:
+    """Home-only / away-only rolling form for the same team."""
+    out = df.copy()
+    out = out.sort_values(["team", "game_date", "game_pk"], kind="mergesort").reset_index(drop=True)
+
+    out["home_win"] = np.where(out["is_home"] == 1, out["win"], np.nan)
+    out["away_win"] = np.where(out["is_home"] == 0, out["win"], np.nan)
+    out["home_run_diff"] = np.where(out["is_home"] == 1, out["runs_scored"] - out["runs_allowed"], np.nan)
+    out["away_run_diff"] = np.where(out["is_home"] == 0, out["runs_scored"] - out["runs_allowed"], np.nan)
+
+    grp = out.groupby("team", sort=False)
+    out["homeonly_win_pct_l20"] = grp["home_win"].transform(
+        lambda s: s.shift(1).rolling(20, min_periods=4).mean()
+    )
+    out["awayonly_win_pct_l20"] = grp["away_win"].transform(
+        lambda s: s.shift(1).rolling(20, min_periods=4).mean()
+    )
+    out["homeonly_run_diff_l10"] = grp["home_run_diff"].transform(
+        lambda s: s.shift(1).rolling(10, min_periods=3).mean()
+    )
+    out["awayonly_run_diff_l10"] = grp["away_run_diff"].transform(
+        lambda s: s.shift(1).rolling(10, min_periods=3).mean()
+    )
+    return out.drop(columns=["home_win", "away_win", "home_run_diff", "away_run_diff"])
+
+
+def _mixed_streak_flags(df: pd.DataFrame) -> pd.DataFrame:
+    """Lagged streak/context flags from prior 3 games across mixed venues."""
+    out = df.copy()
+    out = out.sort_values(["team", "game_date", "game_pk"], kind="mergesort").reset_index(drop=True)
+    grp = out.groupby("team", sort=False)
+
+    prev1 = grp["win"].shift(1)
+    prev2 = grp["win"].shift(2)
+    prev3 = grp["win"].shift(3)
+    home1 = grp["is_home"].shift(1)
+    home2 = grp["is_home"].shift(2)
+    home3 = grp["is_home"].shift(3)
+
+    prev3_all_wins = (prev1 == 1) & (prev2 == 1) & (prev3 == 1)
+    prev3_home_ct = home1.fillna(0) + home2.fillna(0) + home3.fillna(0)
+    prev3_away_ct = 3 - prev3_home_ct
+
+    out["mixed_3win_2home1away_pre"] = (
+        prev3_all_wins & (prev3_home_ct >= 2) & (prev3_away_ct >= 1)
+    ).astype(float)
+    out["mixed_3win_2away1home_pre"] = (
+        prev3_all_wins & (prev3_away_ct >= 2) & (prev3_home_ct >= 1)
+    ).astype(float)
+
+    streak_vals = []
+    for _, team_grp in out.groupby("team", sort=False):
+        streak = 0
+        vals = []
+        for won in team_grp["win"]:
+            vals.append(float(min(streak, 6)))
+            streak = streak + 1 if won == 1 else 0
+        streak_vals.extend(vals)
+    out["mixed_win_streak_pre"] = pd.Series(streak_vals, index=out.index, dtype=float)
+    return out
+
+
 def build() -> Path:
     games = pd.read_parquet(PROCESSED / "games.parquet")
     games = games.dropna(subset=["game_date", "home_team_abbrev", "away_team_abbrev"])
@@ -138,6 +202,8 @@ def build() -> Path:
         "def_xwoba", "def_barrel_rate", "def_k_pct", "def_bb_pct",
     ]
     df = _rolling_lagged(df, "team", "game_date", feat_cols, {"l10": 10, "l30": 30})
+    df = _rolling_split_form(df)
+    df = _mixed_streak_flags(df)
 
     # Derived: run_diff_l10
     df["run_diff_l10"] = df["runs_scored_l10"] - df["runs_allowed_l10"]
@@ -145,6 +211,8 @@ def build() -> Path:
 
     keep = ["game_pk", "team", "game_date", "is_home", "days_since_last_game",
             "runs_scored_l10", "runs_allowed_l10", "run_diff_l10", "win_pct_l30",
+            "homeonly_run_diff_l10", "awayonly_run_diff_l10",
+            "homeonly_win_pct_l20", "awayonly_win_pct_l20",
             "off_xwoba_l30", "off_barrel_rate_l30", "off_k_pct_l30", "off_bb_pct_l30",
             "def_xwoba_l30", "def_barrel_rate_l30", "def_k_pct_l30", "def_bb_pct_l30"]
     # NOTE: L10 versions of xwoba/barrel/k_pct/bb_pct are also computed by the

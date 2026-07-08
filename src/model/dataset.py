@@ -34,6 +34,18 @@ EXCLUDE_COLS = {
     # F5 targets — never features for full-game model and vice versa
     "f5_home_score", "f5_away_score", "f5_home_won", "f5_tied",
     "f5_total_runs", "f5_run_diff",
+    # Context-only Pythagorean regression features: available for post-model
+    # adjustments, intentionally excluded from base model training.
+    # Tried exposing pyth_wpct_l30/l10 and pyth_minus_actual_l30 to the base
+    # model (walk-forward Apr-Jun 2026, n=1205): acc 0.5394 vs baseline 0.5809
+    # (-4.15pp), AUC 0.5583 vs 0.5951 (-3.68pp), log_loss 0.6884 vs 0.6746.
+    # Features landed in top-15 by importance but hurt OOS — likely overfit
+    # against the win_pct_l30 / run_diff_l10 features that carry the same
+    # signal. Post-process nudge in api.py is enough.
+    "pyth_wpct_l30_h", "pyth_wpct_l30_a", "pyth_wpct_l30_diff",
+    "pyth_wpct_l10_h", "pyth_wpct_l10_a", "pyth_wpct_l10_diff",
+    "pyth_minus_actual_l30_h", "pyth_minus_actual_l30_a", "pyth_minus_actual_l30_diff",
+    "pyth_run_diff_pg_l30_h", "pyth_run_diff_pg_l30_a", "pyth_run_diff_pg_l30_diff",
 }
 
 # Categorical features — LightGBM handles these natively. Must be int.

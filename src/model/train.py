@@ -22,6 +22,7 @@ import pandas as pd
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.frozen import FrozenEstimator
 from sklearn.linear_model import LogisticRegression
+from .seed_ensemble import SEEDS, SeedEnsemble
 from sklearn.metrics import (
     brier_score_loss,
     log_loss,
@@ -61,86 +62,100 @@ def _baseline_logreg(X_train: pd.DataFrame, y_train: pd.Series,
     return pipe, metrics
 
 
-def _train_lgb_classifier(X_train, y_train, X_val, y_val) -> tuple[lgb.LGBMClassifier, dict]:
-    # Hyperparameters tuned via walk-forward (src/model/hyperparam_sweep.py):
-    # num_leaves=10 + reg=1.0 + team_id categorical wins the sweet band
-    # (10-20pp confidence, where +EV picks live):
-    #   - sweet band accuracy:  56.19% (best of 16 configs tested)
-    #   - log_loss:             0.6941 (best calibration)
-    #   - AUC:                  0.5625
-    # Trades 0.4pp overall acc vs leaves=16 for +2.3pp on the band that
-    # actually generates +EV bets.
-    model = lgb.LGBMClassifier(
-        n_estimators=2000,
-        learning_rate=0.03,
-        num_leaves=10,
-        min_child_samples=40,
-        reg_lambda=1.0,
-        reg_alpha=1.0,
-        subsample=0.85,
-        colsample_bytree=0.85,
-        random_state=42,
-        verbosity=-1,
-    )
+def _train_lgb_classifier(X_train, y_train, X_val, y_val) -> tuple[SeedEnsemble, dict]:
+    """Train N seed models and return a SeedEnsemble.
+
+    Walk-forward gain vs single-seed (n=5634): +0.06pp acc, +0.07pp AUC.
+    Small but consistent noise reduction — worth the Nx training time since
+    train.py runs once per deploy.
+    """
     cat_feats = [c for c in CATEGORICAL_FEATURES if c in X_train.columns]
-    model.fit(
-        X_train, y_train,
-        eval_set=[(X_val, y_val)],
-        eval_metric="binary_logloss",
-        categorical_feature=cat_feats if cat_feats else "auto",
-        callbacks=[lgb.early_stopping(50, verbose=False)],
-    )
-    p_val = model.predict_proba(X_val)[:, 1]
+    models = []
+    for seed in SEEDS:
+        m = lgb.LGBMClassifier(
+            n_estimators=2000,
+            learning_rate=0.03,
+            num_leaves=10,
+            min_child_samples=40,
+            reg_lambda=1.0,
+            reg_alpha=1.0,
+            subsample=0.85,
+            colsample_bytree=0.85,
+            random_state=seed,
+            verbosity=-1,
+        )
+        m.fit(
+            X_train, y_train,
+            eval_set=[(X_val, y_val)],
+            eval_metric="binary_logloss",
+            categorical_feature=cat_feats if cat_feats else "auto",
+            callbacks=[lgb.early_stopping(50, verbose=False)],
+        )
+        models.append(m)
+    ens = SeedEnsemble(models, "cls")
+    p_val = ens.predict_proba(X_val)[:, 1]
     metrics = {
         "log_loss": float(log_loss(y_val, p_val)),
         "brier": float(brier_score_loss(y_val, p_val)),
         "auc": float(roc_auc_score(y_val, p_val)),
         "accuracy": float(((p_val > 0.5) == y_val).mean()),
-        "best_iter": int(model.best_iteration_) if model.best_iteration_ else 0,
+        "n_seeds": len(SEEDS),
         "mean_pred": float(p_val.mean()),
         "base_rate": float(y_val.mean()),
     }
-    return model, metrics
+    return ens, metrics
 
 
-def _train_lgb_regressor(X_train, y_train, X_val, y_val) -> tuple[lgb.LGBMRegressor, dict]:
-    model = lgb.LGBMRegressor(
-        n_estimators=2000,
-        learning_rate=0.03,
-        num_leaves=10,
-        min_child_samples=40,
-        reg_lambda=1.0,
-        reg_alpha=1.0,
-        subsample=0.85,
-        colsample_bytree=0.85,
-        random_state=42,
-        objective="regression",
-        verbosity=-1,
-    )
+def _train_lgb_regressor(X_train, y_train, X_val, y_val) -> tuple[SeedEnsemble, dict]:
     cat_feats = [c for c in CATEGORICAL_FEATURES if c in X_train.columns]
-    model.fit(
-        X_train, y_train,
-        eval_set=[(X_val, y_val)],
-        eval_metric="l2",
-        categorical_feature=cat_feats if cat_feats else "auto",
-        callbacks=[lgb.early_stopping(50, verbose=False)],
-    )
-    p_val = model.predict(X_val)
+    models = []
+    for seed in SEEDS:
+        m = lgb.LGBMRegressor(
+            n_estimators=2000,
+            learning_rate=0.03,
+            num_leaves=10,
+            min_child_samples=40,
+            reg_lambda=1.0,
+            reg_alpha=1.0,
+            subsample=0.85,
+            colsample_bytree=0.85,
+            random_state=seed,
+            objective="regression",
+            verbosity=-1,
+        )
+        m.fit(
+            X_train, y_train,
+            eval_set=[(X_val, y_val)],
+            eval_metric="l2",
+            categorical_feature=cat_feats if cat_feats else "auto",
+            callbacks=[lgb.early_stopping(50, verbose=False)],
+        )
+        models.append(m)
+    ens = SeedEnsemble(models, "reg")
+    p_val = ens.predict(X_val)
     metrics = {
         "mae": float(mean_absolute_error(y_val, p_val)),
         "rmse": float(mean_squared_error(y_val, p_val) ** 0.5),
         "mean_pred": float(p_val.mean()),
         "mean_actual": float(y_val.mean()),
-        "best_iter": int(model.best_iteration_) if model.best_iteration_ else 0,
+        "n_seeds": len(SEEDS),
     }
-    return model, metrics
+    return ens, metrics
 
 
-def _calibrate(model: lgb.LGBMClassifier, X_val, y_val) -> CalibratedClassifierCV:
-    """Isotonic calibration on the val set so probabilities match observed frequency."""
-    cal = CalibratedClassifierCV(FrozenEstimator(model), method="isotonic")
-    cal.fit(X_val, y_val)
-    return cal
+def _calibrate(model, X_val, y_val) -> SeedEnsemble:
+    """Isotonic-calibrate EACH seed model, return an ensemble of calibrators.
+
+    Calibrating each seed then averaging gives better-calibrated probabilities
+    than averaging then calibrating once, because each seed's raw output has
+    its own miscalibration profile.
+    """
+    cals = []
+    for m in model.models:
+        c = CalibratedClassifierCV(FrozenEstimator(m), method="isotonic")
+        c.fit(X_val, y_val)
+        cals.append(c)
+    return SeedEnsemble(cals, "cls")
 
 
 def _holdout_eval(model, X_test, y_test, kind: str) -> dict:

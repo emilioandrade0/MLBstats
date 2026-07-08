@@ -19,12 +19,35 @@ Features (per game, diffed home minus away where it makes sense):
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from ..normalize.paths import PROCESSED
+
+
+def _write_parquet_atomic(df: pd.DataFrame, out: Path) -> None:
+    """Write parquet atomically and surface a clear error if Windows locks it."""
+    tmp = out.with_name(f"{out.stem}.tmp{out.suffix}")
+    try:
+        if tmp.exists():
+            tmp.unlink()
+        df.to_parquet(tmp, index=False)
+        os.replace(tmp, out)
+    except OSError as e:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
+        raise RuntimeError(
+            f"No se pudo escribir {out}. "
+            "El archivo parece bloqueado o en uso por otro proceso "
+            "(servidor, vista previa de Explorer u otra sesion de Python). "
+            "Cierra ese proceso y vuelve a correr `python -m src.features.build`."
+        ) from e
 
 
 def build() -> Path:
@@ -57,12 +80,31 @@ def build() -> Path:
     # not merged into train. To re-enable, set arsenal = pd.read_parquet(...).
     arsenal = None
     tanking = None
-    # Pythagorean + cluster luck tested but degraded walk-forward (collinear).
-    # Kept on disk; uncomment to re-enable individually for further experiments.
-    pythag = None
+    # Pythagorean regression signal is merged as CONTEXT for post-processing.
+    # It stays out of the base model via dataset.EXCLUDE_COLS.
+    py_path = PROCESSED / "features_pythagorean.parquet"
+    pythag = pd.read_parquet(py_path) if py_path.exists() else None
     cluster_luck = None
     cb_path = PROCESSED / "features_comeback.parquet"
     comeback = pd.read_parquet(cb_path) if cb_path.exists() else None
+    # Luck / BABIP regression tested — +0.28pp acc but -2.7 AUC, worse ll.
+    # The "fade lucky teams" hypothesis is backwards: high BABIP partly reflects
+    # real hitting quality (already in off_xwoba), so it's collinear. Disabled.
+    luck = None
+    # Creative batch (momentum/streak, fatigue, line movement, circadian travel)
+    # tested via creative_ablation.py. All have REAL raw correlations but none
+    # beat the model: the closing market line (already a feature) prices them in.
+    #   streak    -0.54pp ;  fatigue +0.03pp ;  linemove +0.10pp/-3.8 AUC
+    #   circadian -0.07pp/-2.4 AUC  (raw signal: +2.67pp home WR on 3-zone E travel)
+    # Kept on disk; disabled here.
+    creative_team = None
+    creative_game = None
+    circadian = None
+    # Weather/wind (game-level): wind_out_mph is a scoring-environment signal
+    # not currently in the model (temp already is). Validated +0.45 run swing
+    # out vs in. Primary target: the totals regressor.
+    wx_path = PROCESSED / "features_weather.parquet"
+    weather = pd.read_parquet(wx_path) if wx_path.exists() else None
     # Calendar features (slate_size + dow) tested — Δacc +0.04pp, Δauc 0.00.
     # Real statistical signal in the daily audit but too weak to move the
     # model once combined with form/bullpen/team_id. Parquet stays on disk,
@@ -86,12 +128,18 @@ def build() -> Path:
     # walk-forward AUC and edge calibration — high collinearity with existing
     # bullpen/win_pct features. Kept on disk; set to None to disable.
     game_flow = None
-    # situational features (1-run games, blowouts, timezone travel) tested but
-    # degraded walk-forward — collinear with win_pct/run_diff/xwoba already in model.
-    situational = None
+    situ_path = PROCESSED / "features_situational.parquet"
+    situational = pd.read_parquet(situ_path) if situ_path.exists() else None
     # error features (error_rate, resilience) tested but degraded walk-forward —
     # likely captured by def_xwoba + win_pct. Kept on disk; disabled here.
     errors = None
+    # Travel/jetlag: physical fatigue signals from prev-game park + timing.
+    # Tested walk-forward Mayo 2024 – Jun 2026 (2026-07-01):
+    #   full 18 cols:    acc +0.07pp (ruido), AUC -0.22pp, top-30 imp: 0
+    #   reduced 9 cols:  acc -0.33pp, AUC -0.15pp, top-30 imp: 0
+    # Ninguna versión aporta señal — el modelo las ignora. Parquet queda por si
+    # se quiere combinar con otro contexto en el futuro.
+    travel = None
 
     g = games[games["game_type"].isin(["R", "F", "D", "L", "W"])].copy()
     g = g.dropna(subset=["home_team_abbrev", "away_team_abbrev", "game_date"])
@@ -209,6 +257,20 @@ def build() -> Path:
             if h in g.columns and a in g.columns:
                 g[f"{c}_diff"] = g[h] - g[a]
 
+    # --- travel / jetlag features (home + away) ---
+    if travel is not None:
+        tv_cols = [c for c in travel.columns if c not in ("game_pk", "side")]
+        home_tr = travel[travel["side"] == "home"].drop(columns=["side"])
+        away_tr = travel[travel["side"] == "away"].drop(columns=["side"])
+        home_tr = home_tr.rename(columns={c: f"{c}_h" for c in tv_cols})
+        away_tr = away_tr.rename(columns={c: f"{c}_a" for c in tv_cols})
+        g = g.merge(home_tr, on="game_pk", how="left")
+        g = g.merge(away_tr, on="game_pk", how="left")
+        for c in tv_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
     # --- calendar features (slate_size, dow) — game-level, not _h/_a/_diff ---
     if calendar is not None:
         g = g.merge(calendar, on="game_pk", how="left")
@@ -223,6 +285,60 @@ def build() -> Path:
         g = g.merge(home_tv, on="game_pk", how="left")
         g = g.merge(away_tv, on="game_pk", how="left")
         for c in tv_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- weather/wind tested — hurts WIN (-0.28pp acc), -0.0044 MAE on totals
+    # (noise). Wind is symmetric for who-wins; temp (already a feature) + park
+    # factors capture the scoring environment. Disabled, kept on disk. ---
+
+    # --- creative team features (streak, density, day_after_night, rest_adv) ---
+    if creative_team is not None:
+        cr_cols = [c for c in creative_team.columns if c not in ("game_pk", "side")]
+        home_cr = creative_team[creative_team["side"] == "home"].drop(columns=["side"])
+        away_cr = creative_team[creative_team["side"] == "away"].drop(columns=["side"])
+        home_cr = home_cr.rename(columns={c: f"{c}_h" for c in cr_cols})
+        away_cr = away_cr.rename(columns={c: f"{c}_a" for c in cr_cols})
+        g = g.merge(home_cr, on="game_pk", how="left")
+        g = g.merge(away_cr, on="game_pk", how="left")
+        for c in cr_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- creative game features (line movement) ---
+    if creative_game is not None:
+        g = g.merge(creative_game, on="game_pk", how="left")
+
+    # --- situational features (conservative same-day mirror-pair signals) ---
+    if situational is not None:
+        st_cols = [c for c in situational.columns if c not in ("game_pk", "side")]
+        home_st = situational[situational["side"] == "home"].drop(columns=["side"])
+        away_st = situational[situational["side"] == "away"].drop(columns=["side"])
+        home_st = home_st.rename(columns={c: f"{c}_h" for c in st_cols})
+        away_st = away_st.rename(columns={c: f"{c}_a" for c in st_cols})
+        g = g.merge(home_st, on="game_pk", how="left")
+        g = g.merge(away_st, on="game_pk", how="left")
+        for c in st_cols:
+            h = f"{c}_h"; a = f"{c}_a"
+            if h in g.columns and a in g.columns:
+                g[f"{c}_diff"] = g[h] - g[a]
+
+    # --- circadian (game-level) ---
+    if circadian is not None:
+        g = g.merge(circadian, on="game_pk", how="left")
+
+    # --- luck / BABIP regression features ---
+    if luck is not None:
+        lk_cols = [c for c in luck.columns if c not in ("game_pk", "side")]
+        home_lk = luck[luck["side"] == "home"].drop(columns=["side"])
+        away_lk = luck[luck["side"] == "away"].drop(columns=["side"])
+        home_lk = home_lk.rename(columns={c: f"{c}_h" for c in lk_cols})
+        away_lk = away_lk.rename(columns={c: f"{c}_a" for c in lk_cols})
+        g = g.merge(home_lk, on="game_pk", how="left")
+        g = g.merge(away_lk, on="game_pk", how="left")
+        for c in lk_cols:
             h = f"{c}_h"; a = f"{c}_a"
             if h in g.columns and a in g.columns:
                 g[f"{c}_diff"] = g[h] - g[a]
@@ -306,8 +422,14 @@ def build() -> Path:
             g[f"{name}_diff"] = g[h] - g[a]
 
     # --- targets ---
-    g["home_win"] = (g["home_score"] > g["away_score"]).astype("Int64")
-    g["total_runs"] = g["home_score"] + g["away_score"]
+    # Leave future / canceled games unlabeled. `(NaN > NaN)` becomes False in
+    # pandas, which silently turned scheduled games into fake away wins.
+    played_mask = g["home_score"].notna() & g["away_score"].notna()
+    g["home_win"] = pd.Series(pd.NA, index=g.index, dtype="Int64")
+    g.loc[played_mask, "home_win"] = (
+        g.loc[played_mask, "home_score"] > g.loc[played_mask, "away_score"]
+    ).astype("Int64")
+    g["total_runs"] = np.where(played_mask, g["home_score"] + g["away_score"], np.nan)
     # F5 (first-5-innings) targets — separate betting market with lower variance
     if f5_targets is not None:
         g = g.merge(f5_targets, on="game_pk", how="left")
@@ -315,6 +437,8 @@ def build() -> Path:
     # --- engineered diffs ---
     diff_pairs = [
         "runs_scored_l10", "runs_allowed_l10", "run_diff_l10", "win_pct_l30",
+        "homeonly_run_diff_l10", "awayonly_run_diff_l10",
+        "homeonly_win_pct_l20", "awayonly_win_pct_l20",
         "off_xwoba_l30", "off_barrel_rate_l30", "off_k_pct_l30", "off_bb_pct_l30",
         "def_xwoba_l30", "def_barrel_rate_l30", "def_k_pct_l30", "def_bb_pct_l30",
         "starter_xwoba_l15", "starter_barrel_against_l15",
@@ -348,6 +472,10 @@ def build() -> Path:
     explicit_features = [
         "market_logit_p_home", "market_over_under", "market_spread",
         "market_p_home_std", "market_n_providers",
+        # Line movement (open -> close) captura sharp money flow. Signal check
+        # muestra +5pp swing en fav_slight cuando linea se mueve al AWAY.
+        "market_line_shift_home_pp", "market_line_shift_abs_pp",
+        "market_total_shift",
         "home_elo_pre", "away_elo_pre", "elo_diff_pre", "expected_home_win_elo",
         "series_game_number", "series_run_diff_so_far",
         "did_home_win_previous_game_in_series",
