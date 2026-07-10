@@ -1511,6 +1511,18 @@ PICK_DAY_FADE = {
     ("CLE", 6),  # CLE Sunday
 }
 
+# Pick x month fade — combos donde el pick sobre este equipo en este mes
+# falla sistematicamente en 2025-2026. Detectados via sweep. Gate 2026+.
+#   KC  Jun: 2026 33% (n=6),  2025 20% (n=10)
+#   ATL Jun: 2026 38% (n=16), 2025 40% (n=20)
+# Backtest: +0.425pp acc 2026 (n=22 afectados). ⚠ N muy chico KC → high
+# noise risk. Revalidar mensual; quitar cualquier combo cuyo acc_2026
+# suba de 0.48.
+PICK_MONTH_FADE = {
+    ("KC",  6),  # KC en Junio
+    ("ATL", 6),  # ATL en Junio
+}
+
 # Night-elite teams — where the model's pick historically hits >0.62 in ALL
 # four seasons of walk-forward when the game is played at night. NOT a pick
 # override (the model already picks these correctly at high rate); it's a
@@ -1675,6 +1687,11 @@ def _flip_reason(pick_home: bool, home_team: str | None,
             if (season_year is None or season_year >= 2026) and \
                (picked, dow) in PICK_DAY_FADE:
                 return "pickday"
+            # Pick-month fade (2026+ regime): pick sobre equipo en mes especifico
+            month = pd.Timestamp(game_date).month
+            if (season_year is None or season_year >= 2026) and \
+               (picked, month) in PICK_MONTH_FADE:
+                return "pickmonth"
         except Exception:
             pass
     return None
@@ -2772,10 +2789,11 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             # Trap inversion: raw pick was flipped because it landed on a trap
             # team ('team'), or on a day-of-week trap like fade WSH-on-Saturday
             # ('day'). Both flips validated to hit <50% in 3+ seasons.
-            "team_flip":    flip_reason == "team",
-            "day_flip":     flip_reason == "day",
-            "night_flip":   flip_reason == "night",
-            "pickday_flip": flip_reason == "pickday",
+            "team_flip":      flip_reason == "team",
+            "day_flip":       flip_reason == "day",
+            "night_flip":     flip_reason == "night",
+            "pickday_flip":   flip_reason == "pickday",
+            "pickmonth_flip": flip_reason == "pickmonth",
             "flip_reason": flip_reason,
             # Series double-down trap: model repeated the pick it just missed
             # in this series against the market → pick deferred to market side.
