@@ -15,20 +15,20 @@ echo ============================================================
 echo.
 
 :: ── Paso 0: server vivo ────────────────────────────────────
-echo [0/4] Verificando servidor local...
+echo [0/6] Verificando servidor local...
 curl -s -f -o nul --max-time 5 "%LOCAL_API%/api/health"
-if not "%ERRORLEVEL%"=="0" goto server_down
+if errorlevel 1 goto server_down
 echo   OK, servidor responde.
 echo.
 
 :: ── Paso 1: generar snapshot ──────────────────────────────
-echo [1/4] Generando snapshot de hoy (~30s)...
+echo [1/6] Generando snapshot de hoy (~30s)...
 curl -s -X POST --max-time 180 "%LOCAL_API%/api/publish" -o publish_result.json
-if not "%ERRORLEVEL%"=="0" goto publish_failed
+if errorlevel 1 goto publish_failed
 if not exist publish_result.json goto publish_no_response
 
 findstr /C:"\"ok\":true" publish_result.json >nul 2>&1
-if not "%ERRORLEVEL%"=="0" goto publish_bad_response
+if errorlevel 1 goto publish_bad_response
 
 echo   Respuesta:
 type publish_result.json
@@ -36,71 +36,70 @@ echo.
 echo.
 del publish_result.json
 
-:: ── Paso 2: sincronizar con remoto (protege contra conflictos del bot) ──
-echo [2/4] Sincronizando repo con remoto...
-:: Backup del snapshot antes de tocar git
-copy /Y vercel\snapshot.json "%TEMP%\strikecast_snapshot.json" >nul
-
-:: Stashear cambios locales sin commitear (codigo, pickles, etc.) — sin untracked
-git stash push -m "publish-auto-stash" >nul 2>&1
-
-:: Sincronizar main a origin (destruye commits locales redundantes de snapshots previos)
-git fetch origin
-git reset --hard origin/main
-if not "%ERRORLEVEL%"=="0" goto reset_failed
-
-:: Restaurar el snapshot desde backup
-copy /Y "%TEMP%\strikecast_snapshot.json" vercel\snapshot.json >nul
-del "%TEMP%\strikecast_snapshot.json"
-
-:: ── Paso 3: commit + push ─────────────────────────────────
+:: ── Paso 2: sincronizar frontend con vercel ────────────────
+echo [2/6] Sincronizando strike.html -^> vercel/index.html...
+if not exist "src\serve\static\strike.html" goto strike_missing
+copy /Y "src\serve\static\strike.html" "vercel\index.html" >nul
+if errorlevel 1 goto copy_failed
+echo   OK.
 echo.
-echo [3/4] Publicando en Vercel (git push)...
-git add vercel/snapshot.json
+
+:: ── Paso 3: checkpoint local de todo lo modificado ─────────
+:: Comiteamos TODAS las modificaciones a archivos ya trackeados (parquets, pkl,
+:: codigo, snapshot, index.html) como un solo commit. Esto garantiza que NADA
+:: se pierde al sincronizar con remoto. Untracked (archivos nuevos que git no
+:: conoce) NO se agregan — quedan intactos en el working tree.
+echo [3/6] Guardando cambios locales en un commit checkpoint...
+git add -u
+git diff --cached --quiet
+if not errorlevel 1 (
+    echo   Sin cambios locales que preservar.
+    goto sync_remote
+)
 for /f %%d in ('powershell -NoProfile -Command "(Get-Date).ToString('yyyy-MM-dd HH:mm')"') do set FECHA=%%d
-git commit -m "data: snapshot %FECHA%" >nul
-if not "%ERRORLEVEL%"=="0" (
-    echo   Sin cambios en snapshot ^(ya publicado^), saltando push.
-    goto restore_stash
+git commit -m "data: publish %FECHA%" >nul
+if errorlevel 1 goto commit_failed
+echo   Checkpoint commit creado.
+echo.
+
+:sync_remote
+:: ── Paso 4: traer commits remotos del bot sin destruir nada ────────
+echo [4/6] Sincronizando con remoto (bot de odds)...
+git fetch origin main
+if errorlevel 1 goto fetch_failed
+
+:: Merge normal con estrategia "ours": si hay conflicto (mismo archivo tocado
+:: local y remoto — tipico en parquets del bot), gana LA VERSION LOCAL.
+:: Tu data local es fresca (update_data.bat) y mas confiable que la del bot.
+:: NUNCA introduce conflict markers en el working tree.
+git merge origin/main --no-edit --strategy-option=ours
+if errorlevel 1 goto merge_failed
+echo   Merge OK.
+echo.
+
+:: ── Paso 5: push ──────────────────────────────────────────
+echo [5/6] Push a GitHub (Vercel se auto-despliega)...
+:: Verificar que haya algo que pushear
+git status -sb | findstr /C:"ahead" >nul 2>&1
+if errorlevel 1 (
+    echo   Nada nuevo que pushear ^(remoto ya al dia^).
+    goto done
 )
 git push
-if not "%ERRORLEVEL%"=="0" goto push_failed
-
+if errorlevel 1 goto push_failed
 echo   Push exitoso.
 echo.
 
-:: ── Paso 4: restaurar cambios locales ─────────────────────
-:restore_stash
-echo [4/4] Restaurando tus cambios locales...
-:: pop puede fallar por conflictos en parquets/pickles (bot vs local). Los aceptamos como locales.
-git stash pop >nul 2>&1
-if "%ERRORLEVEL%"=="0" goto done
-
-:: Si hay conflictos, casi seguro es en parquets/pickles que el bot toco.
-:: Aceptamos la version LOCAL (tuya) para todo lo conflictuado.
-echo   Conflictos detectados en binarios (normal si el bot subio parquets nuevos).
-echo   Aceptando tu version local...
-for %%f in (data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/games.parquet data/processed/train.parquet data/models/lgb_cls.pkl data/models/lgb_reg.pkl) do (
-    git checkout --theirs -- "%%f" >nul 2>&1
-    git add "%%f" >nul 2>&1
-)
-:: Cualquier otro conflicto residual: intentar auto-resolver con la version stash
-git status --porcelain | findstr /B "UU AA DD" >nul 2>&1
-if "%ERRORLEVEL%"=="0" (
-    echo   AVISO: quedaron conflictos que no pude resolver.
-    echo   Corre: git stash drop     (para descartar el stash)
-    echo   Y luego: update_data.bat  (para regenerar parquets locales)
-    goto done
-)
-git stash drop >nul 2>&1
-
 :done
+echo [6/6] Publicacion completa.
 echo.
 echo ============================================================
 echo   OK. Vercel redesplegara en ~30 segundos.
-echo   Refresca la web para ver los picks de hoy.
+echo   Refresca la web para ver los picks del dia.
 echo ============================================================
 goto end
+
+:: ─── Errores (todos NO destructivos, con instrucciones de recuperacion) ───
 
 :server_down
 echo.
@@ -128,16 +127,48 @@ type publish_result.json
 del publish_result.json
 goto end
 
-:reset_failed
+:strike_missing
 echo.
-echo   ERROR: git reset --hard origin/main fallo.
-echo   Estado del repo indeterminado. Contactame antes de tocar mas.
+echo   ERROR: no existe src\serve\static\strike.html.
+echo   No puedo sincronizar el frontend a Vercel.
+goto end
+
+:copy_failed
+echo.
+echo   ERROR: no pude copiar strike.html a vercel/index.html.
+echo   Verifica permisos y que vercel/ exista.
+goto end
+
+:commit_failed
+echo.
+echo   ERROR: git commit fallo. Revisa mensaje anterior.
+echo   Los cambios siguen stageados. Puedes:
+echo     git reset          (para des-stagear sin perder)
+echo     git commit -m ...  (para reintentar con otro mensaje)
+goto end
+
+:fetch_failed
+echo.
+echo   ERROR: git fetch fallo. Verifica conexion a GitHub.
+echo   Nada se ha modificado en el repo. Reintenta.
+goto end
+
+:merge_failed
+echo.
+echo   ERROR: git merge fallo pese a la estrategia "ours".
+echo   Esto es raro. Estado del repo:
+git status --short
+echo.
+echo   RECUPERACION SEGURA:
+echo     git merge --abort    (vuelve al estado previo al merge)
+echo   NO se ha perdido ningun cambio; el checkpoint commit sigue en local.
 goto end
 
 :push_failed
 echo.
 echo   ERROR en git push. Verifica conexion o credenciales.
-echo   Snapshot commit fue creado localmente pero no llego a Vercel.
+echo   El commit sigue en local. Reintenta con:
+echo     git push
 goto end
 
 :end

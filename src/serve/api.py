@@ -1474,6 +1474,27 @@ TRAP_FADE_TEAMS = {"MIL"}
 # Watched closely; small sample size means high sensitivity to multiple-testing.
 DAY_TRAP_FADE = {("WSH", 5)}  # (opponent_abbrev, dayofweek)
 
+# Night-elite teams — where the model's pick historically hits >0.62 in ALL
+# four seasons of walk-forward when the game is played at night. NOT a pick
+# override (the model already picks these correctly at high rate); it's a
+# confidence badge shown to the user so they know it aligns with a stable
+# high-hit-rate pattern.
+#   PHI at night → 0.65 / 0.66 / 0.66 / 0.73 (n=26/79/73/33); total 0.668,
+#                  +8.3pp vs baseline night acc 0.585.
+# Re-validate each season — like the trap flips, team identity rules decay.
+NIGHT_ELITE_TEAMS = {"PHI"}
+
+
+def _is_night_elite(pick_home: bool, home_team: str | None,
+                    away_team: str | None, day_night: str | None) -> bool:
+    """True iff the pick lands on a night-elite team AND game is a night game."""
+    if not home_team or not away_team:
+        return False
+    if str(day_night or "").lower() != "night":
+        return False
+    picked = home_team if pick_home else away_team
+    return picked in NIGHT_ELITE_TEAMS
+
 
 def _flip_reason(pick_home: bool, home_team: str | None,
                  away_team: str | None,
@@ -1523,6 +1544,66 @@ def _pick_home_from_phome(
     if _should_flip_pick(raw, home_team, away_team, game_date):
         return not raw
     return raw
+
+
+# Series double-down trap (2026+ regime rule). When the model repeats the pick
+# it just MISSED in the previous game of the same series AND disagrees with the
+# market, follow the market instead. Walk-forward 2026 (n=36 disagreement
+# spots): model hit 36.1%, market 63.9% — consistent in both halves of the
+# season (H1 0.389 vs 0.611, H2 0.333 vs 0.667). Season impact: +0.83pp.
+# In 2023-2025 the model was GOOD at doubling down (0.58-0.63), so this is a
+# regime rule gated to season >= 2026. Re-validate monthly with the retrain.
+# Cache: a played previous game's pick/correctness never changes.
+_series_dd_cache: dict[int, tuple[bool, bool]] = {}
+
+
+def _series_double_down_market(c, r, pick_is_home: bool) -> bool:
+    """True iff the series double-down trap fires → pick should follow market."""
+    try:
+        season = int(r["season"]) if pd.notna(r.get("season")) else None
+        if season is None or season < 2026:
+            return False
+        mp = r.get("market_p_home", float("nan"))
+        if mp is None or not np.isfinite(mp):
+            return False
+        mkt_home = bool(mp > 0.5)
+        if pick_is_home == mkt_home:
+            return False  # only fires when the model fights the market
+        train = c["train"]
+        gd = r["game_date"]
+        prev = train[
+            (train["home_team_abbrev"] == r["home_team_abbrev"])
+            & (train["away_team_abbrev"] == r["away_team_abbrev"])
+            & (train["game_date"] < gd)
+            & (train["game_date"] >= gd - timedelta(days=1))
+        ]
+        prev = prev[prev["home_win"].notna()]
+        if prev.empty:
+            return False
+        pr = prev.sort_values("game_date").iloc[-1]
+        pk = int(pr["game_pk"])
+        cached = _series_dd_cache.get(pk)
+        if cached is None:
+            feats = c["cls"]["feature_names"]
+            X = pd.DataFrame([pr[feats].values], columns=feats)
+            ph = float(_predict_phome(
+                c, X, pd.Series([pr.get("market_p_home", float("nan"))]),
+                context_df=pd.DataFrame([pr]))[0])
+            prev_pick_home = _pick_home_from_phome(
+                ph, pr.get("market_p_home", float("nan")),
+                pr.get("home_team_abbrev"), pr.get("away_team_abbrev"),
+                int(pr["season"]) if pd.notna(pr.get("season")) else None,
+                pr.get("game_date"))
+            prev_correct = bool(prev_pick_home) == bool(pr["home_win"])
+            cached = (bool(prev_pick_home), prev_correct)
+            _series_dd_cache[pk] = cached
+        prev_pick_home, prev_correct = cached
+        if prev_correct:
+            return False
+        # Same series → same pair, so "repeats the same team" ⟺ same side.
+        return prev_pick_home == pick_is_home
+    except Exception:
+        return False
 
 
 # Confidence tiers — calibrated on the display-probability walk-forward
@@ -2256,7 +2337,16 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             raw_pick_home = bool(p_home >= _winner_threshold(mp, p_home, ht, at, season_int))
             flip_reason = _flip_reason(raw_pick_home, ht, at, gd)
             pick_is_home = (not raw_pick_home) if flip_reason else raw_pick_home
+            # Series double-down trap: if the model repeats the exact pick it
+            # just missed in this series AND fights the market, defer to market.
+            series_flip = _series_double_down_market(c, r, pick_is_home)
+            if series_flip:
+                pick_is_home = bool(float(mp) > 0.5) if pd.notna(mp) else pick_is_home
             pick_abbrev = ht if pick_is_home else at
+            night_elite = _is_night_elite(pick_is_home, ht, at, r.get("day_night"))
+        else:
+            night_elite = False
+            series_flip = False
         # Value pick uses the MODEL-ONLY probability so edges aren't shrunk by
         # the display blend. Falls back to display prob if value calc failed.
         p_for_value = p_home_value if np.isfinite(p_home_value) else p_home
@@ -2303,6 +2393,13 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             "team_flip": flip_reason == "team",
             "day_flip":  flip_reason == "day",
             "flip_reason": flip_reason,
+            # Series double-down trap: model repeated the pick it just missed
+            # in this series against the market → pick deferred to market side.
+            "series_flip": bool(series_flip),
+            # Night-elite badge: pick lands on a team with >0.62 acc in ALL 4
+            # seasons of night games (currently PHI). Informational — the pick
+            # itself is unchanged, only the confidence signal to the user.
+            "night_elite": bool(night_elite),
             "pitcher_away": pitcher_away,
             "pitcher_home": pitcher_home,
             **v,
