@@ -23,7 +23,7 @@ echo.
 
 :: ── Paso 1: generar snapshot ──────────────────────────────
 echo [1/6] Generando snapshot de hoy (~30s)...
-curl -s -X POST --max-time 180 "%LOCAL_API%/api/publish" -o publish_result.json
+curl -s -X POST --max-time 300 "%LOCAL_API%/api/publish" -o publish_result.json
 if errorlevel 1 goto publish_failed
 if not exist publish_result.json goto publish_no_response
 

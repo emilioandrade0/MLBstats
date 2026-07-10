@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PICKGOLD · Predicciones MLB</title>
+<title>STRIKECAST · Predicciones MLB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.tailwindcss.com">
@@ -18,7 +18,7 @@
     fontFamily: { sans: ['Inter','system-ui','sans-serif'], mega: ['Anton','Impact','sans-serif'] },
     colors: {
       ink:    { 0:'#061019', 1:'#081521', 2:'#0d1e2e', 3:'#153149' },
-      accent: { red:'#E63946', blue:'#4DABF7', gold:'#FFD43B', green:'#51CF66' },
+      accent: { red:'#E63946', blue:'#4DABF7', gold:'#FFD43B', green:'#51CF66', orange:'#FF922B' },
     },
   }}};
 </script>
@@ -97,48 +97,113 @@
     0%, 100% { box-shadow: 0 0 16px rgba(255,212,59,0.20); }
     50%      { box-shadow: 0 0 26px rgba(255,212,59,0.42); }
   }
-  /* Run-scored celebration overlay */
-  @keyframes baseballZoom {
-    0%   { transform: translate3d(var(--start-x), var(--start-y), 0) scale(0.1) rotate(-22deg); opacity: 0; }
-    10%  { opacity: 0.9; }
-    46%  { transform: translate3d(calc(var(--start-x) * 0.35), calc(var(--start-y) * 0.25 - 10vh), 0) scale(0.7) rotate(-8deg); opacity: 1; }
-    78%  { opacity: 1; }
-    100% { transform: translate3d(0, 4vh, 0) scale(5.6) rotate(18deg); opacity: 0; }
+  /* ═══ Run-scored celebration overlay v2 (cinematic) ═════════════════════ */
+  /* Total duration: 3800ms — climax on team logo between 1400-3200ms */
+  @keyframes rbStageIn {
+    0%   { opacity: 0; }
+    12%  { opacity: 1; }
+    82%  { opacity: 1; }
+    100% { opacity: 0; }
   }
-  @keyframes baseballGlow {
-    0%   { opacity: 0; transform: scale(0.2); }
-    22%  { opacity: 0.5; }
-    100% { opacity: 0; transform: scale(2.2); }
+  @keyframes rbVignetteIn {
+    0%   { opacity: 0; }
+    18%  { opacity: 1; }
+    82%  { opacity: 1; }
+    100% { opacity: 0; }
   }
-  @keyframes batterLoadIn {
-    0%   { opacity: 0; transform: translate3d(-4vw, 4vh, 0) scale(0.82); }
-    100% { opacity: 0.95; transform: translate3d(0, 0, 0) scale(1); }
+  @keyframes rbScanLine {
+    0%   { transform: translateY(-100%); opacity: 0; }
+    16%  { opacity: 0.5; }
+    100% { transform: translateY(100vh); opacity: 0; }
   }
-  @keyframes batterSwing {
-    0%, 24% { transform: rotate(18deg) translate3d(0,0,0); }
-    46%     { transform: rotate(-8deg) translate3d(0,-2px,0); }
-    100%    { transform: rotate(-14deg) translate3d(8px,-3px,0); }
+  @keyframes rbBatterLoad {
+    0%   { opacity: 0; transform: translate3d(-6vw, 4vh, 0) scale(0.86); }
+    10%  { opacity: 1; }
+    24%  { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    72%  { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    100% { opacity: 0; transform: translate3d(0, 2vh, 0) scale(0.94); }
   }
-  @keyframes contactFlash {
-    0%, 24% { opacity: 0; transform: scale(0.3); }
-    34%     { opacity: 0.95; transform: scale(1); }
-    100%    { opacity: 0; transform: scale(2.6); }
+  @keyframes rbBatterSwing {
+    /* windup 0-14%, load 14-22%, contact 22-28%, follow-through 28-48% */
+    0%   { transform: rotate(0deg); }
+    14%  { transform: rotate(30deg); }
+    22%  { transform: rotate(32deg); }
+    28%  { transform: rotate(-24deg); }
+    48%  { transform: rotate(-42deg); }
+    100% { transform: rotate(-42deg); }
   }
-  @keyframes flightTrail {
-    0%   { opacity: 0; transform: translate3d(-12vw, 10vh, 0) scaleX(0.2); }
-    24%  { opacity: 0; }
-    42%  { opacity: 0.8; }
-    100% { opacity: 0; transform: translate3d(6vw, -10vh, 0) scaleX(1); }
+  @keyframes rbHipRotate {
+    0%   { transform: rotate(0deg); }
+    16%  { transform: rotate(-8deg); }
+    28%  { transform: rotate(12deg); }
+    100% { transform: rotate(12deg); }
   }
-  @keyframes labelRise {
-    0%   { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.9); }
-    20%  { opacity: 0; }
-    30%  { opacity: 1; }
-    78%  { opacity: 1; }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(1.04); }
+  @keyframes rbContactFlash {
+    0%, 22%  { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+    26%      { opacity: 1; transform: translate(-50%, -50%) scale(1.4); }
+    34%      { opacity: 0.6; transform: translate(-50%, -50%) scale(2.4); }
+    46%      { opacity: 0; transform: translate(-50%, -50%) scale(3.4); }
+    100%     { opacity: 0; }
+  }
+  @keyframes rbBallFly {
+    /* Parabolic arc: from batter's contact zone up-right-across, then off screen */
+    0%   { offset-distance: 0%; opacity: 0; transform: scale(0.9) rotate(0deg); }
+    22%  { opacity: 0; }
+    28%  { opacity: 1; offset-distance: 8%; transform: scale(1) rotate(60deg); }
+    56%  { opacity: 1; offset-distance: 60%; transform: scale(1.05) rotate(300deg); }
+    82%  { opacity: 0.85; offset-distance: 90%; transform: scale(1.15) rotate(560deg); }
+    100% { opacity: 0; offset-distance: 100%; transform: scale(1.25) rotate(720deg); }
+  }
+  @keyframes rbBallTrail {
+    0%, 22% { opacity: 0; offset-distance: 0%; }
+    28%     { opacity: 0.7; offset-distance: 8%; }
+    82%     { opacity: 0.55; offset-distance: 90%; }
+    100%    { opacity: 0; offset-distance: 100%; }
+  }
+  @keyframes rbLogoIn {
+    0%, 34%  { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(14px); }
+    44%      { opacity: 1; transform: translate(-50%, -50%) scale(1.15); filter: blur(0px); }
+    52%      { transform: translate(-50%, -50%) scale(1); }
+    78%      { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+    92%      { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+    100%     { opacity: 0; transform: translate(-50%, -50%) scale(1.3); filter: blur(6px); }
+  }
+  @keyframes rbLogoRipple {
+    0%, 40%  { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+    50%      { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+    80%      { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+    100%     { opacity: 0; }
+  }
+  @keyframes rbNameIn {
+    0%, 44%  { opacity: 0; transform: translateX(-50%) translateY(20px); letter-spacing: 0.02em; }
+    56%      { opacity: 1; transform: translateX(-50%) translateY(0px); letter-spacing: 0.18em; }
+    84%      { opacity: 1; transform: translateX(-50%) translateY(0px); letter-spacing: 0.18em; }
+    100%     { opacity: 0; transform: translateX(-50%) translateY(-10px); letter-spacing: 0.22em; }
+  }
+  @keyframes rbBadgeIn {
+    0%, 46%  { opacity: 0; transform: translateX(-50%) translateY(14px) scale(0.9); }
+    58%      { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
+    84%      { opacity: 1; }
+    100%     { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(1.04); }
+  }
+  @keyframes rbEyebrowIn {
+    0%, 40%  { opacity: 0; letter-spacing: 0.20em; }
+    54%      { opacity: 1; letter-spacing: 0.42em; }
+    84%      { opacity: 1; }
+    100%     { opacity: 0; letter-spacing: 0.50em; }
+  }
+  @keyframes rbShake {
+    0%, 20%   { transform: translate3d(0, 0, 0); }
+    24%       { transform: translate3d(-2px, 1px, 0); }
+    26%       { transform: translate3d(2px, -1px, 0); }
+    28%       { transform: translate3d(-1px, 2px, 0); }
+    30%       { transform: translate3d(1px, -2px, 0); }
+    32%       { transform: translate3d(0, 0, 0); }
+    100%      { transform: translate3d(0, 0, 0); }
   }
   .run-burst-layer {
     position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 120;
+    animation: rbShake 3800ms ease-out forwards;
   }
   .run-burst {
     position: absolute; inset: 0;
@@ -146,137 +211,168 @@
   .run-burst-stage {
     position: absolute; inset: 0;
     background:
-      radial-gradient(circle at 50% 46%, rgba(255,214,59,0.08), transparent 16%),
-      linear-gradient(180deg, rgba(255,255,255,0.02), transparent 36%, rgba(0,0,0,0.18));
+      radial-gradient(ellipse at 50% 100%, rgba(81,207,102,0.10), transparent 55%),
+      radial-gradient(circle at 50% 40%, rgba(255,214,59,0.04), transparent 22%),
+      linear-gradient(180deg, rgba(4,10,18,0.32), rgba(4,10,18,0.55) 60%, rgba(4,10,18,0.72));
+    animation: rbStageIn 3800ms ease-out forwards;
   }
-  .run-burst-stage::before {
-    content: "";
+  .run-burst-vignette {
     position: absolute; inset: 0;
     background:
-      radial-gradient(circle at 14% 18%, rgba(255,255,255,0.22), transparent 12%),
-      radial-gradient(circle at 86% 16%, rgba(255,255,255,0.18), transparent 11%),
-      radial-gradient(circle at 50% 12%, rgba(77,171,247,0.12), transparent 20%);
-    opacity: 0.75;
+      radial-gradient(ellipse at 50% 50%, transparent 44%, rgba(0,0,0,0.55) 100%);
+    animation: rbVignetteIn 3800ms ease-out forwards;
   }
-  .run-burst-stage::after {
-    content: "";
-    position: absolute; left: 0; right: 0; bottom: 0; height: 34vh;
-    background:
-      radial-gradient(ellipse at 50% 100%, rgba(81,207,102,0.12), transparent 56%),
-      linear-gradient(180deg, transparent, rgba(4,10,18,0.58));
-  }
-  .run-burst-batter {
-    position: absolute; left: 15%; bottom: 12%; width: 120px; height: 120px;
-    opacity: 0; animation: batterLoadIn 260ms ease-out forwards;
-  }
-  .run-burst-batter::before {
-    content: ""; position: absolute; left: 40px; top: 12px; width: 20px; height: 20px; border-radius: 999px;
-    background: rgba(255,255,255,0.92); box-shadow: 0 0 18px rgba(255,255,255,0.18);
-  }
-  .run-burst-body {
-    position: absolute; left: 34px; top: 28px; width: 52px; height: 78px;
-    transform-origin: 50% 55%; animation: batterSwing 2200ms cubic-bezier(0.2,0.7,0.1,1) forwards;
-  }
-  .run-burst-torso {
-    position: absolute; left: 14px; top: 8px; width: 26px; height: 36px; border-radius: 14px 14px 10px 10px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(77,171,247,0.7));
-  }
-  .run-burst-leg-a,
-  .run-burst-leg-b,
-  .run-burst-arm-a,
-  .run-burst-arm-b,
-  .run-burst-bat-stick {
-    position: absolute; border-radius: 999px; background: rgba(255,255,255,0.88);
-  }
-  .run-burst-leg-a { left: 16px; top: 38px; width: 8px; height: 34px; transform: rotate(18deg); }
-  .run-burst-leg-b { left: 30px; top: 38px; width: 8px; height: 36px; transform: rotate(-18deg); }
-  .run-burst-arm-a { left: 6px; top: 18px; width: 8px; height: 28px; transform: rotate(34deg); }
-  .run-burst-arm-b { left: 34px; top: 12px; width: 8px; height: 30px; transform: rotate(-42deg); }
-  .run-burst-bat-stick {
-    left: 34px; top: 0; width: 58px; height: 6px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.75), rgba(255,212,59,0.92));
-    box-shadow: 0 0 18px rgba(255,212,59,0.22);
-    transform: rotate(-34deg);
-  }
-  .run-burst-trail {
-    position: absolute; left: 27%; top: 44%; width: 38vw; max-width: 520px; height: 10px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(255,214,59,0), rgba(255,214,59,0.72), rgba(255,255,255,0.12));
-    filter: blur(2px);
-    transform-origin: left center;
-    animation: flightTrail 2200ms cubic-bezier(0.2,0.7,0.1,1) forwards;
-  }
-  .run-burst-smoke {
-    position: absolute; left: 24%; top: 40%; width: 32vw; max-width: 420px; height: 16vh;
-    background:
-      radial-gradient(circle at 22% 64%, rgba(255,255,255,0.16), transparent 22%),
-      radial-gradient(circle at 36% 52%, rgba(255,255,255,0.14), transparent 24%),
-      radial-gradient(circle at 56% 42%, rgba(255,255,255,0.12), transparent 26%),
-      radial-gradient(circle at 70% 32%, rgba(255,255,255,0.10), transparent 24%);
-    filter: blur(10px);
-    opacity: 0;
-    animation: baseballGlow 2200ms ease-out forwards;
-  }
-  .run-burst-lights {
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(circle at 10% 20%, rgba(255,255,255,0.12), transparent 10%),
-      radial-gradient(circle at 90% 20%, rgba(255,255,255,0.12), transparent 10%),
-      linear-gradient(180deg, rgba(255,255,255,0.05), transparent 18%);
+  .run-burst-scanline {
+    position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(77,171,247,0.15) 60%, transparent);
     mix-blend-mode: screen;
-    opacity: 0.7;
+    opacity: 0;
+    animation: rbScanLine 2400ms ease-out forwards;
   }
+  /* Batter — SVG silhouette in swing pose */
+  .run-burst-batter {
+    position: absolute; left: 14%; bottom: 14%;
+    width: 180px; height: 220px;
+    opacity: 0;
+    animation: rbBatterLoad 3800ms cubic-bezier(0.2,0.7,0.1,1) forwards;
+    filter: drop-shadow(0 12px 24px rgba(0,0,0,0.55));
+  }
+  .run-burst-batter svg {
+    width: 100%; height: 100%; display: block;
+    transform-origin: 50% 78%;
+    animation: rbHipRotate 3800ms cubic-bezier(0.4,0.1,0.2,1) forwards;
+  }
+  .run-burst-batter .rb-bat-group {
+    transform-origin: 62% 46%;
+    animation: rbBatterSwing 3800ms cubic-bezier(0.4,0.1,0.2,1) forwards;
+  }
+  /* Contact flash */
   .run-burst-contact {
-    position: absolute; left: 29%; top: 47%; width: 18px; height: 18px; border-radius: 999px;
-    background: radial-gradient(circle, rgba(255,255,255,1), rgba(255,214,59,0.88) 42%, transparent 72%);
+    position: absolute; left: calc(14% + 108px); bottom: calc(14% + 130px);
+    width: 100px; height: 100px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,220,120,0.9) 30%, rgba(255,180,90,0.55) 55%, transparent 72%);
     filter: blur(1px);
-    animation: contactFlash 2200ms ease-out forwards;
+    animation: rbContactFlash 3800ms ease-out forwards;
+    mix-blend-mode: screen;
   }
-  .run-burst-core {
-    position: absolute; left: 50%; top: 36%; width: 72px; height: 72px; margin-left: -36px; margin-top: -36px; border-radius: 999px;
-    background: radial-gradient(circle at 35% 32%, rgba(255,255,255,0.98), rgba(255,247,242,0.98) 42%, rgba(236,229,223,0.99) 72%, rgba(216,210,205,1) 100%);
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.45) inset, 0 16px 40px rgba(0,0,0,0.34);
-    animation: baseballZoom 2200ms cubic-bezier(0.18,0.82,0.16,1) forwards;
+  /* Ball flying along a parabolic path */
+  .run-burst-ball {
+    position: absolute; top: 0; left: 0;
+    width: 42px; height: 42px;
+    offset-path: path("M 18 68 Q 42 8, 68 22 T 96 44");
+    offset-rotate: 0deg;
+    animation: rbBallFly 3800ms cubic-bezier(0.25,0.4,0.3,1) forwards;
+    z-index: 3;
   }
-  .run-burst-core::before,
-  .run-burst-core::after {
+  /* Actual pixel coordinates via a wrapper that scales the offset-path viewport */
+  .run-burst-ball-wrap {
+    position: absolute; inset: 0;
+    /* Path is defined in a 100x100 conceptual box, scaled to viewport */
+    /* Uses a CSS custom offset-path on wrapper's inner element */
+  }
+  .run-burst-ball::before {
     content: "";
-    position: absolute;
-    top: 18%;
-    width: 44%;
-    height: 52%;
-    border: 2px solid transparent;
-    border-top-color: #c33;
+    position: absolute; inset: 0;
+    border-radius: 999px;
+    background: radial-gradient(circle at 32% 30%, rgba(255,255,255,1), rgba(248,240,232,1) 45%, rgba(210,200,190,1) 100%);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset, 0 8px 20px rgba(0,0,0,0.4), 0 0 30px rgba(255,214,59,0.35);
+  }
+  .run-burst-ball::after {
+    content: "";
+    position: absolute; left: 10%; top: 22%; width: 80%; height: 56%;
+    border: 2px solid transparent; border-top-color: #c23; border-left-color: #c23;
     border-radius: 50%;
-    opacity: 0.95;
+    transform: rotate(-18deg);
   }
-  .run-burst-core::before { left: 10%; transform: rotate(-22deg); }
-  .run-burst-core::after  { right: 10%; transform: rotate(22deg); }
-  .run-burst-glow {
-    position: absolute; left: 50%; top: 36%; width: 118px; height: 118px; margin-left: -59px; margin-top: -59px; border-radius: 999px;
-    background: radial-gradient(circle, rgba(255,214,59,0.6), rgba(77,171,247,0.18) 45%, transparent 72%);
-    filter: blur(10px);
-    animation: baseballGlow 2200ms ease-out forwards;
+  /* Long fading trail behind the ball */
+  .run-burst-ball-trail {
+    position: absolute; top: 0; left: 0;
+    width: 6px; height: 6px;
+    border-radius: 999px;
+    box-shadow:
+      0 0 0 3px rgba(255,214,59,0.10),
+      0 0 20px 6px rgba(255,214,59,0.35),
+      0 0 42px 12px rgba(255,180,80,0.20);
+    animation: rbBallTrail 3800ms cubic-bezier(0.25,0.4,0.3,1) forwards;
   }
-  .run-burst-label {
-    position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%);
-    min-width: 210px; padding: 10px 16px; border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.14); background: rgba(5,11,22,0.82);
-    color: rgba(255,255,255,0.94); font-size: 10px; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase;
-    box-shadow: 0 14px 28px rgba(0,0,0,0.28);
-    animation: labelRise 2200ms cubic-bezier(0.18,0.82,0.16,1) forwards;
+  /* Team logo — HERO of the animation */
+  .run-burst-logo {
+    position: absolute; left: 50%; top: 44%;
+    width: 180px; height: 180px;
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 0;
+    animation: rbLogoIn 3800ms cubic-bezier(0.2,0.9,0.15,1) forwards;
+    z-index: 5;
+    filter: drop-shadow(0 20px 50px rgba(0,0,0,0.55)) drop-shadow(0 0 40px rgba(255,214,59,0.28));
   }
-  .run-burst-label-row {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
+  .run-burst-logo img {
+    width: 100%; height: 100%; object-fit: contain;
   }
-  .run-burst-label-logo {
-    width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+  .run-burst-logo-ripple {
+    position: absolute; left: 50%; top: 44%;
+    width: 260px; height: 260px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,214,59,0.6);
+    box-shadow: 0 0 60px rgba(255,214,59,0.3) inset;
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+    animation: rbLogoRipple 3800ms ease-out forwards;
+    z-index: 4;
   }
-  .run-burst-label-main {
-    font-size: 13px; letter-spacing: 0.08em; font-weight: 900; color: #fff;
+  .run-burst-logo-ripple.delay1 { animation-delay: 200ms; }
+  .run-burst-logo-ripple.delay2 { animation-delay: 420ms; }
+  /* Eyebrow "ANOTA" tiny header */
+  .run-burst-eyebrow {
+    position: absolute; left: 50%; top: calc(44% - 128px);
+    transform: translateX(-50%);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px; font-weight: 900; letter-spacing: 0.42em; text-transform: uppercase;
+    color: rgba(255,214,59,0.95);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    opacity: 0;
+    animation: rbEyebrowIn 3800ms ease-out forwards;
+    z-index: 5;
+    white-space: nowrap;
   }
-  .run-burst-label-sub {
-    margin-top: 4px; text-align: center; font-size: 9px; letter-spacing: 0.24em; color: rgba(255,255,255,0.58);
+  /* Team name in Anton mega typography */
+  .run-burst-name {
+    position: absolute; left: 50%; top: calc(44% + 110px);
+    transform: translateX(-50%);
+    font-family: 'Anton', 'Impact', sans-serif;
+    font-size: 56px; font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.7), 0 0 40px rgba(77,171,247,0.35);
+    opacity: 0;
+    animation: rbNameIn 3800ms cubic-bezier(0.2,0.9,0.15,1) forwards;
+    z-index: 5;
+    white-space: nowrap;
+  }
+  /* Rally badge below name */
+  .run-burst-badge {
+    position: absolute; left: 50%; top: calc(44% + 176px);
+    transform: translateX(-50%);
+    padding: 8px 18px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(5,11,22,0.72);
+    backdrop-filter: blur(8px);
+    color: rgba(255,255,255,0.9);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 10px; font-weight: 900; letter-spacing: 0.28em; text-transform: uppercase;
+    opacity: 0;
+    animation: rbBadgeIn 3800ms cubic-bezier(0.2,0.9,0.15,1) forwards;
+    z-index: 5;
+    white-space: nowrap;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.4);
+  }
+  @media (max-width: 767px) {
+    .run-burst-batter { width: 130px; height: 160px; left: 8%; bottom: 18%; }
+    .run-burst-contact { width: 70px; height: 70px; left: calc(8% + 78px); bottom: calc(18% + 90px); }
+    .run-burst-logo { width: 130px; height: 130px; }
+    .run-burst-logo-ripple { width: 200px; height: 200px; }
+    .run-burst-eyebrow { top: calc(44% - 100px); font-size: 10px; letter-spacing: 0.36em; }
+    .run-burst-name { top: calc(44% + 82px); font-size: 34px; letter-spacing: 0.14em; }
+    .run-burst-badge { top: calc(44% + 138px); font-size: 9px; padding: 6px 14px; }
   }
   /* Scroll snap container */
   .snap-container { scroll-snap-type: y mandatory; overflow-y: auto; height: 100vh; }
@@ -316,6 +412,30 @@ const fmt3 = (n) => n == null ? '–' : (+n).toFixed(3).replace(/^0/, '');
 const pct  = (n) => n == null ? '–' : ((+n)*100).toFixed(1) + '%';
 const perfPct = (n) => n == null ? '–' : `${Number(n).toFixed(1)}%`;
 const perfUnits = (n) => n == null ? '–' : `${Number(n) >= 0 ? '+' : ''}${Number(n).toFixed(2)}u`;
+// Formato compacto del inning en vivo: "5A" (5ta alta), "7B" (7ma baja),
+// "CAMBIO" (entre mitades). Devuelve null si no hay data.
+const fmtInning = (ls) => {
+  if (!ls) return null;
+  const n = ls.inning;
+  if (n == null) return null;
+  const st = String(ls.inning_state || ls.inning_half || '').toLowerCase();
+  if (st.startsWith('mid') || st.startsWith('end')) return 'CAMBIO';
+  const half = st.startsWith('top') ? 'A' : st.startsWith('bot') ? 'B' : '';
+  return `${n}${half}`;
+};
+// Version larga para tooltip/detalle: "5ta ALTA", "7ma BAJA"
+const fmtInningLong = (ls) => {
+  if (!ls) return null;
+  const n = ls.inning;
+  if (n == null) return null;
+  const ORD = ['', '1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va', '9na'];
+  const ord = ORD[n] || `${n}ma`;
+  const st = String(ls.inning_state || ls.inning_half || '').toLowerCase();
+  if (st.startsWith('mid')) return `Cambio · ${ord}`;
+  if (st.startsWith('end')) return `Fin ${ord}`;
+  const half = st.startsWith('top') ? 'Alta' : st.startsWith('bot') ? 'Baja' : '';
+  return `${ord} ${half}`.trim();
+};
 const TEAM_ID = {ARI:109,ATL:144,BAL:110,BOS:111,CHC:112,CHW:145,CWS:145,CIN:113,CLE:114,COL:115,DET:116,HOU:117,KC:118,LAA:108,LAD:119,MIA:146,MIL:158,MIN:142,NYM:121,NYY:147,OAK:133,ATH:133,PHI:143,PIT:134,SD:135,SF:137,SEA:136,STL:138,TB:139,TEX:140,TOR:141,WSH:120};
 const teamLogo = (a) => `https://www.mlbstatic.com/team-logos/${TEAM_ID[a]||0}.svg`;
 const TEAM_NAMES = {
@@ -328,10 +448,24 @@ const TEAM_NAMES = {
   SD:'San Diego Padres', SF:'San Francisco Giants', SEA:'Seattle Mariners', STL:'St. Louis Cardinals',
   TB:'Tampa Bay Rays', TEX:'Texas Rangers', TOR:'Toronto Blue Jays', WSH:'Washington Nationals',
 };
-
-// Tabs donde la animacion de carrera anotada se dispara.
+const TEAM_SEARCH_POOL = [...new Set(Object.entries(TEAM_NAMES).map(([abbr, name]) => `${abbr}|${name}`))]
+  .map((entry) => {
+    const [abbr, name] = entry.split('|');
+    return { abbr, name };
+  });
 const RUN_BURST_TABS = new Set(['hoy', 'envivo', 'final']);
-
+function resolveTeamQuery(raw) {
+  const q = (raw || '').trim().toLowerCase();
+  if (!q) return null;
+  const exactAbbr = TEAM_SEARCH_POOL.find((t) => t.abbr.toLowerCase() === q);
+  if (exactAbbr) return exactAbbr.abbr;
+  const exactName = TEAM_SEARCH_POOL.find((t) => t.name.toLowerCase() === q);
+  if (exactName) return exactName.abbr;
+  const hits = TEAM_SEARCH_POOL.filter((t) =>
+    t.abbr.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
+  );
+  return hits.length === 1 ? hits[0].abbr : null;
+}
 function gameTotalRuns(g) {
   if (g?.away_score == null || g?.home_score == null) return null;
   return Number(g.away_score) + Number(g.home_score);
@@ -344,8 +478,11 @@ const SECTIONS = [
   { id:'envivo',  label:'En vivo' },
   { id:'valor',   label:'+EV' },
   { id:'final',   label:'Resultados' },
-  { id:'resumen', label:'Resumen' },
-  { id:'ranking', label:'Ranking' },
+  { id:'equipo',   label:'Equipo' },
+  { id:'resumen',  label:'Resumen' },
+  { id:'ranking',  label:'Ranking' },
+  { id:'remontas', label:'Remontas' },
+  { id:'modelo',   label:'Modelo' },
 ];
 
 // ─── THREE.JS PARTICLE SPHERE (cursor-reactive) ──────────────────────────────
@@ -475,85 +612,14 @@ function Counter({ value, decimals = 0, suffix = '' }) {
 }
 
 // ─── TOP NAV (sticky, scroll-aware) ──────────────────────────────────────────
-// Parse MLB Stats API feed/live response into our live_score format
-function parseMlbFeedLive(feed) {
-  if (!feed) return null;
-  const status = ((feed.gameData || {}).status) || {};
-  const abstract = status.abstractGameState;
-  const coded    = status.codedGameState;
-  const state = {
-    abstract, coded, detailed: status.detailedState,
-    is_live:  abstract === 'Live' || ['I','M','N'].includes(coded),
-    is_final: abstract === 'Final' || coded === 'F',
-  };
-  const ls   = ((feed.liveData || {}).linescore) || {};
-  const teams   = ls.teams   || {};
-  const offense = ls.offense || {};
-  const mkTeam  = side => { const t = teams[side] || {}; return { runs: t.runs??null, hits: t.hits??null, errors: t.errors??null, left_on_base: t.leftOnBase??null }; };
-  const mkRunner = base => { const r = offense[base]; return r ? { id: r.id, name: r.fullName||r.name } : null; };
-  const innings = (ls.innings || []).map(inn => ({
-    num: inn.num, ordinal: inn.ordinalNum,
-    away: { runs:(inn.away||{}).runs??null, hits:(inn.away||{}).hits??null, errors:(inn.away||{}).errors??null, left_on_base:(inn.away||{}).leftOnBase??null },
-    home: { runs:(inn.home||{}).runs??null, hits:(inn.home||{}).hits??null, errors:(inn.home||{}).errors??null, left_on_base:(inn.home||{}).leftOnBase??null },
-  }));
-  return {
-    state,
-    inning: ls.currentInning??null, inning_ordinal: ls.currentInningOrdinal??null,
-    inning_state: ls.inningState??null, inning_half: ls.inningHalf??null,
-    balls: ls.balls??null, strikes: ls.strikes??null, outs: ls.outs??null,
-    bases: { first: mkRunner('first'), second: mkRunner('second'), third: mkRunner('third') },
-    away: mkTeam('away'), home: mkTeam('home'), innings,
-  };
-}
-
-// ─── RUN-SCORED CELEBRATION OVERLAY ──────────────────────────────────────────
-function RunBurstOverlay({ bursts }) {
-  return (
-    <div className="run-burst-layer" aria-hidden="true">
-      {bursts.map((burst) => (
-        <div
-          key={burst.id}
-          className="run-burst"
-          style={{ '--start-x': burst.startX, '--start-y': burst.startY }}>
-          <div className="run-burst-stage"/>
-          <div className="run-burst-lights"/>
-          <div className="run-burst-batter">
-            <div className="run-burst-body">
-              <div className="run-burst-torso"/>
-              <div className="run-burst-leg-a"/>
-              <div className="run-burst-leg-b"/>
-              <div className="run-burst-arm-a"/>
-              <div className="run-burst-arm-b"/>
-              <div className="run-burst-bat-stick"/>
-            </div>
-          </div>
-          <div className="run-burst-trail"/>
-          <div className="run-burst-smoke"/>
-          <div className="run-burst-contact"/>
-          <div className="run-burst-glow"/>
-          <div className="run-burst-core"/>
-          <div className="run-burst-label">
-            <div className="run-burst-label-row">
-              {burst.team ? <img className="run-burst-label-logo" src={teamLogo(burst.team)} alt={burst.team} /> : null}
-              <div className="run-burst-label-main">{burst.teamName || burst.team || 'Carrera'}</div>
-            </div>
-            <div className="run-burst-label-sub">{burst.subLabel || burst.label}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── TOP NAV (sticky, scroll-aware) ──────────────────────────────────────────
-function TopNav({ activeId, onNavigate, date, setDate, scrolled, snapshot }) {
+function TopNav({ activeId, onNavigate, date, setDate, scrolled }) {
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500
       ${scrolled ? 'glass border-b border-white/[0.06]' : 'bg-transparent'}`}>
       <div className="max-w-[1600px] mx-auto px-3 md:px-10 h-[64px] md:h-[72px] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-accent-gold flex items-center justify-center text-accent-gold font-mega text-[10px] md:text-xs">PG</div>
-          <div className="font-mega text-[18px] md:text-[22px] tracking-tight max-[420px]:hidden">PICK<span className="text-accent-gold">GOLD</span></div>
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-accent-red flex items-center justify-center text-accent-red font-mega text-[10px] md:text-xs">SC</div>
+          <div className="font-mega text-[18px] md:text-[22px] tracking-tight max-[420px]:hidden">STRIKE<span className="text-accent-red">CAST</span></div>
         </div>
         <nav className="hidden md:flex items-center gap-1 glass rounded-full px-2 py-1.5 border border-white/[0.06]">
           {SECTIONS.map(s => (
@@ -577,29 +643,75 @@ function TopNav({ activeId, onNavigate, date, setDate, scrolled, snapshot }) {
             className="hidden sm:block w-[120px] lg:w-auto glass border border-white/[0.06] rounded-full px-3 py-1.5 text-[10px] lg:text-xs text-white/80 cursor-pointer outline-none" />
           <button onClick={() => setDate(shiftDate(date,1))} className="w-8 h-8 rounded-full glass border border-white/[0.06] hover:bg-white/[0.08] text-white/70 text-sm">›</button>
           <button onClick={() => setDate(todayISO())} className="hidden lg:block ml-1 px-3 py-1.5 rounded-full text-[11px] tracking-[0.18em] uppercase font-bold text-accent-gold border border-accent-gold/40 hover:bg-accent-gold/10">Hoy</button>
-          <span className="hidden xl:block"><SnapshotBadge snapshot={snapshot} /></span>
+          <span className="hidden xl:block"><RefreshIndicator /></span>
+          <span className="hidden xl:block"><PublishButton /></span>
         </div>
       </div>
     </header>
   );
 }
 
-function SnapshotBadge({ snapshot }) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => { const t = setInterval(() => setTick(n => n+1), 30000); return () => clearInterval(t); }, []);
-  if (!snapshot?.published_at) return (
-    <span className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] tracking-[0.16em] uppercase font-bold glass border border-white/[0.08] text-white/30">
-      <span className="w-1.5 h-1.5 rounded-full bg-current"/>sin datos
-    </span>
-  );
-  const minAgo = Math.round((Date.now() - new Date(snapshot.published_at)) / 60000);
-  const label  = minAgo < 1 ? 'recién publicado' : minAgo < 60 ? `publicado hace ${minAgo} min` : `publicado hace ${Math.round(minAgo/60)}h`;
-  const color  = minAgo > 180 ? 'text-accent-red' : minAgo > 60 ? 'text-accent-gold' : 'text-accent-green';
+function PublishButton() {
+  const [state, setState] = useState('idle'); // idle | loading | ok | error
+  const [result, setResult] = useState(null);
+  const publish = async () => {
+    setState('loading');
+    try {
+      const r = await fetch('/api/publish', { method: 'POST' });
+      const d = await r.json();
+      setResult(d);
+      setState(d.ok ? 'ok' : 'error');
+      setTimeout(() => setState('idle'), 5000);
+    } catch(e) {
+      setState('error');
+      setTimeout(() => setState('idle'), 5000);
+    }
+  };
+  const color = state === 'ok' ? 'text-accent-green border-accent-green/40'
+              : state === 'error' ? 'text-accent-red border-accent-red/40'
+              : 'text-accent-gold border-accent-gold/40 hover:bg-accent-gold/10';
+  const label = state === 'loading' ? 'publicando…'
+              : state === 'ok' ? `✓ publicado (${result?.games || 0} partidos)`
+              : state === 'error' ? 'error al publicar'
+              : '↑ publicar en web';
   return (
-    <span className={`ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] tracking-[0.16em] uppercase font-bold glass border border-white/[0.08] ${color}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current"/>
+    <button onClick={publish} disabled={state === 'loading'}
+      className={`ml-1 px-3 py-1.5 rounded-full text-[10px] tracking-[0.18em] uppercase font-bold glass border ${color} transition disabled:opacity-50`}>
       {label}
-    </span>
+    </button>
+  );
+}
+
+function RefreshIndicator() {
+  const [st, setSt] = useState(null);
+  useEffect(() => {
+    const fetchStatus = () => fetch('/api/refresh-status').then(r => r.json()).then(setSt).catch(() => {});
+    fetchStatus();
+    const t = setInterval(fetchStatus, 10000);
+    return () => clearInterval(t);
+  }, []);
+  const ago = st?.seconds_since_last_ok;
+  const label = st?.running_now ? 'refrescando…'
+              : ago == null ? '— sin datos —'
+              : ago < 60 ? 'recién actualizado'
+              : `hace ${Math.round(ago/60)} min`;
+  const staleCount = (st?.feed_stale_past || 0) + (st?.feed_missing_past || 0);
+  const staleLabel = staleCount > 0 ? `data atrasada ${staleCount}` : null;
+  const color = st?.running_now ? 'text-accent-blue'
+              : staleCount > 0 ? 'text-accent-red'
+              : ago == null || ago > 1800 ? 'text-accent-red'
+              : ago < 300 ? 'text-accent-green'
+              : 'text-accent-gold';
+  const trigger = async () => {
+    await fetch('/api/refresh-now', { method: 'POST' });
+    setTimeout(() => fetch('/api/refresh-status').then(r=>r.json()).then(setSt), 300);
+  };
+  return (
+    <button onClick={trigger} title="Forzar refresh"
+      className={`ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] tracking-[0.16em] uppercase font-bold glass border border-white/[0.08] hover:bg-white/[0.05] ${color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full bg-current ${st?.running_now ? 'animate-pulse' : ''}`}/>
+      {staleLabel || label}
+    </button>
   );
 }
 
@@ -723,9 +835,17 @@ function GameCard({ g, onOpen, index = 0 }) {
         </div>
         <div className="flex flex-col items-end gap-2">
           <span className={`flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase font-black
-                            ${isLive ? 'text-accent-green' : isFinal ? 'text-white/45' : 'text-accent-blue/90'}`}>
+                            ${isLive ? 'text-accent-green' : isFinal ? 'text-white/45' : 'text-accent-blue/90'}`}
+                title={isLive ? fmtInningLong(g.live_score) || undefined : undefined}>
             {isLive && <span className="live-dot"/>}
-            {isLive ? 'En vivo' : isFinal ? 'Final' : 'Próximo'}
+            {isLive ? (
+              <>
+                <span>En vivo</span>
+                {fmtInning(g.live_score) && (
+                  <span className="text-accent-green/70">· {fmtInning(g.live_score)}</span>
+                )}
+              </>
+            ) : isFinal ? 'Final' : 'Próximo'}
             <span className="text-white/22 group-hover:text-accent-blue transition">↗</span>
           </span>
         </div>
@@ -1050,8 +1170,8 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
                    (ouPick === 'OVER' ? actualTotal > ouLine : actualTotal < ouLine) ? 'win' : 'loss');
 
   // Run line — always recommend the dog (+1.5)
-  // Treat run_line=0 as missing data (0 isn't a valid MLB spread) — some ESPN
-  // feeds return 0 when the market hasn't posted a line, which was causing the
+  // Treat run_line=0 as missing data (0 isn't a valid MLB spread) — ESPN
+  // sometimes returns 0 when no market is posted, which was causing the
   // pickHome / team selection to disagree and mark losses as wins.
   const hasValidRL = g.run_line != null && g.run_line !== 0;
   const awayRLVal = hasValidRL ? g.run_line : null;
@@ -1082,7 +1202,7 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
     parejo:   { label: 'PAREJO',   icon: '〰', cls: 'bg-white/[0.03] text-white/35 border-white/[0.07]' },
   };
   const tierMeta = g.confidence_tier ? TIER_META[g.confidence_tier] : null;
-  const tierPickAbbr = g.p_home != null ? (g.p_home >= 0.5 ? g.home_abbrev : g.away_abbrev) : null;
+  const tierPickAbbr = g.pick_abbrev || (g.p_home != null ? (g.p_home >= 0.5 ? g.home_abbrev : g.away_abbrev) : null);
 
   return (
     <div
@@ -1101,9 +1221,17 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
           #{g.slot || '?'} · {fmtET(g.first_pitch_utc)}
         </div>
         <span className={`text-[9px] tracking-[0.2em] uppercase font-black flex items-center gap-1
-          ${isLive ? 'text-accent-green' : isFinal ? 'text-white/45' : 'text-accent-blue/85'}`}>
+          ${isLive ? 'text-accent-green' : isFinal ? 'text-white/45' : 'text-accent-blue/85'}`}
+          title={isLive ? fmtInningLong(g.live_score) || undefined : undefined}>
           {isLive && <span className="live-dot" style={{width:6,height:6}}/>}
-          {isLive ? 'Live' : isFinal ? 'Final' : 'Prox'}
+          {isLive ? (
+            <>
+              <span>Live</span>
+              {fmtInning(g.live_score) && (
+                <span className="text-accent-green/70">· {fmtInning(g.live_score)}</span>
+              )}
+            </>
+          ) : isFinal ? 'Final' : 'Prox'}
         </span>
       </div>
 
@@ -1114,14 +1242,45 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
         </div>
       )}
 
-      {/* ── Confidence tier badge ────────────────────────────────────────────── */}
-      {tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr && (
-        <div className="px-4 mt-2 flex justify-center">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8.5px] font-black tracking-[0.14em] uppercase ${tierMeta.cls}`}>
-            <span>{tierMeta.icon}</span>
-            <span>{tierMeta.label} {tierPickAbbr}</span>
-            {g.tier_hit_rate != null && <span className="opacity-70">· {g.tier_hit_rate.toFixed(0)}%</span>}
-          </span>
+      {/* ── Confidence tier + flip badges ──────────────────────────────────── */}
+      {((tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr) || g.team_flip || g.day_flip || g.night_elite || g.series_flip) && (
+        <div className="px-4 mt-2 flex justify-center gap-1 flex-wrap">
+          {tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr && (
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8.5px] font-black tracking-[0.14em] uppercase ${tierMeta.cls}`}>
+              <span>{tierMeta.icon}</span>
+              <span>{tierMeta.label} {tierPickAbbr}</span>
+              {g.tier_hit_rate != null && <span className="opacity-70">· {g.tier_hit_rate.toFixed(0)}%</span>}
+            </span>
+          )}
+          {g.team_flip && (
+            <span
+              title="Ajuste equipo trampa: el modelo pickeaba LAA o contra MIL — histórico <50% acierto en las 4 temporadas. Pick invertido."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-orange/40 bg-accent-orange/10 text-accent-orange text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Ajuste equipo
+            </span>
+          )}
+          {g.day_flip && (
+            <span
+              title="Ajuste día trampa: el modelo pickeaba contra WSH un sábado — histórico <45% acierto en 3 temporadas. Pick invertido."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-gold/40 bg-accent-gold/10 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Ajuste día
+            </span>
+          )}
+          {g.night_elite && (
+            <span
+              title="Elite noche: el modelo picka PHI en juegos nocturnos — histórico 66.8% acierto en 4 temporadas (2026 al 73%). Zona de alta confianza."
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-gold/50 bg-accent-gold/12 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase shadow-[0_0_18px_rgba(255,212,59,0.18)]">
+              <span>★</span>
+              <span>Elite noche · 67%</span>
+            </span>
+          )}
+          {g.series_flip && (
+            <span
+              title="Ajuste serie: el modelo repetía el pick que acaba de fallar en esta serie, en contra del mercado — en 2026 esos picks aciertan solo 36% vs 64% del mercado. Pick alineado al mercado."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Ajuste serie
+            </span>
+          )}
         </div>
       )}
 
@@ -1519,6 +1678,7 @@ function HoyExpandableRow({
   games,
   onOpen,
   date,
+  titleOverride = null,
   kicker = '01 · Slate del día',
   primaryLabel = 'partidos del día',
   secondaryValue = null,
@@ -1581,7 +1741,7 @@ function HoyExpandableRow({
   const hovered = items.find(g => g.game_pk === hoveredPk);
 
   const dateObj = date ? new Date(date + 'T12:00:00') : new Date();
-  const dateStr = dateObj.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+  const dateStr = titleOverride || dateObj.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
 
   return (
     <section
@@ -1694,6 +1854,148 @@ function HoyExpandableRow({
   );
 }
 
+function TeamSearchPage({ date, query, resolvedTeam, games, loading, onOpen, onQueryChange, winProbFilter, onWinProbFilterChange }) {
+  const normalized = query.trim().toLowerCase();
+  const targetWinProb = winProbFilter === '' ? null : Math.max(0, Math.min(100, Number(winProbFilter)));
+  const tolerance = 1.0;
+  const filtered = useMemo(() =>
+    (games || []).filter((g) => {
+      if (!g.is_played) return false;
+      if (!resolvedTeam) return true;
+      const teamProb = g.home_abbrev === resolvedTeam ? Number(g.p_home) * 100
+        : g.away_abbrev === resolvedTeam ? Number(g.p_away) * 100
+        : null;
+      if (teamProb == null || !Number.isFinite(teamProb)) return false;
+      if (targetWinProb == null) return true;
+      return Math.abs(Number(teamProb.toFixed(1)) - Number(targetWinProb.toFixed(1))) <= tolerance;
+    }).sort((a, b) => {
+      if (a.date === b.date) return (b.slot || 0) - (a.slot || 0);
+      return String(b.date).localeCompare(String(a.date));
+    }),
+  [games, resolvedTeam, targetWinProb]);
+  const matchingTeams = useMemo(() => {
+    const set = new Set();
+    TEAM_SEARCH_POOL.forEach((t) => {
+      if (!normalized) return;
+      if (t.abbr.toLowerCase().includes(normalized) || t.name.toLowerCase().includes(normalized)) set.add(t.abbr);
+    });
+    return [...set].filter(Boolean);
+  }, [normalized]);
+  const rangeStart = shiftDate(date, -89);
+  const titleOverride = resolvedTeam
+    ? `${TEAM_NAMES[resolvedTeam] || resolvedTeam} · últimos 90 días`
+    : normalized
+    ? `Coincidencias: ${query} · últimos 90 días`
+    : 'Busca un equipo';
+
+  return (
+    <>
+      <div className="pt-28 pb-6 px-10 max-w-[1600px] mx-auto">
+        <div className="glass border border-white/[0.07] rounded-[28px] p-6 md:p-8">
+          <div className="text-[11px] tracking-[0.32em] uppercase font-bold text-accent-blue mb-4">06 · Búsqueda por equipo</div>
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_auto] gap-5 items-end">
+            <div>
+              <div className="mega text-[clamp(34px,5vw,64px)] leading-[0.95]">Cards por equipo</div>
+              <p className="text-white/55 text-sm mt-3 max-w-[760px] leading-relaxed">
+                Escribe una abreviación o nombre como <span className="text-white">NYY</span>, <span className="text-white">Dodgers</span> o <span className="text-white">Philadelphia</span> y verás las mismas cards de Hoy filtradas para ese equipo en la ventana {rangeStart} a {date}, mostrando sólo juegos ya cerrados.
+              </p>
+            </div>
+            <div className="w-full xl:w-[460px]">
+              <input
+                type="text"
+                list="team-search-options"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                placeholder="Busca por equipo o abreviación…"
+                className="w-full rounded-2xl border border-white/[0.12] bg-white/[0.04] px-5 py-4 text-white placeholder:text-white/28 outline-none focus:border-accent-blue/55 focus:bg-white/[0.06] transition"
+              />
+              <datalist id="team-search-options">
+                {TEAM_SEARCH_POOL.map(({ abbr, name }) => (
+                  <option key={abbr} value={abbr}>{name}</option>
+                ))}
+              </datalist>
+            </div>
+            <div className="w-full xl:w-[220px]">
+              <div className="text-[10px] tracking-[0.2em] uppercase text-white/38 font-black mb-2">Win Probability Objetivo</div>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={winProbFilter}
+                  onChange={(e) => onWinProbFilterChange(e.target.value)}
+                  placeholder="Ej. 53.5"
+                  className="w-full rounded-2xl border border-white/[0.12] bg-white/[0.04] px-5 py-4 pr-12 text-white placeholder:text-white/28 outline-none focus:border-accent-gold/55 focus:bg-white/[0.06] transition"
+                />
+                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-white/35 text-sm font-black">%</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-5">
+            {['NYY', 'LAD', 'PHI', 'CHC', 'SEA', 'HOU', 'DET', 'SD'].map((abbr) => (
+              <button
+                key={abbr}
+                onClick={() => onQueryChange(abbr)}
+                className={`px-3 py-2 rounded-full border text-[11px] font-black tracking-[0.14em] uppercase transition ${
+                  query.trim().toUpperCase() === abbr
+                    ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/45'
+                    : 'bg-white/[0.03] text-white/50 border-white/[0.08] hover:border-white/[0.18] hover:text-white'
+                }`}>
+                {abbr}
+              </button>
+            ))}
+            {query && (
+              <button
+                onClick={() => { onQueryChange(''); onWinProbFilterChange(''); }}
+                className="px-3 py-2 rounded-full border border-white/[0.08] bg-white/[0.03] text-white/45 text-[11px] font-black tracking-[0.14em] uppercase hover:text-white hover:border-white/[0.18] transition">
+                Limpiar
+              </button>
+            )}
+            {winProbFilter !== '' && (
+              <button
+                onClick={() => onWinProbFilterChange('')}
+                className="px-3 py-2 rounded-full border border-accent-gold/25 bg-accent-gold/[0.06] text-accent-gold/75 text-[11px] font-black tracking-[0.14em] uppercase hover:border-accent-gold/45 hover:text-accent-gold transition">
+                Quitar filtro %
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="max-w-[1400px] mx-auto px-10 pb-24">
+          <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/45 tracking-[0.22em] uppercase text-xs animate-pulse">
+            Cargando histórico por equipo…
+          </div>
+        </div>
+      ) : (
+        <HoyExpandableRow
+          games={filtered}
+          onOpen={onOpen}
+          date={date}
+          titleOverride={titleOverride}
+          kicker="07 · Histórico filtrado"
+          primaryLabel="cards encontradas"
+          secondaryValue={targetWinProb == null ? matchingTeams.length : targetWinProb}
+          secondarySuffix={targetWinProb == null ? '' : '%'}
+          secondaryLabel={targetWinProb == null ? 'equipos coincidentes' : 'win prob objetivo'}
+          description={resolvedTeam
+            ? `Ventana de 90 días hasta ${date}. Las cards son exactamente las mismas de Hoy, filtradas desde el backend para ${TEAM_NAMES[resolvedTeam] || resolvedTeam} y ${targetWinProb == null ? 'limitadas a juegos finalizados para ver cómo le fue.' : `además recortadas a juegos donde su win probability mostrada cae dentro de ${Number(targetWinProb - tolerance).toFixed(1)}% a ${Number(targetWinProb + tolerance).toFixed(1)}%, sin importar si fue local o visita.`}`
+            : normalized
+            ? 'Tu búsqueda todavía coincide con varios equipos o con ninguno. Prueba con una abreviación exacta como NYY, LAD o PHI para cargar sólo ese historial.'
+            : 'Empieza escribiendo un equipo para ver únicamente sus cards y revisar su comportamiento reciente con el mismo formato visual de Hoy.'}
+          emptyText={resolvedTeam
+            ? `No encontré cards para "${query}"${targetWinProb == null ? '' : ` dentro del rango ${Number(targetWinProb - tolerance).toFixed(1)}% a ${Number(targetWinProb + tolerance).toFixed(1)}%`} en la ventana ${rangeStart} a ${date}.`
+            : normalized
+            ? `La búsqueda "${query}" no apunta todavía a un solo equipo.`
+            : 'Escribe un equipo para cargar sus cards.'}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── HERO HEADLINE BLOCK ─────────────────────────────────────────────────────
 function HeroBlock({ kicker, title, lead, statValue, statLabel, statSuffix, accent='red', ctaLabel, onCta }) {
   const wrapRef = useRef(null);
@@ -1765,6 +2067,115 @@ function GridList({ items, onOpen, emptyText, title }) {
         </div>
       )}
     </div>
+  );
+}
+
+function RunBurstOverlay({ bursts }) {
+  return (
+    <div className="run-burst-layer" aria-hidden="true">
+      {bursts.map((burst) => (
+        <div key={burst.id} className="run-burst">
+          <div className="run-burst-stage"/>
+          <div className="run-burst-vignette"/>
+          <div className="run-burst-scanline"/>
+          {/* SVG batter silhouette in swing pose */}
+          <div className="run-burst-batter">
+            <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id={`rb-body-${burst.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.95)"/>
+                  <stop offset="100%" stopColor="rgba(120,160,220,0.85)"/>
+                </linearGradient>
+                <linearGradient id={`rb-bat-${burst.id}`} x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="rgba(160,110,60,0.9)"/>
+                  <stop offset="70%" stopColor="rgba(210,160,90,0.95)"/>
+                  <stop offset="100%" stopColor="rgba(255,214,59,1)"/>
+                </linearGradient>
+              </defs>
+              {/* Back leg (further from viewer) */}
+              <path d="M 52 78 Q 62 92 68 108 L 62 110 Q 56 96 50 82 Z"
+                    fill={`url(#rb-body-${burst.id})`} opacity="0.75"/>
+              {/* Front leg */}
+              <path d="M 44 78 Q 38 94 32 110 L 38 112 Q 44 98 48 82 Z"
+                    fill={`url(#rb-body-${burst.id})`}/>
+              {/* Hip / lower torso */}
+              <path d="M 38 62 L 58 62 Q 62 70 60 78 L 40 80 Q 34 72 38 62 Z"
+                    fill={`url(#rb-body-${burst.id})`}/>
+              {/* Torso */}
+              <path d="M 34 38 Q 40 32 52 32 Q 60 34 62 42 L 60 62 L 40 62 L 34 46 Z"
+                    fill={`url(#rb-body-${burst.id})`}/>
+              {/* Rear arm anchor */}
+              <ellipse cx="58" cy="42" rx="4" ry="3" fill={`url(#rb-body-${burst.id})`}/>
+              {/* Head + helmet */}
+              <ellipse cx="47" cy="24" rx="9" ry="10" fill={`url(#rb-body-${burst.id})`}/>
+              <path d="M 38 22 Q 40 12 50 12 Q 60 14 60 24 L 56 22 Q 50 18 42 22 Z"
+                    fill="rgba(20,30,50,0.9)"/>
+              {/* Helmet brim */}
+              <path d="M 55 22 L 66 20 L 66 24 L 55 25 Z" fill="rgba(20,30,50,0.9)"/>
+              {/* Bat + hands group (animated in swing) */}
+              <g className="rb-bat-group">
+                {/* Rear arm — grips top of bat */}
+                <path d="M 56 40 Q 66 34 74 32 L 74 36 Q 66 40 58 44 Z"
+                      fill={`url(#rb-body-${burst.id})`}/>
+                {/* Front arm — grips bottom of bat */}
+                <path d="M 40 44 Q 52 40 66 36 L 66 40 Q 52 46 42 48 Z"
+                      fill={`url(#rb-body-${burst.id})`}/>
+                {/* Hands grip */}
+                <ellipse cx="70" cy="34" rx="4" ry="3" fill="rgba(255,255,255,0.9)"/>
+                {/* The bat — tapered stroke */}
+                <path d="M 70 34 L 96 22 Q 100 20 100 24 L 74 38 Z"
+                      fill={`url(#rb-bat-${burst.id})`}
+                      filter="drop-shadow(0 0 6px rgba(255,214,59,0.5))"/>
+                {/* Bat knob */}
+                <circle cx="70" cy="34" r="3.5" fill="rgba(140,90,50,0.95)"/>
+              </g>
+            </svg>
+          </div>
+          {/* Contact flash on impact */}
+          <div className="run-burst-contact"/>
+          {/* Ball flying along parabolic path — path defined in offset-path (CSS) */}
+          <BurstBall/>
+          {/* Team logo — HERO */}
+          {burst.team ? (
+            <>
+              <div className="run-burst-logo-ripple"/>
+              <div className="run-burst-logo-ripple delay1"/>
+              <div className="run-burst-logo-ripple delay2"/>
+              <div className="run-burst-logo">
+                <img src={teamLogo(burst.team)} alt={burst.team}
+                     onError={(e)=>{e.target.style.opacity=0.2;}}/>
+              </div>
+            </>
+          ) : null}
+          <div className="run-burst-eyebrow">Anota</div>
+          <div className="run-burst-name">{burst.teamName || burst.team || 'Carrera'}</div>
+          <div className="run-burst-badge">{burst.subLabel || burst.label || 'Carrera anotada'}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Ball with a parabolic offset-path — computed per-viewport so the arc feels natural.
+function BurstBall() {
+  const ref = useRef(null);
+  const trailRef = useRef(null);
+  useLayoutEffect(() => {
+    // Path from batter's contact zone → up through a high pixel peak → off top-right.
+    // We use viewport %s so it scales with screen size.
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const startX = vw * 0.22, startY = vh * 0.68;      // batter contact
+    const peakX  = vw * 0.55, peakY  = vh * 0.12;      // high arc apex
+    const endX   = vw * 1.10, endY   = vh * 0.30;      // off-screen right
+    const path = `path("M ${startX} ${startY} Q ${peakX} ${peakY}, ${endX} ${endY}")`;
+    if (ref.current) ref.current.style.offsetPath = path;
+    if (trailRef.current) trailRef.current.style.offsetPath = path;
+  }, []);
+  return (
+    <>
+      <div ref={trailRef} className="run-burst-ball-trail"/>
+      <div ref={ref} className="run-burst-ball"/>
+    </>
   );
 }
 
@@ -2080,11 +2491,11 @@ function BurnPanel({ data }) {
     <section className="max-w-[1600px] mx-auto px-4 md:px-10 py-8">
       <div className="flex items-baseline justify-between mb-4">
         <div>
-          <div className="text-[10px] tracking-[0.32em] uppercase text-white/35 font-bold mb-1">Ayer en MLB</div>
+          <div className="text-[10px] tracking-[0.32em] uppercase text-white/35 font-bold mb-1">Carga del partido anterior</div>
           <h3 className="mega text-[28px] leading-none">¿Quién metió<br/>la carne al asador?</h3>
         </div>
         <div className="text-[10px] text-white/35 max-w-[280px] text-right">
-          Bullpen quemado, extras, comebacks dramáticos. <span className="text-accent-green/70">Histórico:</span> equipos con burn ≥65 ganan 53% al día siguiente (vs 50% baseline).
+          Equipos que quemaron bullpen, extras o cerrador en su <span className="text-white/55">partido previo</span> y llegan al día seleccionado con carga. <span className="text-accent-green/70">Histórico:</span> burn ≥65 → 53% WR (vs 50% baseline).
         </div>
       </div>
 
@@ -2251,7 +2662,7 @@ function PerformancePage({ data, loading, error }) {
     return (
       <div className="max-w-[1400px] mx-auto px-10 pb-24">
         <div className="glass border border-white/[0.06] rounded-[28px] p-10 text-white/55">
-          No hay suficientes juegos cerrados para medir los últimos 60 días.
+          No hay suficientes juegos cerrados para medir este periodo.
         </div>
       </div>
     );
@@ -2268,7 +2679,7 @@ function PerformancePage({ data, loading, error }) {
         <PerformanceMetric label="Modelo vs mercado" value={`${perfPct(s.model_accuracy)} / ${perfPct(s.market_accuracy)}`} sub="accuracy modelo / market lean" accent={modelGood ? 'blue' : 'white'} />
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-5 mt-5">
-        <WeeklyPerformanceChart data={data.weekly || []} />
+        <WeeklyPerformanceChart data={data.weekly || []} days={data.days} />
         <GradeBreakdown grades={data.grades || []} />
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr] gap-5 mt-5">
@@ -2295,7 +2706,7 @@ function PerformanceMetric({ label, value, sub, accent }) {
   );
 }
 
-function WeeklyPerformanceChart({ data }) {
+function WeeklyPerformanceChart({ data, days }) {
   const maxAbs = Math.max(20, ...data.map(w => Math.abs(Number(w.value_roi || 0))));
   return (
     <div data-fade className="glass border border-accent-blue/15 rounded-[28px] p-7">
@@ -2304,7 +2715,7 @@ function WeeklyPerformanceChart({ data }) {
           <div className="text-[11px] uppercase tracking-[0.28em] text-accent-blue font-black">Tendencia semanal</div>
           <div className="text-white/45 text-sm mt-2">ROI de picks +EV y accuracy del modelo.</div>
         </div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Últimos 60 días</div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">Últimos {days || 0} días</div>
       </div>
       <div className="space-y-3">
         {data.map((w, idx) => {
@@ -2350,7 +2761,7 @@ function DailySummaryPage({ data, loading, error }) {
         <div className="glass border border-accent-red/25 rounded-[28px] p-10">
           <div className="text-accent-red text-[11px] tracking-[0.28em] uppercase font-black mb-3">No se pudo cargar el resumen diario</div>
           <div className="text-white/70 leading-relaxed">
-            El snapshot todavía no incluye el agrupado diario. Vuelve a publicar desde el servidor local.
+            Reinicia el servidor local si FastAPI todavía no está devolviendo el agrupado diario en <span className="text-white font-bold">/api/performance</span>.
           </div>
         </div>
       </div>
@@ -2904,7 +3315,7 @@ function TeamRankingPage({ data, loading, days, onDaysChange }) {
 }
 
 // ─── MODELO ─────────────────────────────────────────────────────────────────
-function ModeloPage() {
+function ModeloPage({ performance, performanceLoading, performanceError }) {
   const wrapRef = useRef(null);
   useLayoutEffect(() => {
     if (!wrapRef.current) return;
@@ -2934,7 +3345,7 @@ function ModeloPage() {
           <div className="text-[11px] tracking-[0.28em] uppercase text-accent-blue/80 mb-4">Filosofía</div>
           <p className="text-white/85 text-lg leading-relaxed">
             El closing line con info pública es <span className="text-accent-gold">prácticamente imperdible</span>.
-            PICKGOLD se enfoca en identificar <span className="text-accent-gold">mispricing entre books</span> —
+            STRIKECAST se enfoca en identificar <span className="text-accent-gold">mispricing entre books</span> —
             ahí está el edge sostenible.
           </p>
         </div>
@@ -2946,6 +3357,17 @@ function ModeloPage() {
           </p>
         </div>
       </div>
+      <div data-fade className="mt-20 mb-8">
+        <div className="text-[12px] tracking-[0.32em] uppercase text-accent-green mb-4 font-bold">08 · Track record real</div>
+        <h2 className="mega text-[clamp(42px,6vw,84px)] leading-[0.95]">
+          Rendimiento<br/>
+          <span className="text-white/35">del modelo.</span>
+        </h2>
+        <p className="text-white/60 text-base max-w-[760px] mt-5 leading-relaxed">
+          Aquí vive ahora todo lo que antes estaba en Resumen: accuracy, ROI, picks de valor y comparación contra el mercado en la ventana reciente.
+        </p>
+      </div>
+      <PerformancePage data={performance} loading={performanceLoading} error={performanceError} />
     </div>
   );
 }
@@ -3021,64 +3443,13 @@ function LiveDiamond({ liveScore, isLive }) {
 }
 
 // ─── DETAIL PAGE (full-page push-in) ─────────────────────────────────────────
-// Adapt a flat snapshot game object to the nested detail structure expected by DetailBody
-function adaptSnapshotToDetail(g) {
-  if (!g) return null;
-  return {
-    game_pk:  g.game_pk,
-    date:     g.date,
-    venue:    g.venue,
-    weather:  { temp_f: g.ctx_weather_temp, condition: g.ctx_weather_cond, wind: g.ctx_weather_wind },
-    away_team: { abbrev: g.away_abbrev, name: TEAM_NAMES[g.away_abbrev] || g.away_abbrev, wins: null, losses: null, logo: `https://www.mlbstatic.com/team-logos/${TEAM_ID[g.away_abbrev]||0}.svg` },
-    home_team: { abbrev: g.home_abbrev, name: TEAM_NAMES[g.home_abbrev] || g.home_abbrev, wins: null, losses: null, logo: `https://www.mlbstatic.com/team-logos/${TEAM_ID[g.home_abbrev]||0}.svg` },
-    away_pitcher: { name: g.pitcher_away?.name, throws: g.pitcher_away?.throws, season: null, days_rest: null },
-    home_pitcher: { name: g.pitcher_home?.name, throws: g.pitcher_home?.throws, season: null, days_rest: null },
-    model: {
-      p_home: g.p_home, p_away: g.p_away,
-      live_p_home: g.live_p_home,
-      pred_total_runs: g.pred_total,
-      fair_home_ml: g.fair_home_ml,
-      fair_away_ml: g.fair_away_ml,
-    },
-    market: { p_home: g.market_p_home, total: g.market_total },
-    value: {
-      value_side: g.value_side,
-      value_decimal: g.value_decimal,
-      value_edge_pp: g.value_edge_pp,
-      value_team_abbrev: g.value_team_abbrev,
-      ev_grade: g.ev_grade,
-      ev_per_dollar: g.ev_per_dollar,
-      market_home_decimal: g.market_home_decimal,
-      market_away_decimal: g.market_away_decimal,
-      market_home_ml: g.market_home_ml,
-      market_away_ml: g.market_away_ml,
-      home_edge_pp: g.home_edge_pp,
-      away_edge_pp: g.away_edge_pp,
-    },
-    result: { played: g.is_played, home_score: g.home_score, away_score: g.away_score },
-    live_score: g.live_score || null,
-    starter_actual: { away: null, home: null },
-    f5: { f5_p_home: g.f5_p_home, f5_p_away: g.f5_p_away, f5_pred_total: g.f5_pred_total,
-          f5_fair_home_ml: g.f5_fair_home_ml, f5_fair_away_ml: g.f5_fair_away_ml,
-          f5_played: g.f5_played, f5_home_score: g.f5_home_score, f5_away_score: g.f5_away_score },
-    context: { ctx_weather_temp: g.ctx_weather_temp, ctx_weather_cond: g.ctx_weather_cond, ctx_weather_wind: g.ctx_weather_wind },
-    park_runs_factor: null,
-    slot: g.slot,
-  };
-}
-
-function DetailPage({ pk, onBack, snapshotGame }) {
-  const [detail, setDetail] = useState(() => adaptSnapshotToDetail(snapshotGame));
+function DetailPage({ pk, onBack }) {
+  const [detail, setDetail] = useState(null);
   useEffect(() => {
     if (!pk) return;
-    fetch(`/api/games/${pk}?t=${Date.now()}`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(setDetail)
-      .catch(() => {
-        // In web mode (no backend), use snapshot data
-        if (snapshotGame) setDetail(adaptSnapshotToDetail(snapshotGame));
-      });
-    // Light refresh every 30s for live games (no-op in web mode)
+    setDetail(null);
+    fetch(`/api/games/${pk}?t=${Date.now()}`).then(r=>r.json()).then(setDetail);
+    // Light refresh every 30s for live games
     const t = setInterval(() => {
       fetch(`/api/games/${pk}?t=${Date.now()}`).then(r=>r.json()).then(setDetail).catch(()=>{});
     }, 30000);
@@ -3091,7 +3462,7 @@ function DetailPage({ pk, onBack, snapshotGame }) {
           className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent-red text-white hover:bg-accent-red/85 text-sm font-bold tracking-[0.16em] uppercase transition shadow-lg shadow-accent-red/30">
           <span className="text-base">←</span> Volver al dashboard
         </button>
-        <div className="font-mega text-2xl tracking-tight">PICK<span className="text-accent-gold">GOLD</span></div>
+        <div className="font-mega text-2xl tracking-tight">STRIKE<span className="text-accent-red">CAST</span></div>
         <div className="text-[11px] tracking-[0.22em] uppercase text-white/55 min-w-[260px] text-right">
           {detail && `${detail.venue} · ${fmtDateLong(detail.date)}`}
         </div>
@@ -3965,19 +4336,22 @@ function StatCell({ value, label }) {
 function App() {
   const [date, setDate] = useState(todayISO());
   const [games, setGames] = useState([]);
+  const [runBursts, setRunBursts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState('hero');
   const [scrolled, setScrolled] = useState(false);
   const [openPk, setOpenPk] = useState(null);
   const [transitioning, setTransitioning] = useState(false);
-  const [snapshot, setSnapshot] = useState(null);
-  const [liveScores, setLiveScores] = useState({});
   const [performance, setPerformance] = useState(null);
   const [performanceLoading, setPerformanceLoading] = useState(false);
   const [performanceError, setPerformanceError] = useState(null);
   const [teamRanking, setTeamRanking] = useState(null);
   const [teamRankingLoading, setTeamRankingLoading] = useState(false);
   const [teamRankingDays, setTeamRankingDays] = useState(60);
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
+  const [teamWinProbFilter, setTeamWinProbFilter] = useState('');
+  const [teamHistoryGames, setTeamHistoryGames] = useState(null);
+  const [teamHistoryLoading, setTeamHistoryLoading] = useState(false);
   const [yesterday, setYesterday] = useState(null);
   const [yesterdayLoading, setYesterdayLoading] = useState(false);
   const [burnData, setBurnData] = useState(null);
@@ -3989,28 +4363,48 @@ function App() {
   const [errorsLoading, setErrorsLoading] = useState(false);
   const [errorsSeason, setErrorsSeason] = useState(2026);
   const [remontasView, setRemontasView] = useState('comebacks'); // 'comebacks' | 'errors'
-  const [runBursts, setRunBursts] = useState([]);
 
   const pageRef = useRef(null);
   const pageContentRef = useRef(null);
   const pageAnimatingRef = useRef(false);
   const swapRef = useRef(null);
-  const previousDisplayGamesRef = useRef(null);
+  const previousGamesRef = useRef(null);
   const activeIdRef = useRef(activeId);
   const pendingRunBurstsRef = useRef([]);
   const pageHiddenRef = useRef(typeof document !== 'undefined' ? document.hidden : false);
 
-  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+
+  // Sequential burst queue — only ONE animation on screen at a time. When
+  // multiple games score simultaneously, we play them back-to-back so the
+  // team logos/names don't stack on top of each other at the same position.
+  const burstQueueRef = useRef([]);
+  const burstPlayingRef = useRef(false);
+
+  const playNextBurst = useCallback(() => {
+    if (burstPlayingRef.current) return;
+    const next = burstQueueRef.current.shift();
+    if (!next) return;
+    burstPlayingRef.current = true;
+    setRunBursts([next]);
+    // Cinematic animation is 3800ms; a small 350ms gap between bursts gives
+    // the eye a beat before the next one starts.
+    window.setTimeout(() => {
+      setRunBursts([]);
+      window.setTimeout(() => {
+        burstPlayingRef.current = false;
+        playNextBurst();
+      }, 350);
+    }, 3900);
+  }, []);
 
   const releaseBursts = useCallback((bursts) => {
     if (!bursts.length) return;
-    setRunBursts((current) => [...current, ...bursts]);
-    bursts.forEach((burst, index) => {
-      window.setTimeout(() => {
-        setRunBursts((current) => current.filter((item) => item.id !== burst.id));
-      }, 2550 + index * 260);
-    });
-  }, []);
+    burstQueueRef.current.push(...bursts);
+    playNextBurst();
+  }, [playNextBurst]);
 
   const flushPendingBursts = useCallback(() => {
     if (pageHiddenRef.current) return;
@@ -4033,7 +4427,50 @@ function App() {
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [flushPendingBursts]);
 
-  useEffect(() => { flushPendingBursts(); }, [activeId, flushPendingBursts]);
+  useEffect(() => {
+    flushPendingBursts();
+  }, [activeId, flushPendingBursts]);
+
+  const processIncomingGames = useCallback((incoming) => {
+    const prev = previousGamesRef.current;
+    const next = Array.isArray(incoming) ? incoming : [];
+    if (prev && RUN_BURST_TABS.has(activeIdRef.current)) {
+      const bursts = [];
+      for (const game of next) {
+        const oldGame = prev.get(game.game_pk);
+        if (!oldGame) continue;
+        const oldRuns = gameTotalRuns(oldGame);
+        const newRuns = gameTotalRuns(game);
+        if (oldRuns == null || newRuns == null || newRuns <= oldRuns) continue;
+        const gained = newRuns - oldRuns;
+        const scorer =
+          Number(game.home_score ?? 0) > Number(oldGame.home_score ?? 0) ? game.home_abbrev :
+          Number(game.away_score ?? 0) > Number(oldGame.away_score ?? 0) ? game.away_abbrev :
+          (game.home_abbrev || game.away_abbrev || 'Run');
+        // ONE burst per scoring event (not per run). If the rally spans multiple
+        // runs, the badge says "RALLY N CARRERAS" so the meaning is preserved
+        // without stacking N overlapping animations.
+        bursts.push({
+          id: `${game.game_pk}-${Date.now()}`,
+          label: `${scorer} anota`,
+          subLabel: gained > 1 ? `RALLY ${gained} CARRERAS` : 'CARRERA ANOTADA',
+          team: scorer,
+          teamName: TEAM_NAMES[scorer] || scorer,
+          startX: '0vw',
+          startY: '0vh',
+        });
+      }
+      if (bursts.length) {
+        if (pageHiddenRef.current) {
+          pendingRunBurstsRef.current.push(...bursts);
+        } else {
+          releaseBursts(bursts);
+        }
+      }
+    }
+    previousGamesRef.current = new Map(next.map((g) => [g.game_pk, g]));
+    return next;
+  }, [releaseBursts]);
 
   // Start Three.js once
   useEffect(() => {
@@ -4046,56 +4483,111 @@ function App() {
     }
   }, []);
 
-  // ── Snapshot: load once on mount ───────────────────────────────────────────
+  // Fetch games when date changes
   useEffect(() => {
     setLoading(true);
-    fetch('/snapshot.json?t=' + Date.now())
+    previousGamesRef.current = null;
+    fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`)
       .then(r => r.json())
-      .then(snap => {
-        setSnapshot(snap);
-        if (snap.performance)    { setPerformance(snap.performance);     setPerformanceLoading(false); }
-        if (snap.team_ranking)   { setTeamRanking(snap.team_ranking);    setTeamRankingLoading(false); }
-        if (snap.performance_2d) { setYesterday(snap.performance_2d);    setYesterdayLoading(false); }
-        if (snap.burn)           { setBurnData(snap.burn);               setBurnLoading(false); }
-        setLoading(false);
-      })
+      .then(d => { setGames(processIncomingGames(d)); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [date, processIncomingGames]);
 
-  // ── Filter games from snapshot when date changes ────────────────────────────
+  // Auto refresh
   useEffect(() => {
-    if (!snapshot) return;
-    setGames((snapshot.games || []).filter(g => g.date === date));
-  }, [snapshot, date]);
-
-  // ── Poll live scores from MLB Stats API (no backend needed) ────────────────
-  // Nota: SIN el parametro fields= porque MLB API lo trata como whitelist
-  // estricto y filtra claves anidadas (home/away/leftOnBase). Respuesta full
-  // es ~100KB por juego, aceptable con polling cada 30s.
-  useEffect(() => {
-    const today = todayISO();
-    const toUpdate = games.filter(g => g.date === today);
-    if (!toUpdate.length) return;
-    const poll = async () => {
-      for (const g of toUpdate) {
-        if (liveScores[g.game_pk]?.state?.is_final) continue;
-        try {
-          const r = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${g.game_pk}/feed/live`);
-          if (!r.ok) {
-            console.warn(`[live] pk=${g.game_pk} HTTP ${r.status}`);
-            continue;
-          }
-          const live = parseMlbFeedLive(await r.json());
-          if (live) setLiveScores(prev => ({ ...prev, [g.game_pk]: live }));
-        } catch(e) {
-          console.error(`[live] pk=${g.game_pk} fetch error:`, e);
-        }
-      }
-    };
-    poll();
-    const t = setInterval(poll, 30000);
+    const t = setInterval(() => {
+      fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`)
+        .then(r=>r.json())
+        .then(d => setGames(processIncomingGames(d)))
+        .catch(()=>{});
+    }, 30000);
     return () => clearInterval(t);
-  }, [games]);
+  }, [date, processIncomingGames]);
+
+  useEffect(() => {
+    if (!['resumen', 'modelo'].includes(activeId) || performanceLoading || performance) return;
+    setPerformanceLoading(true);
+    setPerformanceError(null);
+    fetch(`/api/performance?days=90&t=${Date.now()}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => { setPerformance(d); setPerformanceLoading(false); })
+      .catch((err) => { setPerformanceError(err.message || 'Error'); setPerformanceLoading(false); });
+  }, [activeId, performance, performanceLoading]);
+
+  useEffect(() => {
+    if (activeId !== 'ranking') return;
+    setTeamRankingLoading(true);
+    fetch(`/api/team-ranking?days=${teamRankingDays}&t=${Date.now()}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => { setTeamRanking(d); setTeamRankingLoading(false); })
+      .catch(() => { setTeamRanking(null); setTeamRankingLoading(false); });
+  }, [activeId, teamRankingDays]);
+
+  useEffect(() => {
+    if (activeId !== 'equipo') return;
+    const resolvedTeam = resolveTeamQuery(teamSearchQuery);
+    if (!resolvedTeam) {
+      setTeamHistoryGames([]);
+      setTeamHistoryLoading(false);
+      return;
+    }
+    const start = shiftDate(date, -89);
+    setTeamHistoryLoading(true);
+    fetch(`/api/games?start=${start}&end=${date}&team=${encodeURIComponent(resolvedTeam)}&t=${Date.now()}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => { setTeamHistoryGames(d); setTeamHistoryLoading(false); })
+      .catch(() => { setTeamHistoryGames([]); setTeamHistoryLoading(false); });
+  }, [activeId, date, teamSearchQuery]);
+
+  // Fetch yesterday stats on first visit to 'hoy'
+  useEffect(() => {
+    if (activeId !== 'hoy' || yesterdayLoading || yesterday) return;
+    setYesterdayLoading(true);
+    fetch('/api/performance?days=2')
+      .then(r => r.json())
+      .then(d => { setYesterday(d); setYesterdayLoading(false); })
+      .catch(() => setYesterdayLoading(false));
+  }, [activeId, yesterday, yesterdayLoading]);
+
+  // Fetch burn report when 'hoy' is visited (and when date changes)
+  useEffect(() => {
+    if (activeId !== 'hoy') return;
+    setBurnLoading(true);
+    fetch(`/api/burn?date=${date}&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setBurnData(d); setBurnLoading(false); })
+      .catch(() => setBurnLoading(false));
+  }, [activeId, date]);
+
+  // Fetch comebacks when visiting 'remontas' or when season changes
+  useEffect(() => {
+    if (activeId !== 'remontas') return;
+    setComebacksLoading(true);
+    fetch(`/api/comebacks?season=${comebacksSeason}&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setComebacks(d); setComebacksLoading(false); })
+      .catch(() => setComebacksLoading(false));
+  }, [activeId, comebacksSeason]);
+
+  // Fetch error analysis when switching to errors sub-view
+  useEffect(() => {
+    if (activeId !== 'remontas' || remontasView !== 'errors') return;
+    if (errors && errors.season === errorsSeason) return;
+    setErrorsLoading(true);
+    fetch(`/api/errors?season=${errorsSeason}&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setErrors(d); setErrorsLoading(false); })
+      .catch(() => setErrorsLoading(false));
+  }, [activeId, remontasView, errorsSeason]);
 
   // Page scroll state
   useEffect(() => {
@@ -4168,68 +4660,11 @@ function App() {
     });
   }, [transitioning]);
 
-  // Merge live score updates from MLB API into the snapshot games
-  const displayGames = useMemo(() => games.map(g => {
-    const live = liveScores[g.game_pk];
-    if (!live) return g;
-    const isFinal = live.state?.is_final;
-    const isLive  = live.state?.is_live;
-    return {
-      ...g,
-      live_score: live,
-      game_state: live.state,
-      is_live:    isLive,
-      is_played:  isFinal,
-      away_score: (isFinal || isLive) ? (live.away?.runs ?? g.away_score) : g.away_score,
-      home_score: (isFinal || isLive) ? (live.home?.runs ?? g.home_score) : g.home_score,
-    };
-  }), [games, liveScores]);
-
-  // ── Detect score changes → celebrate with baseball burst overlay ─────────
-  useEffect(() => {
-    const prev = previousDisplayGamesRef.current;
-    if (prev) {
-      const prevMap = new Map(prev.map((g) => [g.game_pk, g]));
-      const bursts = [];
-      for (const game of displayGames) {
-        const oldGame = prevMap.get(game.game_pk);
-        if (!oldGame) continue;
-        const oldRuns = gameTotalRuns(oldGame);
-        const newRuns = gameTotalRuns(game);
-        if (oldRuns == null || newRuns == null || newRuns <= oldRuns) continue;
-        const gained = Math.min(3, newRuns - oldRuns);
-        const scorer =
-          Number(game.home_score ?? 0) > Number(oldGame.home_score ?? 0) ? game.home_abbrev :
-          Number(game.away_score ?? 0) > Number(oldGame.away_score ?? 0) ? game.away_abbrev :
-          (game.home_abbrev || game.away_abbrev || 'Run');
-        for (let i = 0; i < gained; i++) {
-          bursts.push({
-            id: `${game.game_pk}-${Date.now()}-${i}`,
-            label: `${scorer} anota`,
-            subLabel: gained > 1 ? `RALLY ${gained} CARRERAS` : 'CARRERA ANOTADA',
-            team: scorer,
-            teamName: TEAM_NAMES[scorer] || scorer,
-            startX: `${(Math.random() * 40 - 20).toFixed(1)}vw`,
-            startY: `${(Math.random() * 18 - 9).toFixed(1)}vh`,
-          });
-        }
-      }
-      if (bursts.length) {
-        if (pageHiddenRef.current || !RUN_BURST_TABS.has(activeIdRef.current)) {
-          pendingRunBurstsRef.current.push(...bursts);
-        } else {
-          releaseBursts(bursts);
-        }
-      }
-    }
-    previousDisplayGamesRef.current = displayGames;
-  }, [displayGames, releaseBursts]);
-
-  const live = displayGames.filter(g => g.is_live);
-  const finished = displayGames.filter(g => g.is_played);
+  const live = games.filter(g => g.is_live);
+  const finished = games.filter(g => g.is_played);
   // +EV picks: empirical sweet spot from walk-forward (edge vs book in [0%, 2%]).
   // Excludes 'overconfident' band (edge ≥ 2%) where the model is consistently wrong.
-  const valueList = displayGames.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal');
+  const valueList = games.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal');
   const sweetValueCount = valueList.filter(g => g.ev_grade === 'sweet').length;
   const stats = useMemo(() => {
     if (!finished.length) return null;
@@ -4274,21 +4709,22 @@ function App() {
 
   return (
     <>
-      {!openPk && <TopNav activeId={activeId} onNavigate={goPage} date={date} setDate={setDate} scrolled={scrolled} snapshot={snapshot} />}
+      <RunBurstOverlay bursts={runBursts} />
+      {!openPk && <TopNav activeId={activeId} onNavigate={goPage} date={date} setDate={setDate} scrolled={scrolled} />}
       <div ref={swapRef} className="swap-container relative z-10">
         {/* LEFT PANE: active page */}
         <main ref={pageRef} className="swap-pane overflow-y-auto">
           <div ref={pageContentRef} className="min-h-screen will-change-transform">
             {activeId === 'hero' && (
               <HeroPage
-                todayCount={displayGames.length}
+                todayCount={games.length}
                 valueCount={valueList.length}
                 onCta={goPage}
               />
             )}
             {activeId === 'hoy' && (
               <>
-              <HoyExpandableRow games={displayGames} onOpen={openDetail} date={date} />
+              <HoyExpandableRow games={games} onOpen={openDetail} date={date} />
               <YesterdayBanner data={yesterday} />
               <BurnPanel data={burnData} />
               </>
@@ -4299,9 +4735,9 @@ function App() {
                 kicker="02 · Vista Flash"
                 title={<>Eventos<br/>del día.</>}
                 lead="Una pizarra compacta con estado, marcador y cuotas 1/2 para revisar toda la jornada de un vistazo."
-                statValue={displayGames.length} statLabel="eventos en tablero" accent="blue"
+                statValue={games.length} statLabel="eventos en tablero" accent="blue"
               />
-              <FlashcoreBoard games={displayGames} onOpen={openDetail} date={date} />
+              <FlashcoreBoard games={games} onOpen={openDetail} date={date} />
               </>
             )}
             {activeId === 'envivo' && (
@@ -4346,6 +4782,19 @@ function App() {
                   ? `${stats.totalT} predicciones evaluadas. Las cards muestran en verde los picks ganados y en rojo los perdidos, junto con el marcador final y las métricas del matchup.`
                   : 'Todavía no hay predicciones finalizadas en esta fecha.'}
                 emptyText="Todavía no hay partidos finalizados en esta fecha."
+              />
+            )}
+            {activeId === 'equipo' && (
+              <TeamSearchPage
+                date={date}
+                query={teamSearchQuery}
+                resolvedTeam={resolveTeamQuery(teamSearchQuery)}
+                onQueryChange={setTeamSearchQuery}
+                winProbFilter={teamWinProbFilter}
+                onWinProbFilterChange={setTeamWinProbFilter}
+                games={teamHistoryGames}
+                loading={teamHistoryLoading}
+                onOpen={openDetail}
               />
             )}
             {activeId === 'resumen' && (
@@ -4399,14 +4848,18 @@ function App() {
               </>
             )}
             {activeId === 'modelo' && (
-              <ModeloPage/>
+              <ModeloPage
+                performance={performance}
+                performanceLoading={performanceLoading}
+                performanceError={performanceError}
+              />
             )}
           </div>
         </main>
 
         {/* RIGHT PANE: detail page */}
         <div className="swap-pane">
-          {openPk && <DetailPage pk={openPk} onBack={closeDetail} snapshotGame={displayGames.find(g => g.game_pk === openPk) || null}/>}
+          {openPk && <DetailPage pk={openPk} onBack={closeDetail}/>}
         </div>
       </div>
       {loading && (
@@ -4414,7 +4867,6 @@ function App() {
           <div className="text-white/40 text-sm tracking-[0.32em] uppercase animate-pulse">Cargando partidos…</div>
         </div>
       )}
-      <RunBurstOverlay bursts={runBursts} />
     </>
   );
 }
