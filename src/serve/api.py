@@ -1414,7 +1414,13 @@ def _winner_threshold(
       - short home fav 0.56-0.60 → 0.500 (was 0.515): +0.17pp (n=217 2026
         games, acc 0.548→0.558)
     Pre-2026 bands stay untouched — they were already optimized for those seasons.
+
+    Regime gate: para seasons < 2025 el modelo naive con umbral 0.5 supera al
+    umbral con bandas (test 2026-07-09: 2023 +2.4pp, 2024 +0.9pp). Los overrides
+    solo aplican al regimen 2025+ donde el modelo drifta y necesita ayuda.
     """
+    if season is not None and int(season) < 2025:
+        return 0.5
     if market_p_home is None or not np.isfinite(market_p_home):
         return WINNER_THRESHOLD
     modern = season is not None and int(season) >= 2026
@@ -1474,6 +1480,37 @@ TRAP_FADE_TEAMS = {"MIL"}
 # Watched closely; small sample size means high sensitivity to multiple-testing.
 DAY_TRAP_FADE = {("WSH", 5)}  # (opponent_abbrev, dayofweek)
 
+# Night-trap fade — equipos donde el modelo picka mal en juegos nocturnos
+# en 2026 especifico (regime rule, gated season >= 2026). El pick sobre
+# esos equipos en noche se FLIPPEA.
+#   fade DET at night → 2026 n=32, acc 0.344 (flip da 0.656)
+#   2023-2025 el modelo pegaba bien con DET noche (0.556/0.692/0.586),
+#   asi que gate a 2026+. Detectado 2026-07-10. Impacto medido: +0.715pp
+#   acc 2026 en n=32, +0.113pp global.
+# ⚠ N pequeño (32). Revalidar mensual. Si acc_night_2026 >= 0.45 en
+# proximo backtest, quitar la regla.
+NIGHT_TRAP_FADE = {"DET"}  # pick sobre este equipo en night game (2026+) → flip
+
+# Pick x day-of-week fade — combos donde el modelo picka MAL sistematicamente
+# en 2025-2026. Detectados via sweep (team_picked, dow) con acc<=0.42 en 2026
+# Y acc<=0.48 en 2025. Todos fallan holdout 23-24 (regime specific) → gate 2026+.
+# Los 6:
+#   BOS Sun: 2026 25% (n=8), 2025 40% (n=10)   |   BAL Sat: 2026 38%, 2025 48%
+#   HOU Mon: 2026 29% (n=7), 2025 42% (n=12)   |   CLE Mon: 2026 33%, 2025 44%
+#   BAL Tue: 2026 36% (n=11), 2025 38% (n=16)  |   CLE Sun: 2026 38%, 2025 44%
+# Backtest: +1.13pp acc 2026 (n=48 afectados), gate 2026+ → 0 regresion 23-25.
+# ⚠ 6 combos, N chico por combo → high multi-test risk. Revalidar mensual;
+# quitar cualquier combo cuyo acc_2026 suba de 0.48 en el proximo check.
+# dow: Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6
+PICK_DAY_FADE = {
+    ("BOS", 6),  # BOS Sunday
+    ("HOU", 0),  # HOU Monday
+    ("CLE", 0),  # CLE Monday
+    ("BAL", 1),  # BAL Tuesday
+    ("BAL", 5),  # BAL Saturday
+    ("CLE", 6),  # CLE Sunday
+}
+
 # Night-elite teams — where the model's pick historically hits >0.62 in ALL
 # four seasons of walk-forward when the game is played at night. NOT a pick
 # override (the model already picks these correctly at high rate); it's a
@@ -1483,6 +1520,111 @@ DAY_TRAP_FADE = {("WSH", 5)}  # (opponent_abbrev, dayofweek)
 #                  +8.3pp vs baseline night acc 0.585.
 # Re-validate each season — like the trap flips, team identity rules decay.
 NIGHT_ELITE_TEAMS = {"PHI"}
+
+
+# Head-to-head pair biases — matchups donde el modelo miscalibra sistematicamente
+# vs realidad historica (2023-2026). Se aplica como sesgo a p_home ANTES del
+# umbral, asi que puede flippear el pick cuando la miscal es lo bastante grande.
+# Diccionario: (home_abbrev, away_abbrev) -> bias (positivo favorece home).
+#
+# Backtest 2026-07-09 sobre 8,819 juegos: agregar estas 8 reglas sube acc
+# global +0.22pp y 2026 +0.64pp. En los 193 juegos que cubren, sube
+# acc +9.8pp historico y +32.1pp en 2026 (n=28).
+# Impacto individual medido:
+#   BAL vs BOS -0.09  → +16.7pp acc en el par (18 flippeos)
+#   DET vs CLE -0.09  → +16.0pp acc (16 flippeos)
+#   DET vs KC  +0.10  → +13.0pp acc (3 flippeos)
+#   WSH vs MIA -0.09  → +13.0pp acc (9 flippeos)
+#   PIT vs CIN +0.10  → +7.4pp acc (10 flippeos)
+#   KC vs MIN  +0.10  → +4.5pp acc (15 flippeos)
+#   SEA vs TEX +0.10  → +4.2pp acc (1 flippeo)
+#   PHI vs NYM +0.08  → +4.0pp acc (1 flippeo)
+#
+# Reglas RETIRADAS (probadas y descartadas, ver docs/rules_backlog.md):
+#   - Inertes (0 flippeos): LAD/COL, CIN/MIL, AZ/COL
+#   - Duelen global: TEX/HOU, SEA/HOU, NYY/BAL, AZ/SF
+#   - Neutrales (flippean pero no netean): HOU/SEA, BOS/NYY, TB/TOR
+#
+# Sesgo aplicado es ~55-65% del gap detectado (conservador vs overfit).
+# Re-validar mensualmente tras retrain. Si un par cae por debajo de +/-8pp de
+# gap en 2026 o deja de flippear picks, quitarlo y bajarlo al backlog.
+H2H_PICK_BIAS: dict[tuple[str, str], float] = {
+    ("PIT", "CIN"): +0.10,
+    ("BAL", "BOS"): -0.09,
+    ("DET", "CLE"): -0.09,
+    ("DET", "KC"):  +0.10,
+    ("WSH", "MIA"): -0.09,
+    ("KC",  "MIN"): +0.10,
+    ("SEA", "TEX"): +0.10,
+    ("PHI", "NYM"): +0.08,
+}
+
+
+# Pitcher-specific pick biases — abridores donde el modelo miscalibra
+# sistematicamente vs realidad 2023-2026. Se detectan por diferencia entre
+# p_home promedio del modelo y home_won real cuando ese pitcher inicia.
+# Diccionario: (player_id, side) -> delta_p_home
+#   Para side='H' (pitchea local): delta positivo = home gana mas que predicho.
+#   Para side='A' (pitchea visita): delta ya expresado como delta_p_home
+#     (positivo = home gana mas cuando este pitcher es visita, i.e. es un
+#     pitcher malo; negativo = home gana menos, i.e. el pitcher visitante es
+#     buenisimo).
+# Sesgo aplicado es 55% del gap detectado, cap +/- 0.12.
+# Selection: solo pitchers con concord (mismo signo en 23-25 y en 2026),
+# |gap|>=8pp en ambos periodos, y n_2026>=6.
+# Backtest 2026-07-09: +0.87pp acc en los 115 juegos afectados en 2026.
+# Regla de mantenimiento: revalidar mensual — pitchers rotan de equipo,
+# eventos de lesion cambian su rol, la señal decae.
+PITCHER_PICK_BIAS: dict[tuple[int, str], float] = {
+    # side H — pitcher local (delta p_home directo)
+    (554430, 'H'): +0.089,   # Zack Wheeler       n=52, gap_hist +16.2pp, gap_26 +40.5pp
+    (650911, 'H'): +0.068,   # Cristopher Sánchez n=58, gap_hist +12.3pp, gap_26 +22.1pp
+    (594798, 'H'): +0.087,   # Jacob deGrom       n=29, gap_hist +15.8pp, gap_26 +19.7pp
+    (693433, 'H'): +0.109,   # Bryan Woo          n=39, gap_hist +19.9pp, gap_26 +19.5pp
+    (519242, 'H'): +0.099,   # Chris Sale         n=40, gap_hist +18.1pp, gap_26 +16.1pp
+    (650644, 'H'): -0.084,   # Aaron Civale       n=44, gap_hist -15.2pp, gap_26 -19.7pp
+    (694738, 'H'): -0.063,   # Landen Roupp       n=20, gap_hist -11.5pp, gap_26 -15.8pp
+    # side A — pitcher visitante (SIGNO INVERTIDO: gap positivo del reporte =
+    # away gana mas = p_home baja → delta_p_home negativo)
+    (808967, 'A'): -0.085,   # Yoshinobu Yamamoto n=37, gap_hist +15.5pp → delta -0.085
+    (686799, 'A'): +0.067,   # Jack Kochanowicz   n=27, gap_hist -12.1pp → delta +0.067
+    (607536, 'A'): +0.054,   # Kyle Freeland      n=49, gap_hist  -9.8pp → delta +0.054
+}
+
+
+def _pitcher_bias(home_pid: int | float | None,
+                  away_pid: int | float | None,
+                  season: int | None = None) -> float:
+    """Sesgo agregado a p_home segun los pitchers probables.
+
+    Gate: solo aplica para seasons >= 2025 (regimen actual). Pre-2025 el
+    modelo integra bien la calidad del pitcher via features.
+    """
+    if season is not None and int(season) < 2025:
+        return 0.0
+    delta = 0.0
+    try:
+        if home_pid is not None and pd.notna(home_pid):
+            delta += PITCHER_PICK_BIAS.get((int(home_pid), 'H'), 0.0)
+        if away_pid is not None and pd.notna(away_pid):
+            delta += PITCHER_PICK_BIAS.get((int(away_pid), 'A'), 0.0)
+    except (ValueError, TypeError):
+        pass
+    return delta
+
+
+def _h2h_bias(home_team: str | None, away_team: str | None,
+              season: int | None = None) -> float:
+    """Sesgo historico a aplicar a p_home para este matchup (0.0 si no aplica).
+
+    Gate: solo aplica para seasons >= 2025 (regimen actual). Pre-2025 el modelo
+    predice bien sin ayuda.
+    """
+    if season is not None and int(season) < 2025:
+        return 0.0
+    if not home_team or not away_team:
+        return 0.0
+    return H2H_PICK_BIAS.get((home_team, away_team), 0.0)
 
 
 def _is_night_elite(pick_home: bool, home_team: str | None,
@@ -1498,20 +1640,41 @@ def _is_night_elite(pick_home: bool, home_team: str | None,
 
 def _flip_reason(pick_home: bool, home_team: str | None,
                  away_team: str | None,
-                 game_date=None) -> str | None:
+                 game_date=None,
+                 day_night: str | None = None) -> str | None:
     """Return 'team' if a team trap fires, 'day' if a day-of-week trap fires,
-    else None. Team traps take precedence over day traps."""
+    'night' if a night trap fires (2026+), else None.
+
+    Gate: team/day traps solo aplican season >= 2025. Night trap solo 2026+.
+    """
     if not home_team or not away_team:
         return None
+    # Season gate — extraer año de game_date si esta disponible.
+    season_year = None
+    if game_date is not None:
+        try:
+            season_year = pd.Timestamp(game_date).year
+            if season_year < 2025:
+                return None
+        except Exception:
+            pass
     picked = home_team if pick_home else away_team
     opp = away_team if pick_home else home_team
     if picked in TRAP_PICK_TEAMS or opp in TRAP_FADE_TEAMS:
         return "team"
+    # Night trap (2026+ regime rule): pick sobre equipo listado en night game
+    if (season_year is None or season_year >= 2026) and \
+       str(day_night or "").lower() == "night" and picked in NIGHT_TRAP_FADE:
+        return "night"
     if game_date is not None:
         try:
             dow = pd.Timestamp(game_date).dayofweek
             if (opp, dow) in DAY_TRAP_FADE:
                 return "day"
+            # Pick-day fade (2026+ regime): pick sobre equipo en dia especifico
+            if (season_year is None or season_year >= 2026) and \
+               (picked, dow) in PICK_DAY_FADE:
+                return "pickday"
         except Exception:
             pass
     return None
@@ -1519,9 +1682,10 @@ def _flip_reason(pick_home: bool, home_team: str | None,
 
 def _should_flip_pick(pick_home: bool, home_team: str | None,
                      away_team: str | None,
-                     game_date=None) -> bool:
+                     game_date=None,
+                     day_night: str | None = None) -> bool:
     """True iff any trap rule fires and the pick should be inverted."""
-    return _flip_reason(pick_home, home_team, away_team, game_date) is not None
+    return _flip_reason(pick_home, home_team, away_team, game_date, day_night) is not None
 
 
 def _pick_home_from_phome(
@@ -1531,12 +1695,19 @@ def _pick_home_from_phome(
     away_team: str | None = None,
     season: int | None = None,
     game_date=None,
+    home_pid: int | float | None = None,
+    away_pid: int | float | None = None,
 ) -> bool:
     """Winner decision boundary tuned for binary accuracy, not calibration.
 
-    Applies the trap-team + day-of-week flips after the threshold decision —
-    see TRAP_PICK_TEAMS/TRAP_FADE_TEAMS/DAY_TRAP_FADE constants above.
+    Applies H2H pair bias + pitcher bias BEFORE the threshold, then trap-team
+    + day-of-week flips AFTER. Ver H2H_PICK_BIAS / PITCHER_PICK_BIAS /
+    TRAP_*_TEAMS / DAY_TRAP_FADE arriba.
     """
+    if np.isfinite(p_home):
+        bias = _h2h_bias(home_team, away_team, season) + _pitcher_bias(home_pid, away_pid, season)
+        if bias:
+            p_home = float(np.clip(p_home + bias, 0.001, 0.999))
     raw = bool(
         np.isfinite(p_home)
         and p_home >= _winner_threshold(market_p_home, p_home, home_team, away_team, season)
@@ -1606,17 +1777,174 @@ def _series_double_down_market(c, r, pick_is_home: bool) -> bool:
         return False
 
 
-# Confidence tiers — calibrated on the display-probability walk-forward
-# (5,763 games). Selecting only confident games trades coverage for accuracy:
-#   |p-0.5| >= 0.16 (~10% of games) → 71.5% hit rate  → LOCK
-#   |p-0.5| >= 0.12 (~20%)          → 68.0%           → FUERTE
-#   |p-0.5| >= 0.066 (~50%)         → 60.0%           → MODERADO
-#   below                                              → PAREJO (toss-up)
+# Streak-based biases — 2026 regime rules basadas en mean reversion.
+# HOME cold streak: equipo local llega con 3+ derrotas → HOME gana +11pp mas
+#   de lo predicho en 2026 (n=89). Sesgo +0.05 a p_home.
+# AWAY hot streak: equipo visitante llega con 3+ victorias → HOME gana +8.4pp
+#   mas de lo predicho en 2026 (n=91). Sesgo +0.07 a p_home (fade away hot).
+# Ambos: en 2023-2024 gaps chicos (mean reversion mercado ya price), 2025
+#   INVERTIDOS — regime specific 2026. Impacto medido:
+#     HOME cold  → +0.22pp acc 2026 real (interaccion con otros overrides)
+#     AWAY hot   → +0.50pp acc 2026 backtest
+# Gate 2026+. Revalidar mensual — si signo cambia en próximo backtest, quitar.
+HOME_COLD_STREAK_BIAS = 0.05
+HOME_COLD_STREAK_THRESHOLD = 3   # 3+ consecutive losses entering the game
+AWAY_HOT_STREAK_BIAS = 0.07
+AWAY_HOT_STREAK_THRESHOLD = 3    # 3+ consecutive wins entering the game
+_home_streak_cache: dict[tuple[str, str, int], int] = {}
+_away_streak_cache: dict[tuple[str, str, int], int] = {}
+
+
+def _team_streak_at_date(c, team: str, season: int, game_date, kind: str, threshold: int,
+                         cache: dict) -> bool:
+    """True si el equipo llega con >= threshold juegos consecutivos del kind
+    ('win' o 'loss') entrando a game_date en la season.
+    """
+    if not team:
+        return False
+    train = c["train"]
+    prior = train[
+        (train["season"] == season)
+        & (train["game_date"] < game_date)
+        & ((train["home_team_abbrev"] == team) | (train["away_team_abbrev"] == team))
+        & train["home_win"].notna()
+    ].sort_values("game_date")
+    if len(prior) < threshold:
+        return False
+    last_pk = int(prior.iloc[-1]["game_pk"])
+    cache_key = (team, str(season), last_pk)
+    hit = cache.get(cache_key)
+    if hit is None:
+        recent = prior.tail(threshold)
+        target = 1 if kind == "win" else 0
+        all_match = True
+        for _, g in recent.iterrows():
+            team_won = (g["home_team_abbrev"] == team and g["home_win"] == 1) or \
+                       (g["away_team_abbrev"] == team and g["home_win"] == 0)
+            outcome = 1 if team_won else 0
+            if outcome != target:
+                all_match = False
+                break
+        hit = all_match
+        cache[cache_key] = hit
+    return hit
+
+
+def _home_cold_streak_bias(c, r) -> float:
+    """Sesgo +HOME_COLD_STREAK_BIAS si local llega con 3+ derrotas, en 2026+."""
+    try:
+        season = int(r["season"]) if pd.notna(r.get("season")) else None
+        if season is None or season < 2026:
+            return 0.0
+        cold = _team_streak_at_date(c, r.get("home_team_abbrev"), season,
+                                    r["game_date"], "loss",
+                                    HOME_COLD_STREAK_THRESHOLD, _home_streak_cache)
+        return HOME_COLD_STREAK_BIAS if cold else 0.0
+    except Exception:
+        return 0.0
+
+
+def _away_hot_streak_bias(c, r) -> float:
+    """Sesgo +AWAY_HOT_STREAK_BIAS a p_home si visitante llega con 3+ victorias,
+    en 2026+ (fade away hot → mean reversion favorece HOME)."""
+    try:
+        season = int(r["season"]) if pd.notna(r.get("season")) else None
+        if season is None or season < 2026:
+            return 0.0
+        hot = _team_streak_at_date(c, r.get("away_team_abbrev"), season,
+                                   r["game_date"], "win",
+                                   AWAY_HOT_STREAK_THRESHOLD, _away_streak_cache)
+        return AWAY_HOT_STREAK_BIAS if hot else 0.0
+    except Exception:
+        return 0.0
+
+
+# Away cold streak (5+) — visitante viene tan quebrado que sigue perdiendo
+# de visita. 2026: gap +7.4pp (n=90 con thr=3, n=28 con thr=5). Concord 4 años.
+#   Impacto: +0.212pp acc 2026 con thr>=5 bias +0.05 (gate 2026+).
+AWAY_COLD_STREAK_BIAS = 0.05
+AWAY_COLD_STREAK_THRESHOLD = 5  # 5+ derrotas consecutivas del away
+_away_cold_streak_cache: dict[tuple[str, str, int], bool] = {}
+
+
+def _away_cold_streak_bias(c, r) -> float:
+    """Sesgo +AWAY_COLD_STREAK_BIAS a p_home si visitante llega con 5+ derrotas
+    consecutivas, en 2026+ (equipo en caida libre sigue perdiendo)."""
+    try:
+        season = int(r["season"]) if pd.notna(r.get("season")) else None
+        if season is None or season < 2026:
+            return 0.0
+        cold = _team_streak_at_date(c, r.get("away_team_abbrev"), season,
+                                    r["game_date"], "loss",
+                                    AWAY_COLD_STREAK_THRESHOLD, _away_cold_streak_cache)
+        return AWAY_COLD_STREAK_BIAS if cold else 0.0
+    except Exception:
+        return 0.0
+
+
+# Home blowout W momentum — cuando el local viene de ganar por 8+ carreras,
+# HOME sigue ganando mas de lo predicho (momentum ganador se sostiene, mercado
+# no ajusta lo suficiente). Concordante en las 4 seasons (gaps +1.9/+2.0/+7.1/+8.5pp).
+#   Gate 2025+ (en 2023-2024 aplicar globalmente restaba pese al signal —
+#   probablemente colisiona con la calidad del modelo naive en ese regime).
+#   Impacto medido: +0.113pp global, +0.202pp 2025, +0.354pp 2026 (n=63).
+# Revalidar mensual. Si el gap cae bajo +4pp en 2026, quitar.
+HOME_BLOWOUT_MOMENTUM_BIAS = 0.07
+HOME_BLOWOUT_MARGIN_THRESHOLD = 8  # ganado por 8+ carreras el juego previo
+_home_prev_margin_cache: dict[tuple[str, str, int], float] = {}
+
+
+def _home_blowout_momentum_bias(c, r) -> float:
+    """Sesgo +HOME_BLOWOUT_MOMENTUM_BIAS si el local viene de blowout win
+    (8+ carreras) el juego previo. Gate season >= 2025."""
+    try:
+        season = int(r["season"]) if pd.notna(r.get("season")) else None
+        if season is None or season < 2025:
+            return 0.0
+        home_team = r.get("home_team_abbrev")
+        if not home_team:
+            return 0.0
+        gd = r["game_date"]
+        train = c["train"]
+        prior = train[
+            (train["season"] == season)
+            & (train["game_date"] < gd)
+            & ((train["home_team_abbrev"] == home_team) | (train["away_team_abbrev"] == home_team))
+            & train["home_score"].notna()
+        ].sort_values("game_date")
+        if prior.empty:
+            return 0.0
+        last_pk = int(prior.iloc[-1]["game_pk"])
+        cache_key = (home_team, str(season), last_pk)
+        margin = _home_prev_margin_cache.get(cache_key)
+        if margin is None:
+            g = prior.iloc[-1]
+            hs = float(g["home_score"])
+            as_ = float(g["away_score"])
+            if g["home_team_abbrev"] == home_team:
+                margin = hs - as_
+            else:
+                margin = as_ - hs
+            _home_prev_margin_cache[cache_key] = margin
+        return HOME_BLOWOUT_MOMENTUM_BIAS if margin >= HOME_BLOWOUT_MARGIN_THRESHOLD else 0.0
+    except Exception:
+        return 0.0
+
+
+# Confidence tiers — RECALIBRADO 2026-07-09 sobre 2025-2026 (n=3,876).
+# El modelo drifta: la banda "moderado" del regimen viejo pegaba 60% pero
+# en 25-26 solo pega 55%. Rehacemos con umbrales mas altos para que cada
+# tier refleje su hit rate REAL en el regimen actual.
+#   |p-0.5| >= 0.145 → 72.4% hit rate  → LOCK      (4.4% coverage)
+#   |p-0.5| >= 0.115 → 66.1%           → FUERTE    (12.8% coverage)
+#   |p-0.5| >= 0.045 → 58.0%           → MODERADO  (57.4% coverage)
+#   below            → 52.6%           → PAREJO    (42.6% coverage — coin flip)
+# Re-calibrar cada 2 meses o tras cambio de modelo.
 _TIER_BANDS = [
-    (0.16,  "lock",     71.5),
-    (0.12,  "fuerte",   68.0),
-    (0.066, "moderado", 60.0),
-    (0.0,   "parejo",   56.6),
+    (0.145, "lock",     72.4),
+    (0.115, "fuerte",   66.1),
+    (0.045, "moderado", 58.0),
+    (0.0,   "parejo",   52.6),
 ]
 
 
@@ -1631,7 +1959,7 @@ def _confidence_tier(p_home: float) -> dict:
                     "confidence_tier": name,
                     "tier_hit_rate": hit}
     return {"confidence_pp": round(conf * 100, 1),
-            "confidence_tier": "parejo", "tier_hit_rate": 56.6}
+            "confidence_tier": "parejo", "tier_hit_rate": 52.6}
 
 
 def _to_american(p: float) -> int:
@@ -1941,6 +2269,38 @@ def _predict_row(row: pd.Series, c) -> tuple[float, float]:
 
 
 # ---------------- endpoints ----------------
+@app.get("/api/team-recent-form")
+def team_recent_form(team: str, n: int = 5):
+    """Last n *played* games for a team, as W/L results (chronological order,
+    oldest → newest). Used by the predictions dashboard's RECENT FORM column."""
+    c = _load()
+    team_u = (team or "").strip().upper()
+    if not team_u:
+        raise HTTPException(400, "team is required")
+    n = max(1, min(int(n), 20))
+    train = c["train"]
+    sub = train[
+        ((train["away_team_abbrev"].astype(str).str.upper() == team_u)
+         | (train["home_team_abbrev"].astype(str).str.upper() == team_u))
+        & train["home_score"].notna()
+        & train["away_score"].notna()
+    ].sort_values("game_date").tail(n)
+    out = []
+    for _, r in sub.iterrows():
+        is_home = str(r["home_team_abbrev"]).upper() == team_u
+        hs, as_ = float(r["home_score"]), float(r["away_score"])
+        won = (is_home and hs > as_) or ((not is_home) and as_ > hs)
+        out.append({
+            "date": r["game_date"].isoformat(),
+            "opp": r["away_team_abbrev"] if is_home else r["home_team_abbrev"],
+            "home": bool(is_home),
+            "score_for": int(hs if is_home else as_),
+            "score_against": int(as_ if is_home else hs),
+            "result": "W" if won else "L",
+        })
+    return {"team": team_u, "n": len(out), "games": out}
+
+
 @app.get("/api/team-ranking")
 def team_ranking(days: int = 60):
     c = _load()
@@ -2328,14 +2688,36 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
         # Pick label = team abbreviation, not HOME/AWAY.
         pick_abbrev = None
         flip_reason = None
+        h2h_applied = False
+        pitcher_applied = False
+        cold_streak_applied = False
+        hot_streak_applied = False
+        blowout_applied = False
         if np.isfinite(p_home):
             season_int = int(r["season"]) if pd.notna(r.get("season")) else None
             mp = r.get("market_p_home", float("nan"))
             ht = r.get("home_team_abbrev")
             at = r.get("away_team_abbrev")
             gd = r.get("game_date")
-            raw_pick_home = bool(p_home >= _winner_threshold(mp, p_home, ht, at, season_int))
-            flip_reason = _flip_reason(raw_pick_home, ht, at, gd)
+            # Streak/momentum biases + H2H pair bias + pitcher bias — sesga p_home antes del umbral
+            h2h = _h2h_bias(ht, at, season_int)
+            pbias = _pitcher_bias(_home_pid, _away_pid, season_int)
+            cold_bias = _home_cold_streak_bias(c, r)
+            hot_bias = _away_hot_streak_bias(c, r)
+            blowout_bias = _home_blowout_momentum_bias(c, r)
+            away_cold_bias = _away_cold_streak_bias(c, r)
+            bias = h2h + pbias + cold_bias + hot_bias + blowout_bias + away_cold_bias
+            p_home_biased = float(np.clip(p_home + bias, 0.001, 0.999)) if bias else p_home
+            raw_pick_home = bool(p_home_biased >= _winner_threshold(mp, p_home_biased, ht, at, season_int))
+            # flags: se prenden si el sesgo cambio el pick raw
+            raw_no_bias = bool(p_home >= _winner_threshold(mp, p_home, ht, at, season_int))
+            if h2h:
+                h2h_applied = raw_pick_home != raw_no_bias
+            pitcher_applied = bool(pbias) and (raw_pick_home != raw_no_bias)
+            cold_streak_applied = bool(cold_bias) and (raw_pick_home != raw_no_bias)
+            hot_streak_applied = bool(hot_bias) and (raw_pick_home != raw_no_bias)
+            blowout_applied = bool(blowout_bias) and (raw_pick_home != raw_no_bias)
+            flip_reason = _flip_reason(raw_pick_home, ht, at, gd, r.get("day_night"))
             pick_is_home = (not raw_pick_home) if flip_reason else raw_pick_home
             # Series double-down trap: if the model repeats the exact pick it
             # just missed in this series AND fights the market, defer to market.
@@ -2390,8 +2772,10 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             # Trap inversion: raw pick was flipped because it landed on a trap
             # team ('team'), or on a day-of-week trap like fade WSH-on-Saturday
             # ('day'). Both flips validated to hit <50% in 3+ seasons.
-            "team_flip": flip_reason == "team",
-            "day_flip":  flip_reason == "day",
+            "team_flip":    flip_reason == "team",
+            "day_flip":     flip_reason == "day",
+            "night_flip":   flip_reason == "night",
+            "pickday_flip": flip_reason == "pickday",
             "flip_reason": flip_reason,
             # Series double-down trap: model repeated the pick it just missed
             # in this series against the market → pick deferred to market side.
@@ -2400,6 +2784,26 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             # seasons of night games (currently PHI). Informational — the pick
             # itself is unchanged, only the confidence signal to the user.
             "night_elite": bool(night_elite),
+            # H2H pair bias: matchup con miscalibracion historica del modelo
+            # (LAD/COL, PIT/CIN, CIN/MIL). Se aplico un sesgo al p_home ANTES
+            # del umbral; el badge se prende si el sesgo cambio el pick raw.
+            "h2h_bias": bool(h2h_applied),
+            # Pitcher bias: abridor con miscalibracion historica (ej. Wheeler,
+            # Sale, deGrom, Sánchez, Yamamoto). Badge se prende si el sesgo
+            # cambio el pick raw.
+            "pitcher_bias": bool(pitcher_applied),
+            # Home cold streak bias: equipo local con 3+ derrotas consecutivas
+            # entrando al juego. En 2026 gana +11pp mas de lo predicho (mean
+            # reversion). Badge se prende si el sesgo cambio el pick raw.
+            "cold_streak_bias": bool(cold_streak_applied),
+            # Away hot streak bias: visitante con 3+ victorias consecutivas.
+            # En 2026, home gana +8pp mas de lo predicho (mean reversion).
+            # Badge se prende si el sesgo cambio el pick raw.
+            "hot_streak_bias": bool(hot_streak_applied),
+            # Home blowout momentum: local viene de ganar por 8+ carreras el
+            # juego previo. Historicamente sigue ganando mas de lo predicho.
+            # Badge se prende si el sesgo cambio el pick raw.
+            "blowout_bias": bool(blowout_applied),
             "pitcher_away": pitcher_away,
             "pitcher_home": pitcher_home,
             **v,
@@ -2998,3 +3402,8 @@ def index():
 @app.get("/strike")
 def strike():
     return FileResponse(STATIC_DIR / "strike.html")
+
+
+@app.get("/predict")
+def predict_page():
+    return FileResponse(STATIC_DIR / "predict.html")

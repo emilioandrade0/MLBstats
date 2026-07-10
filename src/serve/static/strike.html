@@ -18,7 +18,7 @@
     fontFamily: { sans: ['Inter','system-ui','sans-serif'], mega: ['Anton','Impact','sans-serif'] },
     colors: {
       ink:    { 0:'#061019', 1:'#081521', 2:'#0d1e2e', 3:'#153149' },
-      accent: { red:'#E63946', blue:'#4DABF7', gold:'#FFD43B', green:'#51CF66', orange:'#FF922B' },
+      accent: { red:'#E63946', blue:'#4DABF7', gold:'#FFD43B', green:'#51CF66', orange:'#FF922B', purple:'#B197FC' },
     },
   }}};
 </script>
@@ -1243,7 +1243,7 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
       )}
 
       {/* ── Confidence tier + flip badges ──────────────────────────────────── */}
-      {((tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr) || g.team_flip || g.day_flip || g.night_elite || g.series_flip) && (
+      {((tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr) || g.team_flip || g.day_flip || g.night_flip || g.pickday_flip || g.night_elite || g.series_flip || g.h2h_bias || g.pitcher_bias || g.cold_streak_bias || g.hot_streak_bias || g.blowout_bias) && (
         <div className="px-4 mt-2 flex justify-center gap-1 flex-wrap">
           {tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr && (
             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8.5px] font-black tracking-[0.14em] uppercase ${tierMeta.cls}`}>
@@ -1266,6 +1266,22 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
               Ajuste día
             </span>
           )}
+          {g.night_flip && (
+            <span
+              title="Ajuste noche trampa: el modelo pickeaba DET en juego nocturno — en 2026 esos picks solo aciertan 34% (n=32). Pick invertido. Regla 2026+, revalidar mensual."
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-orange/45 bg-accent-orange/10 text-accent-orange text-[8.5px] font-black tracking-[0.14em] uppercase">
+              <span>🌙</span>
+              <span>Ajuste noche</span>
+            </span>
+          )}
+          {g.pickday_flip && (
+            <span
+              title="Ajuste día trampa fino: el pick sobre este equipo en este día de la semana falla <42% en 2026 y <48% en 2025 (BOS Dom, HOU/CLE Lun, BAL Mar/Sáb, CLE Dom). Pick invertido. Regla 2026+, revalidar mensual."
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-red/40 bg-accent-red/12 text-accent-red text-[8.5px] font-black tracking-[0.14em] uppercase">
+              <span>📅</span>
+              <span>Fade día</span>
+            </span>
+          )}
           {g.night_elite && (
             <span
               title="Elite noche: el modelo picka PHI en juegos nocturnos — histórico 66.8% acierto en 4 temporadas (2026 al 73%). Zona de alta confianza."
@@ -1279,6 +1295,45 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
               title="Ajuste serie: el modelo repetía el pick que acaba de fallar en esta serie, en contra del mercado — en 2026 esos picks aciertan solo 36% vs 64% del mercado. Pick alineado al mercado."
               className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
               Ajuste serie
+            </span>
+          )}
+          {g.h2h_bias && (
+            <span
+              title="Ajuste H2H: matchup con miscalibración histórica del modelo (BAL/BOS, DET/CLE, DET/KC, WSH/MIA, PIT/CIN, KC/MIN, SEA/TEX, PHI/NYM). Sesgo aplicado cambió el pick para alinearlo con el historial. Backtest: +32pp acc 2026 en pares, +0.64pp global 2026."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-purple/45 bg-accent-purple/10 text-accent-purple text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Ajuste H2H
+            </span>
+          )}
+          {g.pitcher_bias && (
+            <span
+              title="Ajuste pitcher: abridor con miscalibración histórica del modelo (Wheeler, Sale, deGrom, Sánchez, Woo, Yamamoto, Civale, etc.). Sesgo aplicado cambió el pick para alinearlo con el historial. Backtest: +0.87pp acc en los juegos afectados 2026."
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-green/45 bg-accent-green/10 text-accent-green text-[8.5px] font-black tracking-[0.14em] uppercase">
+              <span>⚾</span>
+              <span>Ajuste pitcher</span>
+            </span>
+          )}
+          {g.cold_streak_bias && (
+            <span
+              title="Ajuste racha fría: local llega con 3+ derrotas consecutivas. En 2026 esos equipos ganan +11pp más de lo predicho (mean reversion). Pick sesgado hacia local. Regla 2026+, revalidar mensual."
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              <span>❄️</span>
+              <span>Racha fría</span>
+            </span>
+          )}
+          {g.hot_streak_bias && (
+            <span
+              title="Ajuste racha caliente: visitante llega con 3+ victorias consecutivas. En 2026 el local gana +8pp más de lo predicho (fade de racha away). Pick sesgado hacia local. Regla 2026+, revalidar mensual."
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-red/40 bg-accent-red/10 text-accent-red text-[8.5px] font-black tracking-[0.14em] uppercase">
+              <span>🔥</span>
+              <span>Fade visita</span>
+            </span>
+          )}
+          {g.blowout_bias && (
+            <span
+              title="Ajuste momentum: local viene de ganar por 8+ carreras el juego previo. Históricamente sigue ganando más de lo predicho (concordante en 4 años). Pick sesgado hacia local. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-gold/45 bg-accent-gold/10 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase">
+              <span>💥</span>
+              <span>Momentum W</span>
             </span>
           )}
         </div>
