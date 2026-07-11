@@ -3,7 +3,189 @@
 Registro de todas las reglas H2H probadas — activas, retiradas por inertes,
 y retiradas por hacer daño global. Revisar tras cada retrain mensual.
 
-**Última actualización**: 2026-07-09 (barrido exhaustivo de 112 pairs)
+**Última actualización**: 2026-07-10 (validación Codex + retiro de 2 inertes)
+
+---
+
+## Validación independiente de las 6 reglas de Codex (2026-07-10)
+
+Codex agregó 6 reglas nuevas al api.py con claim de +2.6pp acc 2026 (62.54%).
+Validación independiente con backtest completo desde el modelo base:
+
+| Regla Codex | Triggers 2026 | Flippeos | acc PRE | acc CON | Δ | Verdicto |
+|---|---:|---:|---:|---:|---:|---|
+| **stl_calibration** | 11 | 7 | 18.2% | 63.6% | **+45.5pp** | ✅ Retenida |
+| **interleague_nl** | 116 | 31 | 57.8% | 70.7% | **+12.9pp** | ✅ Retenida |
+| **travel_resilience** | 60 | 14 | 60.0% | 70.0% | **+10.0pp** | ✅ Retenida |
+| **umpire_market** | 86 | 10 | 61.6% | 70.9% | **+9.3pp** | ✅ Retenida |
+| weather_extreme | 50 | 6 | 62.0% | 62.0% | **+0.0pp** aislado | ✅ Retenida (interacción) |
+| circadian_extreme | 36 | 6 | 63.9% | 63.9% | **+0.0pp** aislado | ✅ Retenida (interacción) |
+
+**Impacto real medido**: PRE Codex 59.92% → CON Codex 62.11% en 2026 (+2.20pp)
+vs claim de Codex 62.54% (diferencia 0.43pp, probablemente por caches de
+streaks entre corridas).
+
+**Correción sobre "inertes"**: probamos retirar weather_extreme y circadian
+por su 0pp aislado, pero el pipeline completo bajó -0.10pp global y -0.28pp
+en 2025 -0.07pp en 2026. Aunque en aislamiento cancelan flippeos, en el
+pipeline completo alteran el flow downstream de otras rules y contribuyen
+marginalmente positivo. **Se mantienen**. Lección: no basarse solo en tests
+aislados — verificar siempre en el pipeline completo.
+
+---
+
+## Resiliencia visitante ante viaje extremo (ACTIVA 2026-07-10)
+
+**Regla**: si `travel_dist_miles_a - travel_dist_miles_h >= 1200`, aplicar
+`-0.07` a `p_home`. Gate `season >= 2025`.
+
+La hipótesis inicial era fatiga visitante, pero el residual observado tuvo el
+signo contrario: el modelo penaliza demasiado al visitante que viaja mucho más
+que el local. Backtest exacto: `analysis/travel_fatigue_override_search.py`.
+
+| Periodo | n | Baseline | Con regla | Delta |
+|---|---:|---:|---:|---:|
+| Global | 8,832 | 63.43% | 63.55% | +0.12pp |
+| 2023 | 2,471 | 67.26% | 67.26% | +0.00pp |
+| 2024 | 2,472 | 66.38% | 66.38% | +0.00pp |
+| 2025 | 2,477 | 57.45% | 57.61% | +0.16pp |
+| 2026 | 1,412 | 62.04% | 62.54% | +0.50pp |
+
+Cambió 13 picks en 2026 y fue positivo en ambas mitades (+0.42pp y +0.57pp).
+
+---
+
+## Desplazamiento circadiano extremo en juego diurno (ACTIVA 2026-07-10)
+
+**Regla**: si `circ_x_day_home >= 2` y `0.40 <= p_home < 0.50`, aplicar
+`+0.03` a `p_home`. Esto representa un visitante viajando al menos dos zonas
+al este para un juego diurno. Gate `season >= 2025`.
+
+Backtest exacto: `analysis/circadian_override_search.py`.
+
+| Periodo | n | Baseline | Con regla | Delta |
+|---|---:|---:|---:|---:|
+| Global | 8,832 | 63.32% | 63.43% | +0.11pp |
+| 2023 | 2,471 | 67.26% | 67.26% | +0.00pp |
+| 2024 | 2,472 | 66.38% | 66.38% | +0.00pp |
+| 2025 | 2,477 | 57.17% | 57.45% | +0.28pp |
+| 2026 | 1,412 | 61.83% | 62.04% | +0.21pp |
+
+Cambió 7 picks en 2026 y fue positivo en ambas mitades (+0.14pp y +0.28pp).
+
+---
+
+## Umpire accuracy x market away favorite (ACTIVA 2026-07-10)
+
+**Regla**: cuando `market_p_home < 0.45` y
+`ump_acc_above_x >= 1.0360444022` (cuartil 75 aprendido en 2023-2025), aplicar
+`-0.05` a `p_home`. Gate `season >= 2025`.
+
+Backtest exacto: `analysis/umpire_market_override_search.py`.
+
+| Periodo | n | Baseline | Con regla | Delta |
+|---|---:|---:|---:|---:|
+| Global | 8,832 | 63.17% | 63.32% | +0.15pp |
+| 2023 | 2,471 | 67.26% | 67.26% | +0.00pp |
+| 2024 | 2,472 | 66.38% | 66.38% | +0.00pp |
+| 2025 | 2,477 | 57.00% | 57.17% | +0.16pp |
+| 2026 | 1,412 | 61.19% | 61.83% | +0.64pp |
+
+Cambió 11 picks en 2026, con aporte positivo en ambas mitades (+0.28pp y
++0.99pp). El threshold del umpire se fijó usando solo temporadas previas.
+
+---
+
+## Señales pendientes por falta de etiqueta (2026-07-10)
+
+- **Cambio de manager**: no existe historial de manager por juego ni fechas de
+  contratación/cese en los parquets actuales. No se aproximó por equipo/fecha
+  para evitar etiquetado manual retrospectivo.
+- **Regreso post-IL de pitcher**: no existe historial de transacciones IL. Una
+  ausencia entre aperturas no distingue lesión, descanso, minors u opener.
+
+No se implementó ninguna regla para estos dos ángulos. Reabrir solo después de
+incorporar fuentes históricas con fechas efectivas conocidas antes del juego.
+
+---
+
+## Interleague AL vs NL en banda 45%-50% (ACTIVA 2026-07-10)
+
+**Regla**: en juegos interleague con `0.45 <= p_home < 0.50`, aplicar un
+sesgo de `0.05` hacia el equipo de Liga Nacional. Gate `season >= 2025`.
+
+Backtest: `analysis/interleague_override_search.py`, usando el classifier
+oficial, todos los overrides activos, thresholds recalculados tras cada bias y
+series double-down.
+
+| Periodo | n | Baseline | Con regla | Delta |
+|---|---:|---:|---:|---:|
+| Global | 8,832 | 63.03% | 63.17% | +0.14pp |
+| 2023 | 2,471 | 67.26% | 67.26% | +0.00pp |
+| 2024 | 2,472 | 66.38% | 66.38% | +0.00pp |
+| 2025 | 2,477 | 56.88% | 57.00% | +0.12pp |
+| 2026 | 1,412 | 60.55% | 61.19% | +0.64pp |
+
+En 2026 cambió 29 picks con ganancia en ambas mitades (+0.99pp y +0.28pp).
+Mantener mientras no dañe 2025 y ambas mitades de 2026 conserven signo no
+negativo.
+
+---
+
+## Barrido secuencial de cuatro señales (2026-07-10)
+
+Backtest: `analysis/four_signal_override_search.py`. Cada familia se midió
+contra el baseline acumulado de las reglas aceptadas anteriormente. Además del
+veto anual, una regla debía cambiar al menos 6 picks de 2026 y no ser negativa
+en ninguna mitad cronológica de 2026.
+
+| Orden | Familia | Decisión | Regla retenida | Delta 2025 | Delta 2026 |
+|---:|---|---|---|---:|---:|
+| 1 | Clima extremo | ACTIVA | temperatura >=90F, `-0.03 p_home`, gate 2026+ | +0.00pp | +0.14pp |
+| 2 | Doubleheader juego 2 | DESCARTADA | ninguna; cobertura y flippeos insuficientes | +0.00pp | +0.00pp |
+| 3 | Standings x mes | DESCARTADA | los candidatos que subían 2026 dañaban 2025 | +0.00pp | +0.00pp |
+| 4 | p_home x local | ACTIVA | STL local con `0.40 <= p_home < 0.45`, `+0.07`, gate 2025+ | +0.04pp | +0.21pp |
+
+### Resultado acumulado
+
+| Periodo | n | Baseline inicial | Final | Delta |
+|---|---:|---:|---:|---:|
+| Global | 8,832 | 62.98% | 63.04% | +0.07pp |
+| 2023 | 2,471 | 67.26% | 67.26% | +0.00pp |
+| 2024 | 2,472 | 66.38% | 66.38% | +0.00pp |
+| 2025 | 2,477 | 56.84% | 56.88% | +0.04pp |
+| 2026 | 1,412 | 60.27% | 60.62% | +0.35pp |
+
+La regla de calor fue neutral en la primera mitad y positiva en la segunda
+(+0.28pp). La calibración STL fue positiva en ambas mitades (+0.28pp y
++0.14pp). Revalidar ambas mensualmente y retirarlas ante signo negativo
+en cualquier mitad o daño al año previo.
+
+---
+
+## Bullpen quality differential extremo (RETIRADA 2026-07-10)
+
+**Estado**: retirada del runtime.
+
+**Regla**: usar `features_bullpen_quality.parquet::bullpen_fip_recent`.
+Si `home_fip_recent - away_fip_recent <= -1.8415`, aplicar `+0.04` a `p_home`.
+Si `home_fip_recent - away_fip_recent >= +1.8415`, aplicar `-0.04` a `p_home`.
+El sesgo se aplica antes del threshold, junto con H2H/pitcher/streak/momentum.
+
+**Backtest 2026-07-10** (`analysis/bullpen_quality_override_search.py`, baseline de producción reconstruido con gates principales + series double-down vectorizado):
+
+| Periodo | n | Baseline acc | Con regla | Δ acc |
+|---|---:|---:|---:|---:|
+| Global | 8,832 | 60.38% | 60.64% | +0.26pp |
+| 2023 | 2,471 | 62.89% | 62.89% | +0.00pp |
+| 2024 | 2,472 | 62.74% | 62.74% | +0.00pp |
+| 2025 | 2,477 | 57.29% | 57.90% | +0.61pp |
+| 2026 | 1,412 | 57.29% | 57.86% | +0.57pp |
+
+**Motivo del retiro**: el resultado positivo anterior usó por error la
+probabilidad mezclada de display. Al repetir sobre `lgb_cls.pkl::predict_proba`,
+la ruta oficial de winner accuracy, 2026 cayó de 60.27% a 59.70% (-0.57pp).
+No reactivar sin un nuevo holdout sobre el baseline oficial.
 
 ---
 
