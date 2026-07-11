@@ -1699,6 +1699,51 @@ def _home_team_calibration_bias(r, p_home: float) -> float:
     return 0.0
 
 
+# Home team × p_home band calibration — extensión del enfoque STL de Codex.
+# Sweep exhaustivo (30 equipos × 8 bandas) revela 26 combos con gap concordante
+# en 2025 y 2026 y magnitud >=5pp. Se seleccionan 15 con evidencia más fuerte,
+# excluyendo STL [0.40,0.45) que ya cubre Codex vía _home_team_calibration_bias.
+# Backtest top 15: +0.68pp acc 2026, +0.60pp 2025. Gate 2025+.
+# Bias: signo del gap 2026 × 0.07.
+# Revalidar mensual — si un combo cae bajo |4pp| gap en 2026, retirar.
+HOME_BAND_CALIBRATION: list[tuple[str, float, float, float]] = [
+    ("CWS", 0.35, 0.40, +0.07),  # gap25 +9.8, gap26 +43.5
+    ("WSH", 0.55, 0.60, -0.07),  # gap25 -29.1, gap26 -39.6
+    ("PHI", 0.60, 0.65, +0.07),  # gap25 +6.3, gap26 +29.2 (concord 4 años)
+    ("CWS", 0.45, 0.50, +0.07),  # gap25 +6.3, gap26 +26.3
+    ("MIA", 0.50, 0.55, +0.07),  # gap25 +14.4, gap26 +23.5
+    ("NYM", 0.60, 0.65, -0.07),  # gap25 -14.2, gap26 -22.0
+    ("CLE", 0.55, 0.60, -0.07),  # gap25 -9.7, gap26 -20.8
+    ("PIT", 0.55, 0.60, -0.07),  # gap25 -19.9, gap26 -19.1
+    ("STL", 0.55, 0.60, -0.07),  # gap25 -7.8, gap26 -16.7 (banda distinta a Codex)
+    ("HOU", 0.40, 0.45, +0.07),  # gap25 +31.8, gap26 +14.1
+    ("CLE", 0.50, 0.55, +0.07),  # gap25 +10.0, gap26 +13.9 (concord 4 años)
+    ("MIL", 0.50, 0.55, +0.07),  # gap25 +22.1, gap26 +13.9
+    ("AZ",  0.40, 0.45, +0.07),  # gap25 +13.8, gap26 +13.5
+    ("NYY", 0.60, 0.65, -0.07),  # gap25 -12.4, gap26 -12.7
+    ("MIA", 0.40, 0.45, +0.07),  # gap25 +7.6, gap26 +11.9
+]
+
+
+def _home_band_calibration_bias(r, p_home: float) -> float:
+    """Sesgo por (home_team, banda p_home) — extension del calibration bias
+    de Codex a los 15 combos con mayor gap concordante en 25-26. Gate 2025+."""
+    try:
+        season = int(r.get("season"))
+        if season < 2025:
+            return 0.0
+        home = r.get("home_team_abbrev")
+        if not home:
+            return 0.0
+        p = float(p_home)
+        for team, lo, hi, bias in HOME_BAND_CALIBRATION:
+            if home == team and lo <= p < hi:
+                return bias
+    except Exception:
+        pass
+    return 0.0
+
+
 def _interleague_nl_bias(r, p_home: float) -> float:
     """Favor the NL side in low-confidence interleague games, gate 2025+."""
     try:
@@ -2827,6 +2872,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
         blowout_applied = False
         weather_extreme_applied = False
         home_calibration_applied = False
+        home_band_calib_applied = False
         interleague_applied = False
         umpire_market_applied = False
         circadian_applied = False
@@ -2855,13 +2901,15 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             # Retirarlos costaba esos pp → SE MANTIENEN.
             weather_extreme_bias = _weather_extreme_bias(r)
             home_calibration_bias = _home_team_calibration_bias(r, p_home)
+            home_band_calib_bias = _home_band_calibration_bias(r, p_home)
             interleague_bias = _interleague_nl_bias(r, p_home)
             umpire_market_bias = _umpire_market_bias(r)
             circadian_bias = _circadian_extreme_bias(r, p_home)
             travel_resilience_bias = _travel_resilience_bias(r)
             bias = (h2h + pbias + cold_bias + hot_bias + blowout_bias + away_cold_bias
-                    + weather_extreme_bias + home_calibration_bias + interleague_bias
-                    + umpire_market_bias + circadian_bias + travel_resilience_bias)
+                    + weather_extreme_bias + home_calibration_bias + home_band_calib_bias
+                    + interleague_bias + umpire_market_bias + circadian_bias
+                    + travel_resilience_bias)
             p_home_biased = float(np.clip(p_home + bias, 0.001, 0.999)) if bias else p_home
             raw_pick_home = bool(p_home_biased >= _winner_threshold(mp, p_home_biased, ht, at, season_int))
             # flags: se prenden si el sesgo cambio el pick raw
@@ -2874,6 +2922,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             blowout_applied = bool(blowout_bias) and (raw_pick_home != raw_no_bias)
             weather_extreme_applied = bool(weather_extreme_bias) and (raw_pick_home != raw_no_bias)
             home_calibration_applied = bool(home_calibration_bias) and (raw_pick_home != raw_no_bias)
+            home_band_calib_applied = bool(home_band_calib_bias) and (raw_pick_home != raw_no_bias)
             interleague_applied = bool(interleague_bias) and (raw_pick_home != raw_no_bias)
             umpire_market_applied = bool(umpire_market_bias) and (raw_pick_home != raw_no_bias)
             circadian_applied = bool(circadian_bias) and (raw_pick_home != raw_no_bias)
@@ -2971,6 +3020,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             # pipeline completo aunque son 0 en aislamiento).
             "weather_extreme_bias": bool(weather_extreme_applied),
             "home_calibration_bias": bool(home_calibration_applied),
+            "home_band_calib_bias": bool(home_band_calib_applied),
             "interleague_bias": bool(interleague_applied),
             "umpire_market_bias": bool(umpire_market_applied),
             "circadian_bias": bool(circadian_applied),
