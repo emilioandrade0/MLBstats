@@ -1810,6 +1810,61 @@ def _is_night_elite(pick_home: bool, home_team: str | None,
     return picked in NIGHT_ELITE_TEAMS
 
 
+def _final_pick_home(c, r, p_home: float) -> bool:
+    """Pick FINAL replicando exactamente la lógica del card builder.
+
+    Aplica en orden:
+      1. Suma de todos los biases a p_home (h2h + pitcher + streaks + momentum
+         + Codex biases + band_calibration)
+      2. Threshold season-aware sobre p_home ajustado
+      3. Trap flips (team/day/night/pickday/pickmonth)
+      4. Series double-down trap (2026+, si contexto lo permite)
+
+    Se usa desde /api/performance para dar el mismo numero que Resultados.
+    """
+    if not np.isfinite(p_home):
+        return False
+    ht = r.get("home_team_abbrev")
+    at = r.get("away_team_abbrev")
+    mp = r.get("market_p_home", float("nan"))
+    season = int(r["season"]) if pd.notna(r.get("season")) else None
+    gd = r.get("game_date")
+    hpid = r.get("probable_home_pitcher_id")
+    apid = r.get("probable_away_pitcher_id")
+    dn = r.get("day_night")
+    try:
+        bias = (
+            _h2h_bias(ht, at, season)
+            + _pitcher_bias(hpid, apid, season)
+            + _home_cold_streak_bias(c, r)
+            + _away_hot_streak_bias(c, r)
+            + _home_blowout_momentum_bias(c, r)
+            + _away_cold_streak_bias(c, r)
+            + _weather_extreme_bias(r)
+            + _home_team_calibration_bias(r, p_home)
+            + _home_band_calibration_bias(r, p_home)
+            + _interleague_nl_bias(r, p_home)
+            + _umpire_market_bias(r)
+            + _circadian_extreme_bias(r, p_home)
+            + _travel_resilience_bias(r)
+        )
+    except Exception:
+        bias = 0.0
+    p_adj = float(np.clip(p_home + bias, 0.001, 0.999)) if bias else p_home
+    raw = bool(p_adj >= _winner_threshold(mp, p_adj, ht, at, season))
+    reason = _flip_reason(raw, ht, at, gd, dn)
+    pick_is_home = (not raw) if reason else raw
+    # Series double-down trap (2026+): defer to market cuando el modelo
+    # repite un pick previamente fallido en la misma serie.
+    try:
+        if _series_double_down_market(c, r, pick_is_home):
+            if pd.notna(mp):
+                pick_is_home = bool(float(mp) > 0.5)
+    except Exception:
+        pass
+    return pick_is_home
+
+
 def _flip_reason(pick_home: bool, home_team: str | None,
                  away_team: str | None,
                  game_date=None,
@@ -2586,14 +2641,11 @@ def performance(days: int = 60):
         if not np.isfinite(p_home):
             continue
         home_won = bool(r["home_score"] > r["away_score"])
-        model_side = "HOME" if _pick_home_from_phome(
-            p_home,
-            r.get("market_p_home", float("nan")),
-            r.get("home_team_abbrev"),
-            r.get("away_team_abbrev"),
-            int(r["season"]) if pd.notna(r.get("season")) else None,
-            r.get("game_date"),
-        ) else "AWAY"
+        # Usa _final_pick_home para replicar EXACTAMENTE la logica del card
+        # builder (todos los biases + traps + series DD). Antes usaba
+        # _pick_home_from_phome que solo tenia threshold+h2h+traps, dando
+        # numeros inconsistentes con Resultados. Fix 2026-07-12.
+        model_side = "HOME" if _final_pick_home(c, r, p_home) else "AWAY"
         model_won = (model_side == "HOME") == home_won
         market_side = "HOME" if pd.notna(r.get("market_p_home")) and float(r.get("market_p_home")) >= 0.5 else "AWAY"
         market_won = (market_side == "HOME") == home_won if pd.notna(r.get("market_p_home")) else None
