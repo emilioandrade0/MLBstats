@@ -1840,7 +1840,7 @@ def _final_pick_home(c, r, p_home: float) -> bool:
             + _away_hot_streak_bias(c, r)
             + _home_blowout_momentum_bias(c, r)
             + _away_cold_streak_bias(c, r)
-            + _weather_extreme_bias(r)
+            # + _weather_extreme_bias(r)  # RETIRED 2026-07-12 (audit)
             + _home_team_calibration_bias(r, p_home)
             + _home_band_calibration_bias(r, p_home)
             + _interleague_nl_bias(r, p_home)
@@ -2947,11 +2947,12 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             #  ✓ interleague     +12.9pp acc (n=116, 31 flippeos)
             #  ✓ umpire_market   +9.3pp acc (n=86, 10 flippeos)
             #  ✓ travel_resil    +10.0pp acc (n=60, 14 flippeos)
-            # Netos por regla en aislamiento pero en el pipeline completo
-            # weather_extreme y circadian contribuyen +0.10pp global +0.28pp
-            # 2025 +0.07pp 2026 al alterar el flow downstream de otras rules.
-            # Retirarlos costaba esos pp → SE MANTIENEN.
-            weather_extreme_bias = _weather_extreme_bias(r)
+            # Audit override 2026-07-12: weather_extreme RETIRADO — perdia
+            # en las 3 ventanas (30d 1/3 -1net, 60d 1/4 -2net, 2026 1/4 -2net).
+            # Codigo/funcion se mantiene para revalidar en el futuro.
+            # circadian y otros mantienen contribucion marginal por interaccion
+            # con downstream rules.
+            weather_extreme_bias = 0.0  # RETIRED 2026-07-12 (audit)
             home_calibration_bias = _home_team_calibration_bias(r, p_home)
             home_band_calib_bias = _home_band_calibration_bias(r, p_home)
             interleague_bias = _interleague_nl_bias(r, p_home)

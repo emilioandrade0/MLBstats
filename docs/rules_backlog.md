@@ -18,7 +18,7 @@ Validación independiente con backtest completo desde el modelo base:
 | **interleague_nl** | 116 | 31 | 57.8% | 70.7% | **+12.9pp** | ✅ Retenida |
 | **travel_resilience** | 60 | 14 | 60.0% | 70.0% | **+10.0pp** | ✅ Retenida |
 | **umpire_market** | 86 | 10 | 61.6% | 70.9% | **+9.3pp** | ✅ Retenida |
-| weather_extreme | 50 | 6 | 62.0% | 62.0% | **+0.0pp** aislado | ✅ Retenida (interacción) |
+| ~~weather_extreme~~ | 50 | 6 | 62.0% | 62.0% | **+0.0pp** aislado | ❌ **Retirada 2026-07-12** (audit) |
 | circadian_extreme | 36 | 6 | 63.9% | 63.9% | **+0.0pp** aislado | ✅ Retenida (interacción) |
 
 **Impacto real medido**: PRE Codex 59.92% → CON Codex 62.11% en 2026 (+2.20pp)
@@ -31,6 +31,18 @@ en 2025 -0.07pp en 2026. Aunque en aislamiento cancelan flippeos, en el
 pipeline completo alteran el flow downstream de otras rules y contribuyen
 marginalmente positivo. **Se mantienen**. Lección: no basarse solo en tests
 aislados — verificar siempre en el pipeline completo.
+
+**Update 2026-07-12 (audit override)**: creado `analysis/override_audit.py`
+que revisa el net win-rate de cada override en ventanas 30d/60d/2026 completo.
+Resultados:
+- 🟢 h2h, blowout_momentum, travel_resil, home_band_calib, interleague: gana consistente
+- 🟡 home_cold_streak, away_hot_streak: neutrales recientes, historial positivo
+- 🔴 **weather_extreme: RETIRADA** — 30d 1/3 (-1), 60d 1/4 (-2), 2026 1/4 (-2)
+  Pierde en las 3 ventanas. Impacto de retiro: -0.05pp 2026 (interacción pipeline)
+  pero elimina rule negativa. Circadian mantenida por muestra chica (2/2 30d).
+
+**Protocolo de audit mensual**: correr `python analysis/override_audit.py`
+tras cada retrain. Si un override tiene net negativo en 30d Y 60d, retirar.
 
 ---
 
@@ -400,6 +412,37 @@ varios juegos problemáticos), los venues con acc_26 <=0.50 son:
 - Citi Field: 50.00% (n=46) → flip da 50%
 - Camden Yards: 50.00% (n=50) → flip da 50%
 - Ambos en coin flip exacto → ganancia cero.
+
+### Pitcher rest days (4 vs 5+) (2026-07-10)
+
+**Idea**: Pitchers con extra rest tienen ventaja no capturada por modelo.
+
+**Resultado**: descartado. Buckets home_rest = 7, away_rest = 7, y rest_diff
+extremos muestran discord cross-year (signos flippean 23-24 vs 25-26). El
+modelo ya integra `starter_days_rest` como feature.
+
+### Slate slot (game #1 vs late) (2026-07-10)
+
+**Idea**: Late-slot games menos precias por mercado.
+
+**Resultado**: descartado. Slot 6+ tiene gap +1.7pp concordante pero
+cualquier bias empeora acc (todos deltas negativos, mejor -0.354pp 2026).
+Modelo ya integra vía features.
+
+### Team-vs-team prev series carryover (2026-07-10)
+
+**Idea**: Si home barrió/fue barrido en serie previa contra este rival,
+hay carryover.
+
+**Resultado**: descartado. Signos flippean cross-year (0/3 barrido: +5/+5/-1/-7,
+3/3 dominó: +0.6/+0.1/-2/+10). Backtest best +0.071pp 2026 dentro del ruido.
+
+### Doubleheader game 2 (2026-07-10)
+
+**Idea**: Bullpen fatigue + rotación en game 2 de DH.
+
+**Resultado**: descartado. Solo n=3 juegos DH game 2 en 2026 — muestra
+totalmente insuficiente para decidir.
 
 ### Rest-day mismatch (2026-07-09)
 
