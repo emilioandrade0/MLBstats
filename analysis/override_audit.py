@@ -37,6 +37,16 @@ from src.serve.api import (
     _home_band_calibration_bias,
     _interleague_nl_bias, _umpire_market_bias,
     _circadian_extreme_bias, _travel_resilience_bias,
+    _pythag_luck_bias,
+    _babip_persistence_bias,
+    _lob_persistence_bias,
+    _cws_night_bias,
+    _catcher_battery_regime_bias,
+    _comeback_deficit_regression_bias,
+    _runs_median_persistence_bias,
+    _burn_resilience_bias,
+    _starter_workload_regression_bias,
+    _highlev_fatigue_bias,
 )
 
 
@@ -71,10 +81,52 @@ def load_data():
         ["game_pk", "circ_x_day_home"]
     ]
     tr = tr.merge(circ, on="game_pk", how="left")
+    luck = pd.read_parquet(ROOT / "data" / "processed" / "features_luck.parquet")[
+        ["game_pk", "side", "babip_luck_net"]
+    ]
+    luck_wide = luck.pivot(index="game_pk", columns="side", values="babip_luck_net").reset_index()
+    luck_wide.columns = ["game_pk", "babip_luck_net_a", "babip_luck_net_h"]
+    tr = tr.merge(luck_wide, on="game_pk", how="left")
+    cluster = pd.read_parquet(ROOT / "data" / "processed" / "features_cluster_luck.parquet")[
+        ["game_pk", "team", "lob_off_dev", "lob_def_dev"]
+    ]
+    home_cluster = cluster.rename(columns={"team": "home_team_abbrev", "lob_off_dev": "lob_off_dev_h", "lob_def_dev": "lob_def_dev_h"})
+    away_cluster = cluster.rename(columns={"team": "away_team_abbrev", "lob_off_dev": "lob_off_dev_a", "lob_def_dev": "lob_def_dev_a"})
+    tr = tr.merge(home_cluster, on=["game_pk", "home_team_abbrev"], how="left")
+    tr = tr.merge(away_cluster, on=["game_pk", "away_team_abbrev"], how="left")
+    catcher_path = ROOT / "data" / "processed" / "features_catcher_control.parquet"
+    if catcher_path.exists():
+        catcher = pd.read_parquet(catcher_path, columns=["game_pk", "side", "battery_kbb_l8"])
+        catcher_wide = catcher.pivot(index="game_pk", columns="side", values="battery_kbb_l8").reset_index()
+        catcher_wide = catcher_wide.rename(columns={"away": "battery_kbb_l8_a", "home": "battery_kbb_l8_h"})
+        tr = tr.merge(catcher_wide, on="game_pk", how="left")
+    side_sources = [
+        ("features_comeback.parquet", "cb_avg_def_l30"),
+        ("features_game_flow.parquet", "runs_median_l20"),
+        ("features_burn.parquet", "burn_score"),
+    ]
+    for filename, value in side_sources:
+        source_path = ROOT / "data" / "processed" / filename
+        if source_path.exists():
+            source = pd.read_parquet(source_path, columns=["game_pk", "side", value])
+            source_wide = source.pivot(index="game_pk", columns="side", values=value).reset_index()
+            source_wide = source_wide.rename(columns={"away": f"{value}_a", "home": f"{value}_h"})
+            tr = tr.merge(source_wide, on="game_pk", how="left")
+    for filename in ["features_starter_workload.parquet", "features_high_leverage.parquet"]:
+        source_path = ROOT / "data" / "processed" / filename
+        if source_path.exists():
+            tr = tr.merge(pd.read_parquet(source_path), on="game_pk", how="left")
     return tr
 
 
-# Lista de overrides que aportan bias sumable a p_home.
+# Overrides RETIRADOS del pipeline en producción (no auditar, comentar aquí):
+# - weather_extreme (retirado 2026-07-12, audit fallaba en 3 ventanas)
+# - burn_resilience (retirado 2026-07-17, audit fallaba -8 net 2026)
+# - umpire_market (retirado 2026-07-17, ninguna variante rescata en sweep)
+# Sus funciones siguen definidas en api.py por si un audit futuro las
+# valida de vuelta, pero NO se aplican al pick actual.
+
+# Lista de overrides ACTIVOS que aportan bias sumable a p_home.
 # Excluye traps (team/day/night/pickday/pickmonth) porque son flip categorico.
 OVERRIDES = [
     ("h2h",              lambda r, p, c: _h2h_bias(r["home_team_abbrev"], r["away_team_abbrev"], int(r["season"]))),
@@ -83,13 +135,23 @@ OVERRIDES = [
     ("away_hot_streak",  lambda r, p, c: _away_hot_streak_bias(c, r)),
     ("blowout_momentum", lambda r, p, c: _home_blowout_momentum_bias(c, r)),
     ("away_cold_streak", lambda r, p, c: _away_cold_streak_bias(c, r)),
-    ("weather_extreme",  lambda r, p, c: _weather_extreme_bias(r)),
+    # ("weather_extreme",  lambda r, p, c: _weather_extreme_bias(r)),  # RETIRADO 2026-07-12
     ("stl_calibration",  lambda r, p, c: _home_team_calibration_bias(r, p)),
     ("home_band_calib",  lambda r, p, c: _home_band_calibration_bias(r, p)),
     ("interleague",      lambda r, p, c: _interleague_nl_bias(r, p)),
-    ("umpire_market",    lambda r, p, c: _umpire_market_bias(r)),
+    # ("umpire_market",    lambda r, p, c: _umpire_market_bias(r)),   # RETIRADO 2026-07-17
     ("circadian",        lambda r, p, c: _circadian_extreme_bias(r, p)),
     ("travel_resil",     lambda r, p, c: _travel_resilience_bias(r)),
+    ("pythag_luck",      lambda r, p, c: _pythag_luck_bias(r, p)),
+    ("babip_persist",    lambda r, p, c: _babip_persistence_bias(r, p)),
+    ("lob_persist",      lambda r, p, c: _lob_persistence_bias(r, p)),
+    ("cws_night",        lambda r, p, c: _cws_night_bias(r, p)),
+    ("catcher_battery",  lambda r, p, c: _catcher_battery_regime_bias(r, p)),
+    ("comeback_deficit", lambda r, p, c: _comeback_deficit_regression_bias(r, p)),
+    ("runs_median",      lambda r, p, c: _runs_median_persistence_bias(r, p)),
+    # ("burn_resilience",  lambda r, p, c: _burn_resilience_bias(r, p)), # RETIRADO 2026-07-17
+    ("starter_workload", lambda r, p, c: _starter_workload_regression_bias(r, p)),
+    ("highlev_fatigue",  lambda r, p, c: _highlev_fatigue_bias(r, p)),
 ]
 
 
