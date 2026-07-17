@@ -149,7 +149,7 @@ OVERRIDES = [
     ("catcher_battery",  lambda r, p, c: _catcher_battery_regime_bias(r, p)),
     ("comeback_deficit", lambda r, p, c: _comeback_deficit_regression_bias(r, p)),
     ("runs_median",      lambda r, p, c: _runs_median_persistence_bias(r, p)),
-    # ("burn_resilience",  lambda r, p, c: _burn_resilience_bias(r, p)), # RETIRADO 2026-07-17
+    # ("burn_resilience",  lambda r, p, c: _burn_resilience_bias(r, p)), # RETIRADO 2026-07-17 (A/B pipeline confirmó -3 hits)
     ("starter_workload", lambda r, p, c: _starter_workload_regression_bias(r, p)),
     ("highlev_fatigue",  lambda r, p, c: _highlev_fatigue_bias(r, p)),
 ]
