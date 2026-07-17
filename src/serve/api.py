@@ -1895,10 +1895,15 @@ def _umpire_market_bias(r) -> float:
 
 
 def _circadian_extreme_bias(r, p_home: float) -> float:
-    """Favor home when the away body clock is 2+ hours west in a day game."""
+    """Favor home when the away body clock is 3+ hours west in a day game.
+
+    Re-tuned 2026-07-17: umbral circ>=3 (era >=2). Sweep mostró que umbral más
+    estricto convierte el -1 net baseline en +1 net (4/7). Trigger más raro
+    pero direccionalmente correcto.
+    """
     try:
         if (int(r.get("season")) >= 2025 and 0.40 <= float(p_home) < 0.50
-                and float(r.get("circ_x_day_home")) >= 2):
+                and float(r.get("circ_x_day_home")) >= 3):
             return CIRCADIAN_HOME_BIAS
     except Exception:
         pass
@@ -2033,9 +2038,13 @@ def _highlev_fatigue_bias(r, p_home: float) -> float:
 
 
 def _catcher_battery_regime_bias(r, p_home: float) -> float:
-    """Regress an extreme starter-catcher K/BB edge in the 2026 regime."""
+    """Regress an extreme starter-catcher K/BB edge in the 2026 regime.
+
+    Re-tuned 2026-07-17: banda 0.52-0.58 (era 0.50-0.60). Sweep mostró que la
+    banda estrecha convierte el -1 net del baseline en +4 net (6/8, 75% acc).
+    """
     try:
-        if int(r.get("season")) != 2026 or not 0.50 <= float(p_home) < 0.60:
+        if int(r.get("season")) != 2026 or not 0.52 <= float(p_home) < 0.58:
             return 0.0
         advantage = float(r.get("battery_kbb_l8_h")) - float(r.get("battery_kbb_l8_a"))
         if abs(advantage) >= CATCHER_BATTERY_REGIME_THRESHOLD:
@@ -2091,7 +2100,7 @@ def _final_pick_home(c, r, p_home: float) -> bool:
             + _home_team_calibration_bias(r, p_home)
             + _home_band_calibration_bias(r, p_home)
             + _interleague_nl_bias(r, p_home)
-            + _umpire_market_bias(r)
+            # + _umpire_market_bias(r)  # RETIRED 2026-07-17 (audit + sweep: -1 net 2026, ninguna variante rescata)
             + _circadian_extreme_bias(r, p_home)
             + _travel_resilience_bias(r)
             + _pythag_luck_bias(r, p_home)
@@ -3261,7 +3270,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             home_calibration_bias = _home_team_calibration_bias(r, p_home)
             home_band_calib_bias = _home_band_calibration_bias(r, p_home)
             interleague_bias = _interleague_nl_bias(r, p_home)
-            umpire_market_bias = _umpire_market_bias(r)
+            umpire_market_bias = 0.0  # RETIRED 2026-07-17 (audit + sweep: -1 net 2026, ninguna variante rescata)
             circadian_bias = _circadian_extreme_bias(r, p_home)
             travel_resilience_bias = _travel_resilience_bias(r)
             pythag_luck_bias = _pythag_luck_bias(r, p_home)
