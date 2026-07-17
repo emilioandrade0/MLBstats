@@ -239,13 +239,58 @@ def _merge_runtime_game_context(train: pd.DataFrame) -> pd.DataFrame:
             wide = travel.pivot(index="game_pk", columns="side")
             wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
             train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        luck_path = PROCESSED / "features_luck.parquet"
+        if luck_path.exists() and "babip_luck_net_a" not in train.columns:
+            luck = pd.read_parquet(luck_path, columns=["game_pk", "side", "babip_luck_net"])
+            wide = luck.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        cluster_path = PROCESSED / "features_cluster_luck.parquet"
+        if cluster_path.exists() and "lob_off_dev_h" not in train.columns:
+            cluster = pd.read_parquet(cluster_path, columns=["game_pk", "team", "lob_off_dev", "lob_def_dev"])
+            home = cluster.rename(columns={"team": "home_team_abbrev", "lob_off_dev": "lob_off_dev_h", "lob_def_dev": "lob_def_dev_h"})
+            away = cluster.rename(columns={"team": "away_team_abbrev", "lob_off_dev": "lob_off_dev_a", "lob_def_dev": "lob_def_dev_a"})
+            train = train.merge(home, on=["game_pk", "home_team_abbrev"], how="left")
+            train = train.merge(away, on=["game_pk", "away_team_abbrev"], how="left")
+        comeback_path = PROCESSED / "features_comeback.parquet"
+        if comeback_path.exists() and "cb_avg_def_l30_h" not in train.columns:
+            comeback = pd.read_parquet(comeback_path, columns=["game_pk", "side", "cb_avg_def_l30"])
+            wide = comeback.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        flow_path = PROCESSED / "features_game_flow.parquet"
+        if flow_path.exists() and "runs_median_l20_h" not in train.columns:
+            flow = pd.read_parquet(flow_path, columns=["game_pk", "side", "runs_median_l20"])
+            wide = flow.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        burn_path = PROCESSED / "features_burn.parquet"
+        if burn_path.exists() and "burn_score_h" not in train.columns:
+            burn = pd.read_parquet(burn_path, columns=["game_pk", "side", "burn_score"])
+            wide = burn.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        workload_path = PROCESSED / "features_starter_workload.parquet"
+        if workload_path.exists() and "starter_prev_pitches_h" not in train.columns:
+            workload = pd.read_parquet(workload_path)
+            train = train.merge(workload, on="game_pk", how="left")
+        highlev_path = PROCESSED / "features_high_leverage.parquet"
+        if highlev_path.exists() and "highlev_pitches_1d_h" not in train.columns:
+            highlev = pd.read_parquet(highlev_path)
+            train = train.merge(highlev, on="game_pk", how="left")
+        catcher_path = PROCESSED / "features_catcher_control.parquet"
+        if catcher_path.exists() and "battery_kbb_l8_h" not in train.columns:
+            catcher = pd.read_parquet(catcher_path, columns=["game_pk", "side", "battery_kbb_l8"])
+            wide = catcher.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
         return train
     except Exception:
         return train
 
 
 def _load():
-    if _cache:
+    if "train" in _cache:
         return _cache
     train = pd.read_parquet(PROCESSED / "train.parquet")
     train = _merge_runtime_game_context(train)
@@ -1494,11 +1539,14 @@ def _winner_threshold(
 # below 50% in ALL four seasons for these cases, so we invert it.
 #   pick ON LAA          → 0.44/0.32/0.47/0.48 by season (model overrates them)
 #   pick AGAINST MIL     → 0.27/0.48/0.46/0.45 (model underrates MIL)
-# Combined flip on top of the 2026 threshold fix: +0.45pp global, positive in
-# all 4 seasons. HOU fade tested and rejected (2/4 seasons, failed 2026).
+# MIL is normalized with a model-market agreement gate: the flip only fires
+# when both probabilities differ by at most 7pp. Exact production backtest:
+# pick rate 85.4% -> 81.3%, 2025 +0, 2026 +2 (H1 +1, H2 +1).
+# HOU fade tested and rejected (2/4 seasons, failed 2026).
 # Re-validate each season — team identity rules decay when rosters change.
 TRAP_PICK_TEAMS = {"LAA"}
 TRAP_FADE_TEAMS = {"MIL"}
+MIL_TRAP_MODEL_MARKET_MAX_GAP = 0.07
 
 # Day-specific fades: (opponent, dayofweek Mon=0..Sun=6) where the pick fails
 # below 50% in 3+ seasons of walk-forward, small-n but consistent enough to
@@ -1599,6 +1647,16 @@ H2H_PICK_BIAS: dict[tuple[str, str], float] = {
     ("PHI", "NYM"): +0.08,
 }
 
+# Venue-specific H2H regression across every ordered matchup. When the same
+# home team has dominated this visitor historically, a modest 50-60% model
+# favorite is overconfident often enough to justify a conservative away lean.
+# The win rate is Beta(2.5, 2.5)-shrunk and uses only games from earlier dates.
+H2H_VENUE_MIN_PRIOR = 3
+H2H_VENUE_SHRINK_GAMES = 5.0
+H2H_VENUE_HOME_WPCT_THRESHOLD = 0.70
+H2H_VENUE_REGRESSION_BIAS = -0.07
+_h2h_venue_cache: dict[tuple[str, str, str, int, int], float] = {}
+
 
 # Pitcher-specific pick biases — abridores donde el modelo miscalibra
 # sistematicamente vs realidad 2023-2026. Se detectan por diferencia entre
@@ -1667,6 +1725,48 @@ def _h2h_bias(home_team: str | None, away_team: str | None,
     return H2H_PICK_BIAS.get((home_team, away_team), 0.0)
 
 
+def _h2h_venue_regression_bias(c, r, p_home: float) -> float:
+    """Fade strong same-venue H2H dominance for modest home favorites."""
+    try:
+        if not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        home = r.get("home_team_abbrev")
+        away = r.get("away_team_abbrev")
+        game_date = pd.Timestamp(r.get("game_date"))
+        if not home or not away or pd.isna(game_date):
+            return 0.0
+        season = int(r.get("season")) if pd.notna(r.get("season")) else None
+        if _h2h_bias(home, away, season):
+            return 0.0
+        train = c["train"]
+        dates = pd.to_datetime(train["game_date"], errors="coerce")
+        prior = train[
+            (train["home_team_abbrev"] == home)
+            & (train["away_team_abbrev"] == away)
+            & dates.lt(game_date)
+            & train["home_win"].notna()
+        ]
+        n_prior = len(prior)
+        if n_prior < H2H_VENUE_MIN_PRIOR:
+            return 0.0
+        last_pk = int(pd.to_numeric(prior["game_pk"], errors="coerce").max())
+        key = (home, away, game_date.date().isoformat(), n_prior, last_pk)
+        cached = _h2h_venue_cache.get(key)
+        if cached is not None:
+            return cached
+        home_wins = float(pd.to_numeric(prior["home_win"], errors="coerce").sum())
+        alpha = H2H_VENUE_SHRINK_GAMES / 2.0
+        shrunk_wpct = (home_wins + alpha) / (n_prior + H2H_VENUE_SHRINK_GAMES)
+        bias = (
+            H2H_VENUE_REGRESSION_BIAS
+            if shrunk_wpct >= H2H_VENUE_HOME_WPCT_THRESHOLD else 0.0
+        )
+        _h2h_venue_cache[key] = bias
+        return bias
+    except Exception:
+        return 0.0
+
+
 HOT_WEATHER_AWAY_BIAS = -0.03
 STL_HOME_CALIBRATION_BIAS = 0.07
 INTERLEAGUE_NL_BIAS = 0.05
@@ -1675,6 +1775,25 @@ UMPIRE_MARKET_AWAY_BIAS = -0.05
 CIRCADIAN_HOME_BIAS = 0.03
 TRAVEL_RESILIENCE_THRESHOLD_MILES = 1200.0
 TRAVEL_RESILIENCE_AWAY_BIAS = -0.07
+PYTHAG_LUCK_THRESHOLD = 0.12
+PYTHAG_LUCK_REGRESSION_BIAS = 0.03
+BABIP_PERSISTENCE_THRESHOLD = 0.07
+BABIP_PERSISTENCE_BIAS = 0.02
+LOB_PERSISTENCE_THRESHOLD = 0.12
+LOB_PERSISTENCE_BIAS = 0.07
+CWS_NIGHT_BIAS = 0.07
+COMEBACK_DEFICIT_REGRESSION_THRESHOLD = 0.30
+COMEBACK_DEFICIT_REGRESSION_BIAS = 0.05
+RUNS_MEDIAN_PERSISTENCE_THRESHOLD = 2.0
+RUNS_MEDIAN_PERSISTENCE_BIAS = 0.04
+BURN_RESILIENCE_THRESHOLD = 14.0
+BURN_RESILIENCE_BIAS = 0.06
+STARTER_WORKLOAD_REGRESSION_THRESHOLD = 34.0
+STARTER_WORKLOAD_REGRESSION_BIAS = 0.04
+HIGHLEV_FATIGUE_THRESHOLD = 27.0
+HIGHLEV_FATIGUE_BIAS = 0.03
+CATCHER_BATTERY_REGIME_THRESHOLD = 2.60
+CATCHER_BATTERY_REGIME_BIAS = 0.05
 AL_TEAMS = {"BAL", "BOS", "CWS", "CLE", "DET", "HOU", "KC", "LAA", "MIN", "NYY", "ATH", "SEA", "TB", "TEX", "TOR"}
 NL_TEAMS = {"AZ", "ATL", "CHC", "CIN", "COL", "LAD", "MIA", "MIL", "NYM", "PHI", "PIT", "SD", "SF", "STL", "WSH"}
 
@@ -1723,6 +1842,7 @@ HOME_BAND_CALIBRATION: list[tuple[str, float, float, float]] = [
     ("NYY", 0.60, 0.65, -0.07),  # gap25 -12.4, gap26 -12.7
     ("MIA", 0.40, 0.45, +0.07),  # gap25 +7.6, gap26 +11.9
 ]
+HOME_BAND_BIAS_SCALE = 1.50
 
 
 def _home_band_calibration_bias(r, p_home: float) -> float:
@@ -1738,7 +1858,7 @@ def _home_band_calibration_bias(r, p_home: float) -> float:
         p = float(p_home)
         for team, lo, hi, bias in HOME_BAND_CALIBRATION:
             if home == team and lo <= p < hi:
-                return bias
+                return bias * HOME_BAND_BIAS_SCALE
     except Exception:
         pass
     return 0.0
@@ -1799,6 +1919,132 @@ def _travel_resilience_bias(r) -> float:
     return 0.0
 
 
+def _pythag_luck_bias(r, p_home: float) -> float:
+    """Retired: the L30 luck regression hurt true walk-forward accuracy."""
+    return 0.0
+
+
+def _babip_persistence_bias(r, p_home: float) -> float:
+    """Follow extreme net BABIP differential near the away-side boundary."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.40 <= float(p_home) < 0.50:
+            return 0.0
+        diff = float(r.get("babip_luck_net_h")) - float(r.get("babip_luck_net_a"))
+        if abs(diff) >= BABIP_PERSISTENCE_THRESHOLD:
+            return float(np.sign(diff)) * BABIP_PERSISTENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _lob_persistence_bias(r, p_home: float) -> float:
+    """Follow extreme net LOB sequencing differential, gate 2025+."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        net_h = float(r.get("lob_def_dev_h")) - float(r.get("lob_off_dev_h"))
+        net_a = float(r.get("lob_def_dev_a")) - float(r.get("lob_off_dev_a"))
+        diff = net_h - net_a
+        if abs(diff) >= LOB_PERSISTENCE_THRESHOLD:
+            return float(np.sign(diff)) * LOB_PERSISTENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _cws_night_bias(r, p_home: float) -> float:
+    """Follow CWS in close night-game bands, gate 2025+."""
+    try:
+        if (int(r.get("season")) < 2025 or not 0.40 <= float(p_home) < 0.60
+                or str(r.get("day_night") or "").lower() != "night"):
+            return 0.0
+        if r.get("home_team_abbrev") == "CWS":
+            return CWS_NIGHT_BIAS
+        if r.get("away_team_abbrev") == "CWS":
+            return -CWS_NIGHT_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _comeback_deficit_regression_bias(r, p_home: float) -> float:
+    """Regress extreme average comeback-deficit differential, gate 2025+."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        diff = float(r.get("cb_avg_def_l30_h")) - float(r.get("cb_avg_def_l30_a"))
+        if abs(diff) >= COMEBACK_DEFICIT_REGRESSION_THRESHOLD:
+            return -float(np.sign(diff)) * COMEBACK_DEFICIT_REGRESSION_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _runs_median_persistence_bias(r, p_home: float) -> float:
+    """Follow an extreme L20 scoring-median differential, gate 2025+."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        diff = float(r.get("runs_median_l20_h")) - float(r.get("runs_median_l20_a"))
+        if abs(diff) >= RUNS_MEDIAN_PERSISTENCE_THRESHOLD:
+            return float(np.sign(diff)) * RUNS_MEDIAN_PERSISTENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _burn_resilience_bias(r, p_home: float) -> float:
+    """Counter over-penalization of the more-burned bullpen, gate 2025+."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        advantage = float(r.get("burn_score_a")) - float(r.get("burn_score_h"))
+        if abs(advantage) >= BURN_RESILIENCE_THRESHOLD:
+            return -float(np.sign(advantage)) * BURN_RESILIENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _starter_workload_regression_bias(r, p_home: float) -> float:
+    """Regress an extreme prior-start pitch-count differential, gate 2025+."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.40 <= float(p_home) < 0.50:
+            return 0.0
+        advantage = float(r.get("starter_prev_pitches_a")) - float(r.get("starter_prev_pitches_h"))
+        if abs(advantage) >= STARTER_WORKLOAD_REGRESSION_THRESHOLD:
+            return -float(np.sign(advantage)) * STARTER_WORKLOAD_REGRESSION_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _highlev_fatigue_bias(r, p_home: float) -> float:
+    """Penalize the side whose top relievers threw much more yesterday."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.45 <= float(p_home) < 0.55:
+            return 0.0
+        advantage = float(r.get("highlev_pitches_1d_a")) - float(r.get("highlev_pitches_1d_h"))
+        if abs(advantage) >= HIGHLEV_FATIGUE_THRESHOLD:
+            return float(np.sign(advantage)) * HIGHLEV_FATIGUE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _catcher_battery_regime_bias(r, p_home: float) -> float:
+    """Regress an extreme starter-catcher K/BB edge in the 2026 regime."""
+    try:
+        if int(r.get("season")) != 2026 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        advantage = float(r.get("battery_kbb_l8_h")) - float(r.get("battery_kbb_l8_a"))
+        if abs(advantage) >= CATCHER_BATTERY_REGIME_THRESHOLD:
+            return -float(np.sign(advantage)) * CATCHER_BATTERY_REGIME_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
 def _is_night_elite(pick_home: bool, home_team: str | None,
                     away_team: str | None, day_night: str | None) -> bool:
     """True iff the pick lands on a night-elite team AND game is a night game."""
@@ -1835,6 +2081,7 @@ def _final_pick_home(c, r, p_home: float) -> bool:
     try:
         bias = (
             _h2h_bias(ht, at, season)
+            + _h2h_venue_regression_bias(c, r, p_home)
             + _pitcher_bias(hpid, apid, season)
             + _home_cold_streak_bias(c, r)
             + _away_hot_streak_bias(c, r)
@@ -1847,12 +2094,22 @@ def _final_pick_home(c, r, p_home: float) -> bool:
             + _umpire_market_bias(r)
             + _circadian_extreme_bias(r, p_home)
             + _travel_resilience_bias(r)
+            + _pythag_luck_bias(r, p_home)
+            + _babip_persistence_bias(r, p_home)
+            + _lob_persistence_bias(r, p_home)
+            + _cws_night_bias(r, p_home)
+            + _comeback_deficit_regression_bias(r, p_home)
+            + _runs_median_persistence_bias(r, p_home)
+            # + _burn_resilience_bias(r, p_home)  # RETIRED 2026-07-17 (audit walk-forward)
+            + _starter_workload_regression_bias(r, p_home)
+            + _highlev_fatigue_bias(r, p_home)
+            + _catcher_battery_regime_bias(r, p_home)
         )
     except Exception:
         bias = 0.0
     p_adj = float(np.clip(p_home + bias, 0.001, 0.999)) if bias else p_home
     raw = bool(p_adj >= _winner_threshold(mp, p_adj, ht, at, season))
-    reason = _flip_reason(raw, ht, at, gd, dn)
+    reason = _flip_reason(raw, ht, at, gd, dn, p_home, mp)
     pick_is_home = (not raw) if reason else raw
     # Series double-down trap (2026+): defer to market cuando el modelo
     # repite un pick previamente fallido en la misma serie.
@@ -1865,10 +2122,33 @@ def _final_pick_home(c, r, p_home: float) -> bool:
     return pick_is_home
 
 
+def _mil_trap_market_agrees(
+    home_team: str | None,
+    away_team: str | None,
+    model_p_home: float | None,
+    market_p_home: float | None,
+) -> bool:
+    """Allow the MIL correction only when model and market differ by <=7pp."""
+    if "MIL" not in {home_team, away_team}:
+        return False
+    try:
+        model_home = float(model_p_home)
+        market_home = float(market_p_home)
+        if not np.isfinite(model_home) or not np.isfinite(market_home):
+            return False
+        model_mil = model_home if home_team == "MIL" else 1.0 - model_home
+        market_mil = market_home if home_team == "MIL" else 1.0 - market_home
+        return abs(model_mil - market_mil) <= MIL_TRAP_MODEL_MARKET_MAX_GAP
+    except (TypeError, ValueError):
+        return False
+
+
 def _flip_reason(pick_home: bool, home_team: str | None,
                  away_team: str | None,
                  game_date=None,
-                 day_night: str | None = None) -> str | None:
+                 day_night: str | None = None,
+                 model_p_home: float | None = None,
+                 market_p_home: float | None = None) -> str | None:
     """Return 'team' if a team trap fires, 'day' if a day-of-week trap fires,
     'night' if a night trap fires (2026+), else None.
 
@@ -1887,7 +2167,14 @@ def _flip_reason(pick_home: bool, home_team: str | None,
             pass
     picked = home_team if pick_home else away_team
     opp = away_team if pick_home else home_team
-    if picked in TRAP_PICK_TEAMS or opp in TRAP_FADE_TEAMS:
+    if picked in TRAP_PICK_TEAMS:
+        return "team"
+    if opp in TRAP_FADE_TEAMS and (
+        opp != "MIL"
+        or _mil_trap_market_agrees(
+            home_team, away_team, model_p_home, market_p_home
+        )
+    ):
         return "team"
     # Night trap (2026+ regime rule): pick sobre equipo listado en night game
     if (season_year is None or season_year >= 2026) and \
@@ -1913,11 +2200,16 @@ def _flip_reason(pick_home: bool, home_team: str | None,
 
 
 def _should_flip_pick(pick_home: bool, home_team: str | None,
-                     away_team: str | None,
-                     game_date=None,
-                     day_night: str | None = None) -> bool:
+                      away_team: str | None,
+                      game_date=None,
+                      day_night: str | None = None,
+                      model_p_home: float | None = None,
+                      market_p_home: float | None = None) -> bool:
     """True iff any trap rule fires and the pick should be inverted."""
-    return _flip_reason(pick_home, home_team, away_team, game_date, day_night) is not None
+    return _flip_reason(
+        pick_home, home_team, away_team, game_date, day_night,
+        model_p_home, market_p_home,
+    ) is not None
 
 
 def _pick_home_from_phome(
@@ -1936,6 +2228,7 @@ def _pick_home_from_phome(
     + day-of-week flips AFTER. Ver H2H_PICK_BIAS / PITCHER_PICK_BIAS /
     TRAP_*_TEAMS / DAY_TRAP_FADE arriba.
     """
+    model_p_home = p_home
     if np.isfinite(p_home):
         bias = _h2h_bias(home_team, away_team, season) + _pitcher_bias(home_pid, away_pid, season)
         if bias:
@@ -1944,7 +2237,10 @@ def _pick_home_from_phome(
         np.isfinite(p_home)
         and p_home >= _winner_threshold(market_p_home, p_home, home_team, away_team, season)
     )
-    if _should_flip_pick(raw, home_team, away_team, game_date):
+    if _should_flip_pick(
+        raw, home_team, away_team, game_date,
+        model_p_home=model_p_home, market_p_home=market_p_home,
+    ):
         return not raw
     return raw
 
@@ -2828,11 +3124,8 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     if cached is not None and (time.time() - cached[0]) < _GAMES_CACHE_TTL_SEC:
         return cached[1]
     sub = train[(train["game_date"] >= s) & (train["game_date"] <= e)].copy()
-    if team_filter:
-        sub = sub[
-            (sub["away_team_abbrev"].astype(str).str.upper() == team_filter)
-            | (sub["home_team_abbrev"].astype(str).str.upper() == team_filter)
-        ].copy()
+    # Keep the complete slate while predicting. Slate-level accuracy rules must
+    # produce the same pick when this endpoint is filtered to a single team.
     # Merge first_pitch_utc from games.parquet so the response can carry the
     # scheduled start time and the slot-within-day.
     games_df = c["games"][["game_pk", "first_pitch_utc", "day_night"]]
@@ -2918,6 +3211,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
         pick_abbrev = None
         flip_reason = None
         h2h_applied = False
+        h2h_venue_regression_applied = False
         pitcher_applied = False
         cold_streak_applied = False
         hot_streak_applied = False
@@ -2929,6 +3223,16 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
         umpire_market_applied = False
         circadian_applied = False
         travel_resilience_applied = False
+        pythag_luck_applied = False
+        babip_persistence_applied = False
+        lob_persistence_applied = False
+        cws_night_applied = False
+        comeback_deficit_applied = False
+        runs_median_applied = False
+        burn_resilience_applied = False
+        starter_workload_applied = False
+        highlev_fatigue_applied = False
+        catcher_battery_applied = False
         if np.isfinite(p_home):
             season_int = int(r["season"]) if pd.notna(r.get("season")) else None
             mp = r.get("market_p_home", float("nan"))
@@ -2937,6 +3241,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             gd = r.get("game_date")
             # Streak/momentum biases + H2H pair bias + pitcher bias — sesga p_home antes del umbral
             h2h = _h2h_bias(ht, at, season_int)
+            h2h_venue_regression = _h2h_venue_regression_bias(c, r, p_home)
             pbias = _pitcher_bias(_home_pid, _away_pid, season_int)
             cold_bias = _home_cold_streak_bias(c, r)
             hot_bias = _away_hot_streak_bias(c, r)
@@ -2959,16 +3264,43 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             umpire_market_bias = _umpire_market_bias(r)
             circadian_bias = _circadian_extreme_bias(r, p_home)
             travel_resilience_bias = _travel_resilience_bias(r)
-            bias = (h2h + pbias + cold_bias + hot_bias + blowout_bias + away_cold_bias
+            pythag_luck_bias = _pythag_luck_bias(r, p_home)
+            babip_persistence_bias = _babip_persistence_bias(r, p_home)
+            lob_persistence_bias = _lob_persistence_bias(r, p_home)
+            cws_night_bias = _cws_night_bias(r, p_home)
+            comeback_deficit_bias = _comeback_deficit_regression_bias(r, p_home)
+            runs_median_bias = _runs_median_persistence_bias(r, p_home)
+            burn_resilience_bias = 0.0  # RETIRED 2026-07-17 (audit walk-forward: -8 net en 2026)
+            starter_workload_bias = _starter_workload_regression_bias(r, p_home)
+            highlev_fatigue_bias = _highlev_fatigue_bias(r, p_home)
+            catcher_battery_bias = _catcher_battery_regime_bias(r, p_home)
+            bias = (h2h + h2h_venue_regression + pbias + cold_bias + hot_bias + blowout_bias + away_cold_bias
                     + weather_extreme_bias + home_calibration_bias + home_band_calib_bias
                     + interleague_bias + umpire_market_bias + circadian_bias
-                    + travel_resilience_bias)
+                    + travel_resilience_bias + pythag_luck_bias + babip_persistence_bias
+                    + lob_persistence_bias + cws_night_bias)
+            bias += comeback_deficit_bias
+            bias += runs_median_bias
+            bias += burn_resilience_bias
+            bias += starter_workload_bias
+            bias += highlev_fatigue_bias
+            bias += catcher_battery_bias
             p_home_biased = float(np.clip(p_home + bias, 0.001, 0.999)) if bias else p_home
             raw_pick_home = bool(p_home_biased >= _winner_threshold(mp, p_home_biased, ht, at, season_int))
             # flags: se prenden si el sesgo cambio el pick raw
             raw_no_bias = bool(p_home >= _winner_threshold(mp, p_home, ht, at, season_int))
             if h2h:
                 h2h_applied = raw_pick_home != raw_no_bias
+            if h2h_venue_regression:
+                p_without_h2h_venue = float(np.clip(
+                    p_home + bias - h2h_venue_regression, 0.001, 0.999
+                ))
+                raw_without_h2h_venue = bool(
+                    p_without_h2h_venue >= _winner_threshold(
+                        mp, p_without_h2h_venue, ht, at, season_int
+                    )
+                )
+                h2h_venue_regression_applied = raw_pick_home != raw_without_h2h_venue
             pitcher_applied = bool(pbias) and (raw_pick_home != raw_no_bias)
             cold_streak_applied = bool(cold_bias) and (raw_pick_home != raw_no_bias)
             hot_streak_applied = bool(hot_bias) and (raw_pick_home != raw_no_bias)
@@ -2980,7 +3312,19 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             umpire_market_applied = bool(umpire_market_bias) and (raw_pick_home != raw_no_bias)
             circadian_applied = bool(circadian_bias) and (raw_pick_home != raw_no_bias)
             travel_resilience_applied = bool(travel_resilience_bias) and (raw_pick_home != raw_no_bias)
-            flip_reason = _flip_reason(raw_pick_home, ht, at, gd, r.get("day_night"))
+            pythag_luck_applied = bool(pythag_luck_bias) and (raw_pick_home != raw_no_bias)
+            babip_persistence_applied = bool(babip_persistence_bias) and (raw_pick_home != raw_no_bias)
+            lob_persistence_applied = bool(lob_persistence_bias) and (raw_pick_home != raw_no_bias)
+            cws_night_applied = bool(cws_night_bias) and (raw_pick_home != raw_no_bias)
+            comeback_deficit_applied = bool(comeback_deficit_bias) and (raw_pick_home != raw_no_bias)
+            runs_median_applied = bool(runs_median_bias) and (raw_pick_home != raw_no_bias)
+            burn_resilience_applied = bool(burn_resilience_bias) and (raw_pick_home != raw_no_bias)
+            starter_workload_applied = bool(starter_workload_bias) and (raw_pick_home != raw_no_bias)
+            highlev_fatigue_applied = bool(highlev_fatigue_bias) and (raw_pick_home != raw_no_bias)
+            catcher_battery_applied = bool(catcher_battery_bias) and (raw_pick_home != raw_no_bias)
+            flip_reason = _flip_reason(
+                raw_pick_home, ht, at, gd, r.get("day_night"), p_home, mp
+            )
             pick_is_home = (not raw_pick_home) if flip_reason else raw_pick_home
             # Series double-down trap: if the model repeats the exact pick it
             # just missed in this series AND fights the market, defer to market.
@@ -3052,6 +3396,9 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             # (LAD/COL, PIT/CIN, CIN/MIL). Se aplico un sesgo al p_home ANTES
             # del umbral; el badge se prende si el sesgo cambio el pick raw.
             "h2h_bias": bool(h2h_applied),
+            # H2H venue regression: the local dominated this exact visitor in
+            # prior meetings, but the 50-60% model band historically regresses.
+            "h2h_venue_regression_bias": bool(h2h_venue_regression_applied),
             # Pitcher bias: abridor con miscalibracion historica (ej. Wheeler,
             # Sale, deGrom, Sánchez, Yamamoto). Badge se prende si el sesgo
             # cambio el pick raw.
@@ -3078,6 +3425,18 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             "umpire_market_bias": bool(umpire_market_applied),
             "circadian_bias": bool(circadian_applied),
             "travel_resilience_bias": bool(travel_resilience_applied),
+            "pythag_luck_bias": bool(pythag_luck_applied),
+            "babip_persistence_bias": bool(babip_persistence_applied),
+            "lob_persistence_bias": bool(lob_persistence_applied),
+            "cws_night_bias": bool(cws_night_applied),
+            "comeback_deficit_bias": bool(comeback_deficit_applied),
+            "runs_median_bias": bool(runs_median_applied),
+            "burn_resilience_bias": bool(burn_resilience_applied),
+            "starter_workload_bias": bool(starter_workload_applied),
+            "highlev_fatigue_bias": bool(highlev_fatigue_applied),
+            "catcher_battery_bias": bool(catcher_battery_applied),
+            "phi_road_slate_flip": False,
+            "wsh_strong_slate_flip": False,
             "pitcher_away": pitcher_away,
             "pitcher_home": pitcher_home,
             **v,
@@ -3094,6 +3453,36 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             "home_score": home_score,
             "away_score": away_score,
         })
+    # PHI road correction on uncertain slates. The threshold was learned on
+    # 2025 and validated unchanged on both halves of 2026. This is a final-pick
+    # correction because it must run after traps and series double-down.
+    by_date: dict[str, list[dict]] = {}
+    for game in out:
+        by_date.setdefault(str(game["date"])[:10], []).append(game)
+    for game_date, slate in by_date.items():
+        confidences = [abs(float(g["p_home"]) - 0.5) for g in slate if g.get("p_home") is not None]
+        day_share = float(np.mean([
+            str(sub.loc[sub["game_pk"].eq(g["game_pk"]), "day_night"].iloc[0]).lower() == "day"
+            for g in slate
+        ])) if slate else 0.0
+        if int(game_date[:4]) < 2025 or not confidences or float(np.mean(confidences)) > 0.055:
+            phi_slate = False
+        else:
+            phi_slate = True
+        for game in slate:
+            if phi_slate and game.get("away_abbrev") == "PHI" and game.get("pick_abbrev") == game.get("home_abbrev"):
+                game["pick_abbrev"] = "PHI"
+                game["phi_road_slate_flip"] = True
+            teams = {game.get("away_abbrev"), game.get("home_abbrev")}
+            if (
+                int(game_date[:4]) >= 2025 and "WSH" in teams
+                and game.get("pick_abbrev") != "WSH" and game.get("p_home") is not None
+                and abs(float(game["p_home"]) - 0.5) > 0.08 and day_share >= 0.25
+            ):
+                game["pick_abbrev"] = "WSH"
+                game["wsh_strong_slate_flip"] = True
+    if team_filter:
+        out = [g for g in out if team_filter in {g.get("away_abbrev"), g.get("home_abbrev")}]
     _games_response_cache[cache_key] = (time.time(), out)
     return out
 
