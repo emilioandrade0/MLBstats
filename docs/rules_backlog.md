@@ -3,7 +3,40 @@
 Registro de todas las reglas H2H probadas — activas, retiradas por inertes,
 y retiradas por hacer daño global. Revisar tras cada retrain mensual.
 
-**Última actualización**: 2026-07-18 (juego 3 con serie 2-0)
+**Última actualización**: 2026-07-18 (familia contexto de serie/calendario)
+
+---
+
+## Juego 1 tras ser barrido en la serie anterior (DESCARTADO 2026-07-18)
+
+Se probó si el equipo que viene de perder TODOS los juegos de su serie
+anterior (barrida, serie >= 2) rebota o sigue hundido en el primer juego de
+la serie siguiente. Evaluado en `walkforward_preds.parquet`; barridas
+reconstruidas por equipo desde `games.parquet` (solo juegos previos).
+
+- HOME post-barrida (n=91 en 2025, 59 en 2026): flip de signo total.
+  2025 hwr 38.5% (gap `-11.7pp` vs modelo) → 2026 hwr 62.7% (gap `+11.7pp`).
+  El fade al local barrido daba `+7` en 2025 pero `-5` en 2026 — caso de
+  libro de regla que se ve perfecta en desarrollo y muere en holdout.
+- AWAY post-barrida (n=109/45): gaps `-1.4pp` → `+4.2pp`, biases `+3` en
+  2025 pero negativos en 2026.
+
+Ninguna variante pasa 2025 + 2026 + mitades. No se tocó el runtime.
+
+## Primer juego de road trip tras homestand >= 6 (DESCARTADO 2026-07-18)
+
+Se probó si el visitante que inicia gira tras una estadía larga en casa
+(>= 6 juegos, n=321 en 2025, 182 en 2026) rinde distinto a lo priceado.
+Gaps modelo-realidad: `+2.25pp` (2025) → `-1.81pp` (2026), signo inestable.
+El sweep de biases fue el peor de la familia: todas las variantes negativas
+en ambos años (boost home `-11/-10`, fade home `-13/-8`); la única neutra
+dio exactamente 0 flips netos en 2026. El modelo ya captura el ángulo vía
+travel_resilience y features de viaje. No se tocó el runtime.
+
+Con esto la familia "contexto de serie/calendario" queda agotada: juego 3
+con 2-0, post-barrida y road trip largo, todos descartados. El único
+mecanismo de serie activo sigue siendo el series double-down trap.
+Script: scratchpad `swept_and_roadtrip.py`.
 
 ---
 
