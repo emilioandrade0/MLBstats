@@ -3948,6 +3948,119 @@ def error_analysis(season: int = 0, days: int = 0):
     return {"season": season or pd.Timestamp.now().year, "teams": team_rows}
 
 
+# ─── Apuestas del día — selector calibrado walk-forward ──────────────────────
+# Estrategia S2 (validada 2026-07-18 sobre walkforward_preds.parquet):
+# rankear los picks del día por la PROBABILIDAD DE MERCADO DEL LADO ELEGIDO
+# (que tan favorito de mercado es nuestro pick), con desempate por confianza
+# del pipeline. NO por probabilidad cruda del modelo.
+#   Simulación top-N diario (N=5/3/2 según slate), picks threshold-only:
+#     - Selección S2: 62.2% (2025) / 57.0% (2026 holdout), positiva en ambas
+#       mitades (H1 54.8%, H2 60.3%) vs baseline todos-los-juegos 58.1%/54.9%.
+#     - La tabla empírica aprendida en 2025 (S3) fue mejor en desarrollo
+#       (63.1%) pero PEOR en holdout (55.2%) — descartada por overfit.
+#   El pipeline completo de producción rinde ~5pp más que threshold-only, así
+#   que el hit esperado de la selección diaria ronda 62-65%.
+# Regla de tamaño: 5 picks si el slate tiene >=10 juegos; 3 si 6-9; 2 si <=5.
+# Hit rates históricos por banda de mercado del lado elegido (dev 2025, para
+# mostrar como referencia en la UI — no para seleccionar):
+_DAILY_PICK_BANDS = [
+    (0.70, 1.01, 77.9),
+    (0.62, 0.70, 65.2),
+    (0.55, 0.62, 56.7),
+    (0.45, 0.55, 54.5),
+    (0.00, 0.45, 53.9),
+]
+
+
+def _daily_picks_n(slate_size: int) -> int:
+    if slate_size >= 10:
+        return 5
+    if slate_size >= 6:
+        return 3
+    return 2
+
+
+@app.get("/api/daily-picks")
+async def daily_picks(date: str | None = None):
+    """Picks recomendados del día — selección especial optimizada para acertar.
+
+    No elige por probabilidad cruda del modelo: rankea por el perfil donde el
+    pipeline históricamente acierta (fuerza de mercado del lado elegido, con
+    la confianza del pipeline como desempate). Ver comentario del selector.
+    """
+    from datetime import date as _date
+    target = date or _date.today().isoformat()
+    cards = await games(start=target, end=target)
+    slate = [g for g in cards if g.get("pick_abbrev") and g.get("p_home") is not None]
+    n_slate = len(slate)
+    if n_slate == 0:
+        return {"date": target, "slate_size": 0, "n_picks": 0, "picks": [],
+                "selector": "market-strength", "note": "Sin juegos con pick para esta fecha."}
+
+    scored = []
+    for g in slate:
+        p_home = float(g["p_home"])
+        pick_home = g["pick_abbrev"] == g["home_abbrev"]
+        mp = g.get("market_p_home")
+        if mp is not None and np.isfinite(mp):
+            mkt_pick_p = float(mp) if pick_home else 1.0 - float(mp)
+            agree = (float(mp) >= 0.5) == pick_home
+        else:
+            mkt_pick_p = 0.5
+            agree = True
+        conf = abs(p_home - 0.5)
+        hist_hit = next((h for lo, hi, h in _DAILY_PICK_BANDS if lo <= mkt_pick_p < hi), 55.0)
+        scored.append({
+            "game_pk": g["game_pk"],
+            "first_pitch_utc": g.get("first_pitch_utc"),
+            "venue": g.get("venue"),
+            "away_abbrev": g["away_abbrev"],
+            "home_abbrev": g["home_abbrev"],
+            "pick_abbrev": g["pick_abbrev"],
+            "pick_is_home": pick_home,
+            "p_home": g.get("p_home"),
+            "p_away": g.get("p_away"),
+            "market_p_home": g.get("market_p_home"),
+            "mkt_pick_p": round(mkt_pick_p, 4),
+            "agree_market": bool(agree),
+            "confidence_tier": g.get("confidence_tier"),
+            "tier_hit_rate": g.get("tier_hit_rate"),
+            "hist_hit_band": hist_hit,
+            "pitcher_home": g.get("pitcher_home"),
+            "pitcher_away": g.get("pitcher_away"),
+            "is_played": g.get("is_played"),
+            "is_live": g.get("is_live"),
+            "home_score": g.get("home_score"),
+            "away_score": g.get("away_score"),
+            "_score": (mkt_pick_p, conf),
+        })
+    scored.sort(key=lambda x: x["_score"], reverse=True)
+    n_picks = _daily_picks_n(n_slate)
+    picks = scored[:n_picks]
+    for i, p in enumerate(picks, 1):
+        p["rank"] = i
+        del p["_score"]
+        # resultado si ya terminó
+        if p.get("is_played") and p.get("home_score") is not None and p.get("away_score") is not None:
+            home_won = float(p["home_score"]) > float(p["away_score"])
+            p["pick_won"] = bool(p["pick_is_home"] == home_won)
+        else:
+            p["pick_won"] = None
+    hits = sum(1 for p in picks if p.get("pick_won") is True)
+    settled = sum(1 for p in picks if p.get("pick_won") is not None)
+    return {
+        "date": target,
+        "slate_size": n_slate,
+        "n_picks": n_picks,
+        "selector": "market-strength",
+        "selection_hist": {"acc_2025": 62.2, "acc_2026": 57.0,
+                            "note": "walk-forward threshold-only; el pipeline completo rinde ~5pp más"},
+        "settled": settled,
+        "hits": hits,
+        "picks": picks,
+    }
+
+
 @app.get("/api/burn")
 def burn_report(date: str | None = None):
     """Per-team "carne al asador" report for a given date.

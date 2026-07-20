@@ -474,6 +474,7 @@ function gameTotalRuns(g) {
 const SECTIONS = [
   { id:'hero',    label:'Inicio' },
   { id:'hoy',     label:'Hoy' },
+  { id:'apuestas',label:'Apuestas' },
   { id:'flash',   label:'Flash' },
   { id:'envivo',  label:'En vivo' },
   { id:'valor',   label:'+EV' },
@@ -1243,7 +1244,7 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
       )}
 
       {/* ── Confidence tier + flip badges ──────────────────────────────────── */}
-      {((tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr) || g.team_flip || g.day_flip || g.night_flip || g.pickday_flip || g.pickmonth_flip || g.night_elite || g.series_flip || g.h2h_bias || g.pitcher_bias || g.cold_streak_bias || g.hot_streak_bias || g.blowout_bias) && (
+      {((tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr) || g.team_flip || g.day_flip || g.night_flip || g.pickday_flip || g.pickmonth_flip || g.night_elite || g.series_flip || g.h2h_bias || g.h2h_venue_regression_bias || g.pitcher_bias || g.cold_streak_bias || g.hot_streak_bias || g.blowout_bias || g.weather_extreme_bias || g.home_calibration_bias || g.home_band_calib_bias || g.interleague_bias || g.umpire_market_bias || g.circadian_bias || g.travel_resilience_bias || g.pythag_luck_bias || g.babip_persistence_bias || g.lob_persistence_bias || g.cws_night_bias || g.comeback_deficit_bias || g.runs_median_bias || g.burn_resilience_bias || g.starter_workload_bias || g.highlev_fatigue_bias || g.catcher_battery_bias || g.phi_road_slate_flip || g.wsh_strong_slate_flip) && (
         <div className="px-4 mt-2 flex justify-center gap-1 flex-wrap">
           {tierMeta && g.confidence_tier !== 'parejo' && tierPickAbbr && (
             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8.5px] font-black tracking-[0.14em] uppercase ${tierMeta.cls}`}>
@@ -1254,7 +1255,7 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
           )}
           {g.team_flip && (
             <span
-              title="Ajuste equipo trampa: el modelo pickeaba LAA o contra MIL — histórico <50% acierto en las 4 temporadas. Pick invertido."
+              title="Ajuste de equipo: invierte picks sobre LAA; contra MIL solo cuando modelo y mercado difieren 7 puntos o menos."
               className="inline-flex items-center px-2 py-1 rounded-full border border-accent-orange/40 bg-accent-orange/10 text-accent-orange text-[8.5px] font-black tracking-[0.14em] uppercase">
               Ajuste equipo
             </span>
@@ -1312,6 +1313,13 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
               Ajuste H2H
             </span>
           )}
+          {g.h2h_venue_regression_bias && (
+            <span
+              title="Regresión H2H en sede: el local dominó históricamente a este visitante, pero los favoritos modestos de 50-60% revierten. Backtest incremental: +15 netos global y +3 en 2026."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Regresión H2H
+            </span>
+          )}
           {g.pitcher_bias && (
             <span
               title="Ajuste pitcher: abridor con miscalibración histórica del modelo (Wheeler, Sale, deGrom, Sánchez, Woo, Yamamoto, Civale, etc.). Sesgo aplicado cambió el pick para alinearlo con el historial. Backtest: +0.87pp acc en los juegos afectados 2026."
@@ -1342,6 +1350,139 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
               className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-gold/45 bg-accent-gold/10 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase">
               <span>💥</span>
               <span>Momentum W</span>
+            </span>
+          )}
+          {g.weather_extreme_bias && (
+            <span
+              title="Ajuste clima: temperatura de 90°F o más. El sesgo hacia la visita mejoró el backtest 2026. Regla 2026+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Calor extremo
+            </span>
+          )}
+          {g.home_calibration_bias && (
+            <span
+              title="Ajuste calibración: St. Louis local estaba subestimado cuando p_home cruda quedaba entre 40% y 45%. Sesgo hacia el local. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-purple/45 bg-accent-purple/10 text-accent-purple text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Calibración STL
+            </span>
+          )}
+          {g.home_band_calib_bias && (
+            <span
+              title="Ajuste calibración local: combinación equipo local × banda p_home con error concordante en 2025-2026. Bias recalibrado a 1.5x tras ablación del pipeline."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-purple/45 bg-accent-purple/10 text-accent-purple text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Calibración local
+            </span>
+          )}
+          {g.interleague_bias && (
+            <span
+              title="Ajuste interleague: en juegos AL vs NL con p_home entre 45% y 50%, el residual favorece al equipo de Liga Nacional. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-green/45 bg-accent-green/10 text-accent-green text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Edge NL
+            </span>
+          )}
+          {g.umpire_market_bias && (
+            <span
+              title="Ajuste umpire/mercado: umpire en cuartil alto de accuracy above expected y mercado fuerte hacia la visita. Sesgo adicional hacia visitante. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-gold/45 bg-accent-gold/10 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Umpire edge
+            </span>
+          )}
+          {g.circadian_bias && (
+            <span
+              title="Ajuste circadiano: visitante viajó dos o más zonas al este para juego diurno y el modelo está cerca del umbral. Sesgo hacia el local. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Edge circadiano
+            </span>
+          )}
+          {g.travel_resilience_bias && (
+            <span
+              title="Ajuste viaje: el visitante recorrió al menos 1,200 millas más que el local y el modelo históricamente lo penaliza de más. Sesgo hacia la visita. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-purple/45 bg-accent-purple/10 text-accent-purple text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Resiliencia viaje
+            </span>
+          )}
+          {g.pythag_luck_bias && (
+            <span
+              title="Ajuste suerte pitagórica: diferencia extrema entre récord reciente y rendimiento esperado por carreras. Pick corregido contra el lado más afortunado. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-gold/45 bg-accent-gold/10 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Regresión Pythag
+            </span>
+          )}
+          {g.babip_persistence_bias && (
+            <span
+              title="Ajuste BABIP: diferencia extrema de contacto ofensivo/defensivo reciente que ha persistido en la banda cercana al visitante. Sesgo hacia el lado con mejor señal neta. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-green/45 bg-accent-green/10 text-accent-green text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Persistencia BABIP
+            </span>
+          )}
+          {g.lob_persistence_bias && (
+            <span
+              title="Ajuste LOB: diferencia extrema y persistente en secuenciación de corredores dejados en base, combinando ataque y defensa. Sesgo hacia el lado con mejor señal neta. Regla 2025+, revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Persistencia LOB
+            </span>
+          )}
+          {g.cws_night_bias && (
+            <span
+              title="Ajuste CWS nocturno: en juegos de noche y banda p_home 40%-60%, el modelo ha infravalorado a CWS de forma concordante en 2025-2026. Sesgo hacia CWS. Revalidar mensual."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-purple/45 bg-accent-purple/10 text-accent-purple text-[8.5px] font-black tracking-[0.14em] uppercase">
+              CWS noche
+            </span>
+          )}
+          {g.comeback_deficit_bias && (
+            <span
+              title="Regresión de remontada: diferencia extrema en el déficit promedio remontado durante los últimos 30 juegos. Ajuste contra el extremo en la banda local 50%-60%."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-green/45 bg-accent-green/10 text-accent-green text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Regresión remontada
+            </span>
+          )}
+          {g.runs_median_bias && (
+            <span
+              title="Persistencia ofensiva: diferencia de al menos dos carreras en la mediana anotada durante los últimos 20 juegos. Ajuste hacia el lado superior en la banda local 50%-60%."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Mediana ofensiva
+            </span>
+          )}
+          {g.burn_resilience_bias && (
+            <span
+              title="Resiliencia de bullpen: diferencia extrema en el burn score del juego anterior. Corrige la penalización excesiva hacia el lado más utilizado."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-purple/45 bg-accent-purple/10 text-accent-purple text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Resiliencia bullpen
+            </span>
+          )}
+          {g.starter_workload_bias && (
+            <span
+              title="Carga del abridor: diferencia extrema de lanzamientos en la aparición anterior. Ajuste de regresión en la banda visitante 40%-50%."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-green/45 bg-accent-green/10 text-accent-green text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Carga abridor
+            </span>
+          )}
+          {g.highlev_fatigue_bias && (
+            <span
+              title="Fatiga de alto leverage: los dos relevistas principales de un lado lanzaron al menos 27 pitches más ayer. Ajuste contra el bullpen más cargado."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Fatiga alto leverage
+            </span>
+          )}
+          {g.catcher_battery_bias && (
+            <span
+              title="Régimen catcher-batería 2026: diferencia extrema de K/BB en las ocho aperturas previas de cada pareja. Ajuste de regresión en la banda local 50%-60%."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-purple/45 bg-accent-purple/10 text-accent-purple text-[8.5px] font-black tracking-[0.14em] uppercase">
+              Batería 2026
+            </span>
+          )}
+          {g.phi_road_slate_flip && (
+            <span
+              title="PHI visitante en una jornada de baja confianza media; corrección validada en 2025 y 2026."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-green/45 bg-accent-green/10 text-accent-green text-[8.5px] font-black tracking-[0.14em] uppercase">
+              PHI visitante
+            </span>
+          )}
+          {g.wsh_strong_slate_flip && (
+            <span
+              title="Corrección hacia WSH cuando el pipeline lo enfrenta con confianza alta dentro de una jornada con suficiente béisbol diurno. Validada en 2025 y ambas mitades de 2026."
+              className="inline-flex items-center px-2 py-1 rounded-full border border-accent-blue/45 bg-accent-blue/10 text-accent-blue text-[8.5px] font-black tracking-[0.14em] uppercase">
+              WSH resiliente
             </span>
           )}
         </div>
@@ -2532,6 +2673,149 @@ function MiniStat({ value, suffix, decimals=0, label }) {
       </div>
       <div className="text-[8px] sm:text-[9px] md:text-[10px] tracking-[0.12em] md:tracking-[0.25em] uppercase text-white/45 mt-2 leading-tight">{label}</div>
     </div>
+  );
+}
+
+// ─── APUESTAS DEL DÍA — selección calibrada walk-forward ────────────────────
+// Selector S2: rankea por fuerza de mercado del lado elegido (no por
+// probabilidad cruda del modelo). Validado: 62.2% (2025) / 57.0% (2026
+// holdout) vs 58.1%/54.9% de todos los juegos; el pipeline completo rinde
+// ~5pp más, hit esperado real ~62-65%. N = 5 (slate>=10), 3 (6-9), 2 (<=5).
+function DailyPicksPage({ data, loading }) {
+  if (loading) return (
+    <div className="max-w-[900px] mx-auto px-4 py-16 text-center text-white/40 text-sm">
+      Calculando la selección del día…
+    </div>
+  );
+  if (!data) return null;
+  const picks = data.picks || [];
+  const fmtTime = (iso) => {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true }); }
+    catch { return '—'; }
+  };
+  const rankColors = ['border-accent-gold/50 bg-accent-gold/[0.06]',
+                      'border-white/15 bg-white/[0.03]',
+                      'border-white/15 bg-white/[0.03]',
+                      'border-white/10 bg-white/[0.02]',
+                      'border-white/10 bg-white/[0.02]'];
+  return (
+    <section className="max-w-[1100px] mx-auto px-4 md:px-10 py-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+          <div className="text-[10px] tracking-[0.32em] uppercase text-accent-gold font-black mb-1">Apuestas del día</div>
+          <h2 className="mega text-[34px] leading-none">La selección<br/>del sistema.</h2>
+          <p className="text-white/45 text-sm mt-3 max-w-[560px]">
+            No son los picks con mayor probabilidad del modelo: el selector elige los
+            juegos con el <span className="text-white/70">perfil donde el pipeline históricamente acierta más</span> —
+            picks alineados con favoritos claros de mercado, con la confianza del modelo como desempate.
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-[11px] text-white/40 mb-1">{data.n_picks} picks de {data.slate_size} juegos</div>
+          {data.settled > 0 && (
+            <div className={`mega text-[26px] ${data.hits / data.settled >= 0.5 ? 'text-accent-green' : 'text-accent-red'}`}>
+              {data.hits}/{data.settled} <span className="text-[12px] text-white/40 font-normal">resueltos</span>
+            </div>
+          )}
+          <div className="text-[9px] text-white/30 mt-1 max-w-[220px]">
+            Histórico del selector: 62% (2025) · 57% (2026) sobre picks base — el pipeline completo rinde más.
+          </div>
+        </div>
+      </div>
+
+      {picks.length === 0 && (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-10 text-center text-white/40 text-sm">
+          Sin juegos con pick para esta fecha.
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {picks.map((p, i) => {
+          const won = p.pick_won;
+          const pickP = p.pick_is_home ? p.p_home : p.p_away;
+          const oppAbbrev = p.pick_is_home ? p.away_abbrev : p.home_abbrev;
+          const pitcher = p.pick_is_home ? p.pitcher_home : p.pitcher_away;
+          const reasons = [];
+          if (p.mkt_pick_p >= 0.70) reasons.push({ t: 'Favorito fuerte de mercado', c: 'text-accent-green' });
+          else if (p.mkt_pick_p >= 0.62) reasons.push({ t: 'Favorito claro de mercado', c: 'text-accent-green' });
+          else if (p.mkt_pick_p >= 0.55) reasons.push({ t: 'Favorito moderado', c: 'text-accent-blue' });
+          if (p.agree_market) reasons.push({ t: 'Modelo y mercado de acuerdo', c: 'text-accent-blue' });
+          else reasons.push({ t: 'Modelo contradice al mercado', c: 'text-accent-gold' });
+          if (p.confidence_tier && p.confidence_tier !== 'parejo')
+            reasons.push({ t: `Tier ${p.confidence_tier.toUpperCase()}${p.tier_hit_rate ? ` · ${p.tier_hit_rate.toFixed(0)}%` : ''}`, c: 'text-white/60' });
+          return (
+            <div key={p.game_pk}
+                 className={`rounded-2xl border ${rankColors[i] || rankColors[4]} p-5 flex flex-wrap items-center gap-5`}>
+              {/* Rank */}
+              <div className={`mega text-[30px] w-[46px] text-center ${i === 0 ? 'text-accent-gold' : 'text-white/25'}`}>
+                #{p.rank}
+              </div>
+              {/* Matchup */}
+              <div className="flex items-center gap-3 min-w-[190px]">
+                <img src={teamLogo(p.away_abbrev)} alt={p.away_abbrev}
+                     className="w-9 h-9 object-contain" onError={(e)=>e.target.style.opacity=0.25}/>
+                <span className="text-[11px] text-white/35 font-bold">@</span>
+                <img src={teamLogo(p.home_abbrev)} alt={p.home_abbrev}
+                     className="w-9 h-9 object-contain" onError={(e)=>e.target.style.opacity=0.25}/>
+                <div>
+                  <div className="font-black text-[15px]">{p.away_abbrev} @ {p.home_abbrev}</div>
+                  <div className="text-[10px] text-white/35 tabular-nums">{fmtTime(p.first_pitch_utc)}{p.venue ? ` · ${p.venue}` : ''}</div>
+                </div>
+              </div>
+              {/* Pick */}
+              <div className="flex items-center gap-3">
+                <img src={teamLogo(p.pick_abbrev)} alt={p.pick_abbrev}
+                     className="w-11 h-11 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]"
+                     onError={(e)=>e.target.style.opacity=0.25}/>
+                <div>
+                  <div className="text-[9px] uppercase tracking-[0.2em] text-white/35 font-black">Pick</div>
+                  <div className="mega text-[22px] leading-none">{p.pick_abbrev} ML</div>
+                  <div className="text-[10px] text-white/40">vs {oppAbbrev}{pitcher?.name ? ` · abre ${pitcher.name}` : ''}</div>
+                </div>
+              </div>
+              {/* Percentages */}
+              <div className="flex gap-5 ml-auto items-center">
+                <div className="text-center">
+                  <div className="mega text-[19px] tabular-nums text-accent-blue">{pickP != null ? (pickP * 100).toFixed(1) + '%' : '—'}</div>
+                  <div className="text-[8px] text-white/30 uppercase tracking-wider">modelo</div>
+                </div>
+                <div className="text-center">
+                  <div className="mega text-[19px] tabular-nums text-white/70">{(p.mkt_pick_p * 100).toFixed(1)}%</div>
+                  <div className="text-[8px] text-white/30 uppercase tracking-wider">mercado</div>
+                </div>
+                <div className="text-center">
+                  <div className="mega text-[19px] tabular-nums text-accent-green">{p.hist_hit_band.toFixed(0)}%</div>
+                  <div className="text-[8px] text-white/30 uppercase tracking-wider">hit histórico</div>
+                </div>
+                {/* Result */}
+                {won === true && (
+                  <span className="px-3 py-1.5 rounded-lg bg-accent-green/15 border border-accent-green/40 text-accent-green text-[11px] font-black uppercase tracking-wider">✓ Ganó</span>
+                )}
+                {won === false && (
+                  <span className="px-3 py-1.5 rounded-lg bg-accent-red/15 border border-accent-red/40 text-accent-red text-[11px] font-black uppercase tracking-wider">✗ Perdió</span>
+                )}
+                {won == null && p.is_live && (
+                  <span className="px-3 py-1.5 rounded-lg bg-accent-red/10 border border-accent-red/30 text-accent-red text-[11px] font-black uppercase tracking-wider animate-pulse">● Live</span>
+                )}
+              </div>
+              {/* Reasons */}
+              <div className="w-full flex flex-wrap gap-2 pt-2 border-t border-white/[0.05]">
+                {reasons.map((r, j) => (
+                  <span key={j} className={`text-[9.5px] px-2 py-1 rounded bg-white/[0.04] uppercase tracking-wider font-bold ${r.c}`}>{r.t}</span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 text-[10px] text-white/25 leading-relaxed max-w-[720px]">
+        El selector fue calibrado con walk-forward (desarrollo 2025, validación 2026) y elige
+        {' '}{data.n_picks} picks porque el slate tiene {data.slate_size} juegos (5 con 10+, 3 con 6-9, 2 con 5 o menos).
+        Ninguna selección garantiza resultados; apuesta responsablemente.
+      </div>
+    </section>
   );
 }
 
@@ -4418,6 +4702,8 @@ function App() {
   const [yesterday, setYesterday] = useState(null);
   const [yesterdayLoading, setYesterdayLoading] = useState(false);
   const [burnData, setBurnData] = useState(null);
+  const [dailyPicks, setDailyPicks] = useState(null);
+  const [dailyPicksLoading, setDailyPicksLoading] = useState(false);
   const [burnLoading, setBurnLoading] = useState(false);
   const [comebacks, setComebacks] = useState(null);
   const [comebacksLoading, setComebacksLoading] = useState(false);
@@ -4631,6 +4917,16 @@ function App() {
       .catch(() => setBurnLoading(false));
   }, [activeId, date]);
 
+  // Fetch daily picks (Apuestas) when tab is visited or date changes
+  useEffect(() => {
+    if (activeId !== 'apuestas') return;
+    setDailyPicksLoading(true);
+    fetch(`/api/daily-picks?date=${date}&t=${Date.now()}`)
+      .then(r => r.json())
+      .then(d => { setDailyPicks(d); setDailyPicksLoading(false); })
+      .catch(() => setDailyPicksLoading(false));
+  }, [activeId, date]);
+
   // Fetch comebacks when visiting 'remontas' or when season changes
   useEffect(() => {
     if (activeId !== 'remontas') return;
@@ -4791,6 +5087,9 @@ function App() {
               <YesterdayBanner data={yesterday} />
               <BurnPanel data={burnData} />
               </>
+            )}
+            {activeId === 'apuestas' && (
+              <DailyPicksPage data={dailyPicks} loading={dailyPicksLoading} />
             )}
             {activeId === 'flash' && (
               <>
