@@ -125,25 +125,13 @@ async def _refresh_loop():
     Skips past/future days entirely. Only touches today + N days back. Doesn't
     re-download files that already exist unless `force=True`.
     """
-    from ..refresh import refresh_async
     # Initial delay so the server can start serving requests first.
     await asyncio.sleep(45)
     while True:
-        _last_refresh["started"] = time.time()
-        _last_refresh["running"] = True
-        try:
-            await refresh_async(days_back=1, days_forward=0,
-                                statsapi=True, include_savant=False,
-                                verbose=False)
-            # Invalidate just the market_lines cache so the next request
-            # rebuilds it from the freshly-written odds_close.parquet.
-            _cache["market_lines"] = _build_market_lines()
-            _last_refresh["ok"] = time.time()
-            _last_refresh["err"] = None
-        except Exception as e:
-            _last_refresh["err"] = repr(e)
-        finally:
-            _last_refresh["running"] = False
+        # Reuse the same lock as on-demand refreshes. Previously the periodic
+        # loop could overlap an on-request refresh and rewrite the same parquet
+        # twice, forcing repeated engine reloads while the UI was waiting.
+        await _run_refresh()
         await asyncio.sleep(REFRESH_INTERVAL_SEC)
 
 
@@ -188,33 +176,73 @@ async def refresh_now():
     """Trigger an immediate refresh in the background (non-blocking)."""
     if _last_refresh["running"]:
         return {"queued": False, "reason": "already running"}
-    from ..refresh import refresh_async
-
-    async def _run():
-        _last_refresh["running"] = True
-        _last_refresh["started"] = time.time()
-        try:
-            await refresh_async(days_back=1, statsapi=True, verbose=False)
-            _cache["market_lines"] = _build_market_lines()
-            _last_refresh["ok"] = time.time()
-            _last_refresh["err"] = None
-        except Exception as e:
-            _last_refresh["err"] = repr(e)
-        finally:
-            _last_refresh["running"] = False
-
-    asyncio.create_task(_run())
+    asyncio.create_task(_run_refresh())
     return {"queued": True}
 
 
 # ---------------- caches ----------------
 _cache: dict = {}
 
-# Response cache for /api/games keyed by (start, end). 15s TTL — fast page reloads
+# Response cache for /api/games keyed by (start, end, team). 15s TTL — fast page reloads
 # avoid recomputing predictions and re-fetching live feeds, while in-game state
 # stays current enough for a sport that scores once every few minutes.
 _GAMES_CACHE_TTL_SEC = 15
-_games_response_cache: dict[tuple[str, str], tuple[float, list]] = {}
+_games_response_cache: dict[tuple[str, str, str | None], tuple[float, list]] = {}
+
+
+def _runtime_dependency_signature() -> tuple[tuple[str, int, int], ...]:
+    """Version the in-memory engine from every model/data input it consumes.
+
+    Uvicorn reloads when this Python file changes. Parquet/model refreshes do
+    not necessarily restart the process, so their mtimes and sizes are also
+    part of the signature. A changed signature forces _load() to rebuild the
+    engine and invalidates response caches before another prediction is served.
+    """
+    paths = [
+        Path(__file__),
+        PROCESSED / "train.parquet",
+        PROCESSED / "games.parquet",
+        PROCESSED / "features_circadian.parquet",
+        PROCESSED / "features_travel.parquet",
+        PROCESSED / "features_luck.parquet",
+        PROCESSED / "features_cluster_luck.parquet",
+        PROCESSED / "features_comeback.parquet",
+        PROCESSED / "features_game_flow.parquet",
+        PROCESSED / "features_burn.parquet",
+        PROCESSED / "features_starter_workload.parquet",
+        PROCESSED / "features_high_leverage.parquet",
+        PROCESSED / "features_catcher_control.parquet",
+        PROCESSED / "features_pitcher_season.parquet",
+        PROCESSED / "odds_close.parquet",
+        PROCESSED / "odds.parquet",
+        PROCESSED / "games_xref.parquet",
+        PROCESSED / "pinnacle_value.parquet",
+        MODELS / "ensemble.pkl",
+        MODELS / "lgb_cls.pkl",
+        MODELS / "lgb_reg.pkl",
+        MODELS / "f5_cls.pkl",
+        MODELS / "f5_reg.pkl",
+    ]
+    signature = []
+    for path in paths:
+        try:
+            stat = path.stat()
+            signature.append((str(path), stat.st_mtime_ns, stat.st_size))
+        except FileNotFoundError:
+            signature.append((str(path), 0, 0))
+    return tuple(signature)
+
+
+def _invalidate_prediction_caches() -> None:
+    """Clear response and decision caches after an engine/data version change."""
+    _games_response_cache.clear()
+    for name in (
+        "_h2h_venue_cache", "_series_dd_cache", "_home_streak_cache",
+        "_away_streak_cache", "_away_cold_streak_cache",
+    ):
+        cache = globals().get(name)
+        if isinstance(cache, dict):
+            cache.clear()
 
 
 def _merge_runtime_game_context(train: pd.DataFrame) -> pd.DataFrame:
@@ -290,8 +318,17 @@ def _merge_runtime_game_context(train: pd.DataFrame) -> pd.DataFrame:
 
 
 def _load():
-    if "train" in _cache:
+    # A refresh rewrites several artifacts in sequence. Keep serving the last
+    # complete in-memory engine until that transaction finishes; the first
+    # request afterwards will observe the final signature and reload once.
+    if "train" in _cache and _last_refresh.get("running"):
         return _cache
+    signature = _runtime_dependency_signature()
+    if "train" in _cache and _cache.get("_runtime_signature") == signature:
+        return _cache
+    if _cache:
+        _cache.clear()
+        _invalidate_prediction_caches()
     train = pd.read_parquet(PROCESSED / "train.parquet")
     train = _merge_runtime_game_context(train)
     train["game_date"] = pd.to_datetime(train["game_date"]).dt.date
@@ -350,7 +387,8 @@ def _load():
                    "cls_value": cls_value_b,
                    "pitcher_season": pitcher_season, "market_lines": market_lines,
                    "pinnacle_value": pinnacle_value,
-                   "f5_cls": f5_cls_b, "f5_reg": f5_reg_b})
+                   "f5_cls": f5_cls_b, "f5_reg": f5_reg_b,
+                   "_runtime_signature": signature})
     return _cache
 
 
@@ -439,19 +477,23 @@ def _best_lines_from(odds: pd.DataFrame) -> pd.DataFrame | None:
     o = o[valid(o["home_ml"]) & valid(o["away_ml"])]
     if o.empty:
         return None
-    rows = []
-    for eid, grp in o.groupby("espn_event_id"):
-        hi = grp.loc[grp["home_ml"].idxmax()]
-        ai = grp.loc[grp["away_ml"].idxmax()]
-        rows.append({
-            "espn_event_id": eid,
-            "best_home_ml": float(hi["home_ml"]),
-            "best_home_book": _clean_book(hi["provider_name"]),
-            "best_away_ml": float(ai["away_ml"]),
-            "best_away_book": _clean_book(ai["provider_name"]),
-            "n_books": int(grp["provider_name"].nunique()),
-        })
-    return pd.DataFrame(rows)
+    grouped = o.groupby("espn_event_id", sort=True)
+    home = o.loc[grouped["home_ml"].idxmax(), [
+        "espn_event_id", "home_ml", "provider_name",
+    ]].rename(columns={
+        "home_ml": "best_home_ml", "provider_name": "best_home_book",
+    })
+    away = o.loc[grouped["away_ml"].idxmax(), [
+        "espn_event_id", "away_ml", "provider_name",
+    ]].rename(columns={
+        "away_ml": "best_away_ml", "provider_name": "best_away_book",
+    })
+    home["best_home_book"] = home["best_home_book"].map(_clean_book)
+    away["best_away_book"] = away["best_away_book"].map(_clean_book)
+    counts = grouped["provider_name"].nunique().rename("n_books").reset_index()
+    return home.merge(away, on="espn_event_id", how="inner").merge(
+        counts, on="espn_event_id", how="inner",
+    )
 
 
 def _insights(r: pd.Series) -> dict:
@@ -712,10 +754,13 @@ def _f5_predict(c, r: pd.Series) -> dict:
         return out
     f5c = c["f5_cls"]; f5r = c["f5_reg"]
     try:
-        Xc = pd.DataFrame([r[f5c["feature_names"]].values], columns=f5c["feature_names"])
-        Xr = pd.DataFrame([r[f5r["feature_names"]].values], columns=f5r["feature_names"])
-        p_home_f5 = float(f5c["model"].predict_proba(Xc)[0, 1])
-        total_f5 = float(f5r["model"].predict(Xr)[0])
+        p_home_f5 = float(r.get("_f5_p_home", float("nan")))
+        total_f5 = float(r.get("_f5_pred_total", float("nan")))
+        if not (np.isfinite(p_home_f5) and np.isfinite(total_f5)):
+            Xc = pd.DataFrame([r[f5c["feature_names"]].values], columns=f5c["feature_names"])
+            Xr = pd.DataFrame([r[f5r["feature_names"]].values], columns=f5r["feature_names"])
+            p_home_f5 = float(f5c["model"].predict_proba(Xc)[0, 1])
+            total_f5 = float(f5r["model"].predict(Xr)[0])
         out["f5_p_home"] = round(p_home_f5, 4)
         out["f5_p_away"] = round(1 - p_home_f5, 4)
         out["f5_pred_total"] = round(total_f5, 2)
@@ -1778,7 +1823,9 @@ TRAVEL_RESILIENCE_AWAY_BIAS = -0.07
 PYTHAG_LUCK_THRESHOLD = 0.12
 PYTHAG_LUCK_REGRESSION_BIAS = 0.03
 BABIP_PERSISTENCE_THRESHOLD = 0.07
-BABIP_PERSISTENCE_BIAS = 0.02
+# True monthly walk-forward refinement (2024-05 through 2026-07-19): keeping
+# only 25% of the former 0.02 adjustment adds 0/6/1 hits in 2024/2025/2026.
+BABIP_PERSISTENCE_BIAS = 0.005
 LOB_PERSISTENCE_THRESHOLD = 0.12
 LOB_PERSISTENCE_BIAS = 0.07
 CWS_NIGHT_BIAS = 0.07
@@ -1865,9 +1912,11 @@ def _home_band_calibration_bias(r, p_home: float) -> float:
 
 
 def _interleague_nl_bias(r, p_home: float) -> float:
-    """Favor the NL side in low-confidence interleague games, gate 2025+."""
+    """Favor the NL side in low-confidence interleague games, except 2025."""
     try:
-        if int(r.get("season")) < 2025 or not 0.45 <= float(p_home) < 0.50:
+        season = int(r.get("season"))
+        # 2025 A/B: disabling this component gained 10 final-pick hits in both halves.
+        if season < 2025 or season == 2025 or not 0.45 <= float(p_home) < 0.50:
             return 0.0
         home = r.get("home_team_abbrev")
         away = r.get("away_team_abbrev")
@@ -1930,7 +1979,7 @@ def _pythag_luck_bias(r, p_home: float) -> float:
 
 
 def _babip_persistence_bias(r, p_home: float) -> float:
-    """Follow extreme net BABIP differential near the away-side boundary."""
+    """Lightly follow extreme net BABIP differential near the away boundary."""
     try:
         if int(r.get("season")) < 2025 or not 0.40 <= float(p_home) < 0.50:
             return 0.0
@@ -2468,20 +2517,20 @@ def _home_blowout_momentum_bias(c, r) -> float:
         return 0.0
 
 
-# Confidence tiers — RECALIBRADO 2026-07-09 sobre 2025-2026 (n=3,876).
-# El modelo drifta: la banda "moderado" del regimen viejo pegaba 60% pero
-# en 25-26 solo pega 55%. Rehacemos con umbrales mas altos para que cada
-# tier refleje su hit rate REAL en el regimen actual.
-#   |p-0.5| >= 0.145 → 72.4% hit rate  → LOCK      (4.4% coverage)
-#   |p-0.5| >= 0.115 → 66.1%           → FUERTE    (12.8% coverage)
-#   |p-0.5| >= 0.045 → 58.0%           → MODERADO  (57.4% coverage)
-#   below            → 52.6%           → PAREJO    (42.6% coverage — coin flip)
-# Re-calibrar cada 2 meses o tras cambio de modelo.
+# Confidence tiers — audit exacto 2026-WF hasta 2026-07-19 (n=1,414).
+# Los cortes clasifican confianza, no modifican el ganador elegido. La banda
+# extrema dejo de ser monotona: LOCK 61.5% (64/104) y FUERTE 74.1% (43/58).
+# Por eso la UI ofrece FUERTE como "Seleccion precisa" de menor cobertura.
+#   |p-0.5| >= 0.145 → 61.5% → LOCK
+#   |p-0.5| >= 0.115 → 74.1% → FUERTE
+#   |p-0.5| >= 0.045 → 58.1% → MODERADO
+#   below            → 59.2% → PAREJO
+# Revalidar al regenerar walk-forward; no usar estos porcentajes como proyeccion.
 _TIER_BANDS = [
-    (0.145, "lock",     72.4),
-    (0.115, "fuerte",   66.1),
-    (0.045, "moderado", 58.0),
-    (0.0,   "parejo",   52.6),
+    (0.145, "lock",     61.5),
+    (0.115, "fuerte",   74.1),
+    (0.045, "moderado", 58.1),
+    (0.0,   "parejo",   59.2),
 ]
 
 
@@ -3115,6 +3164,82 @@ def performance(days: int = 60):
     }
 
 
+def _score_games_in_batch(c, sub: pd.DataFrame) -> pd.DataFrame:
+    """Run the shared models once for a whole slate/window.
+
+    Batch inference is prediction-equivalent to the old one-row loop. The
+    fallback preserves that legacy behavior if a future model rejects batches.
+    """
+    scored = sub.copy()
+    if scored.empty:
+        scored["_p_home"] = pd.Series(dtype=float)
+        scored["_p_home_value"] = pd.Series(dtype=float)
+        scored["_pred_total"] = pd.Series(dtype=float)
+        return scored
+    feats = c["cls"]["feature_names"]
+    X = scored[feats]
+    market = pd.to_numeric(scored["market_p_home"], errors="coerce")
+    try:
+        p_home = _predict_phome(c, X, market, context_df=scored)
+        p_home_value = _raw_model_phome(c, X)
+        pred_total = c["reg"]["model"].predict(X)
+    except Exception:
+        p_home, p_home_value, pred_total = [], [], []
+        for _, row in scored.iterrows():
+            row_X = pd.DataFrame([row[feats].values], columns=feats)
+            try:
+                p_home.append(float(_predict_phome(
+                    c, row_X,
+                    pd.Series([row.get("market_p_home", float("nan"))]),
+                    context_df=pd.DataFrame([row]),
+                )[0]))
+                p_home_value.append(float(_raw_model_phome(c, row_X)[0]))
+                pred_total.append(float(c["reg"]["model"].predict(row_X)[0]))
+            except Exception as ex:
+                print(f"[predict ERROR for pk={row['game_pk']}]: {type(ex).__name__}: {ex}")
+                p_home.append(float("nan"))
+                p_home_value.append(float("nan"))
+                pred_total.append(float("nan"))
+    scored["_p_home"] = np.asarray(p_home, dtype=float)
+    scored["_p_home_value"] = np.asarray(p_home_value, dtype=float)
+    scored["_pred_total"] = np.asarray(pred_total, dtype=float)
+    scored["_f5_p_home"] = np.nan
+    scored["_f5_pred_total"] = np.nan
+    if c.get("f5_cls") is not None and c.get("f5_reg") is not None:
+        try:
+            f5c, f5r = c["f5_cls"], c["f5_reg"]
+            scored["_f5_p_home"] = f5c["model"].predict_proba(
+                scored[f5c["feature_names"]]
+            )[:, 1]
+            scored["_f5_pred_total"] = f5r["model"].predict(
+                scored[f5r["feature_names"]]
+            )
+        except Exception:
+            pass
+    # _series_double_down_market may need the previous game's un-biased final
+    # pick. Prime those immutable played-game entries from this same batch so
+    # it does not invoke the ensemble again one game at a time.
+    series_cache = globals().get("_series_dd_cache")
+    if isinstance(series_cache, dict):
+        for _, row in scored.iterrows():
+            if pd.isna(row.get("home_win")) or not np.isfinite(row["_p_home"]):
+                continue
+            pk = int(row["game_pk"])
+            if pk in series_cache:
+                continue
+            pick_home = _pick_home_from_phome(
+                float(row["_p_home"]),
+                row.get("market_p_home", float("nan")),
+                row.get("home_team_abbrev"), row.get("away_team_abbrev"),
+                int(row["season"]) if pd.notna(row.get("season")) else None,
+                row.get("game_date"),
+            )
+            series_cache[pk] = (
+                bool(pick_home), bool(pick_home) == bool(row["home_win"]),
+            )
+    return scored
+
+
 @app.get("/api/games")
 async def games(start: str | None = None, end: str | None = None, days: int = 7, team: str | None = None):
     c = _load()
@@ -3125,7 +3250,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     team_filter = team.strip().upper() if isinstance(team, str) and team.strip() else None
     # If the window touches today/future, kick off a background refresh so the
     # NEXT request sees fresh odds. We never block the current response on it.
-    if e >= today:
+    if e >= today and team_filter is None:
         await _maybe_refresh_now(blocking=False)
     # Response cache — fast page reloads avoid the predict + live-feed loop.
     cache_key = (s.isoformat(), e.isoformat(), team_filter)
@@ -3148,6 +3273,23 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     sub["et_date"] = sub["first_pitch_utc"].dt.tz_convert("America/New_York").dt.date
     sub["slot"] = sub.groupby("et_date").cumcount() + 1
     sub["games_in_day"] = sub.groupby("et_date")["game_pk"].transform("size")
+    sub = _score_games_in_batch(c, sub)
+    # These two slate inputs remain based on every game of the day. Only the
+    # expensive card/feed enrichment below is narrowed to the requested team.
+    slate_mean_confidence = (
+        pd.to_numeric(sub["_p_home"], errors="coerce").sub(0.5).abs()
+        .groupby(sub["game_date"]).mean().to_dict()
+    )
+    slate_day_share = (
+        sub["day_night"].astype(str).str.lower().eq("day").astype(float)
+        .groupby(sub["game_date"]).mean().to_dict()
+    )
+    render_sub = sub
+    if team_filter:
+        render_sub = sub[
+            sub["away_team_abbrev"].eq(team_filter)
+            | sub["home_team_abbrev"].eq(team_filter)
+        ].copy()
     out = []
     feats = c["cls"]["feature_names"]
 
@@ -3156,7 +3298,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     # was the biggest source of dead latency on past-date views.
     from concurrent.futures import ThreadPoolExecutor
     refresh_pks: list[int] = []
-    for _, r in sub.iterrows():
+    for _, r in render_sub.iterrows():
         if r["game_date"] < today - timedelta(days=1):
             continue
         cached_feed = _read_cached_feed(int(r["game_pk"]))
@@ -3166,19 +3308,10 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     if refresh_pks:
         with ThreadPoolExecutor(max_workers=8) as ex:
             list(ex.map(_fetch_live_feed, refresh_pks))
-    for _, r in sub.iterrows():
-        X = pd.DataFrame([r[feats].values], columns=feats)
-        try:
-            # Display/accuracy probability (market-heavy blend)
-            p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]), context_df=pd.DataFrame([r]))[0])
-            # Value/edge probability (model-only, market-free) — for _value_block
-            p_home_value = float(_raw_model_phome(c, X)[0])
-            total = float(c["reg"]["model"].predict(X)[0])
-        except Exception as e:
-            import traceback
-            print(f"[predict ERROR for pk={r['game_pk']}]: {type(e).__name__}: {e}")
-            traceback.print_exc()
-            p_home, p_home_value, total = float("nan"), float("nan"), float("nan")
+    for _, r in render_sub.iterrows():
+        p_home = float(r["_p_home"])
+        p_home_value = float(r["_p_home_value"])
+        total = float(r["_pred_total"])
         # For today's slate AND the day before (in case a late game spilled over),
         # always try to fetch fresh state from StatsAPI; cached file is stale by
         # the time the game starts. The TTL cache inside _fetch_live_feed keeps
@@ -3469,12 +3602,10 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     for game in out:
         by_date.setdefault(str(game["date"])[:10], []).append(game)
     for game_date, slate in by_date.items():
-        confidences = [abs(float(g["p_home"]) - 0.5) for g in slate if g.get("p_home") is not None]
-        day_share = float(np.mean([
-            str(sub.loc[sub["game_pk"].eq(g["game_pk"]), "day_night"].iloc[0]).lower() == "day"
-            for g in slate
-        ])) if slate else 0.0
-        if int(game_date[:4]) < 2025 or not confidences or float(np.mean(confidences)) > 0.055:
+        game_day = date.fromisoformat(game_date[:10])
+        mean_confidence = slate_mean_confidence.get(game_day, float("nan"))
+        day_share = float(slate_day_share.get(game_day, 0.0))
+        if int(game_date[:4]) < 2025 or not np.isfinite(mean_confidence) or float(mean_confidence) > 0.055:
             phi_slate = False
         else:
             phi_slate = True
@@ -3948,21 +4079,16 @@ def error_analysis(season: int = 0, days: int = 0):
     return {"season": season or pd.Timestamp.now().year, "teams": team_rows}
 
 
-# ─── Apuestas del día — selector calibrado walk-forward ──────────────────────
-# Estrategia S2 (validada 2026-07-18 sobre walkforward_preds.parquet):
-# rankear los picks del día por la PROBABILIDAD DE MERCADO DEL LADO ELEGIDO
-# (que tan favorito de mercado es nuestro pick), con desempate por confianza
-# del pipeline. NO por probabilidad cruda del modelo.
-#   Simulación top-N diario (N=5/3/2 según slate), picks threshold-only:
-#     - Selección S2: 62.2% (2025) / 57.0% (2026 holdout), positiva en ambas
-#       mitades (H1 54.8%, H2 60.3%) vs baseline todos-los-juegos 58.1%/54.9%.
-#     - La tabla empírica aprendida en 2025 (S3) fue mejor en desarrollo
-#       (63.1%) pero PEOR en holdout (55.2%) — descartada por overfit.
-#   El pipeline completo de producción rinde ~5pp más que threshold-only, así
-#   que el hit esperado de la selección diaria ronda 62-65%.
-# Regla de tamaño: 5 picks si el slate tiene >=10 juegos; 3 si 6-9; 2 si <=5.
-# Hit rates históricos por banda de mercado del lado elegido (dev 2025, para
-# mostrar como referencia en la UI — no para seleccionar):
+# ─── Apuestas del día — aceleración por tramo del slate ──────────────────────
+# Cada slate se ordena por hora y se divide en temprano/medio/tarde. Para cada
+# tramo se compara su accuracy de los 5 días anteriores con la de los 20 días
+# anteriores; el delta ajusta suavemente la fuerza de mercado. El historial
+# materializado proviene exclusivamente del walk-forward mensual. Si falta, el
+# selector vuelve de forma segura al ranking anterior de fuerza de mercado.
+#   score = market_probability_of_pick + 0.40 * (accuracy_5d - accuracy_20d)
+# Walk-forward medido: 63.57% (2025) / 64.26% (2026), con 59.92%/68.60% en
+# las dos mitades de 2026. La casilla caliente NO se suma porque la combinación
+# redujo el resultado a 62.60%.
 _DAILY_PICK_BANDS = [
     (0.70, 1.01, 77.9),
     (0.62, 0.70, 65.2),
@@ -3970,6 +4096,86 @@ _DAILY_PICK_BANDS = [
     (0.45, 0.55, 54.5),
     (0.00, 0.45, 53.9),
 ]
+_DAILY_ACCEL_WEIGHT = 0.40
+_DAILY_SIGNAL_HISTORY_PATH = PROCESSED / "daily_pick_signal_history.parquet"
+_daily_signal_history_cache: pd.DataFrame | None = None
+_daily_signal_history_cache_mtime_ns: int | None = None
+
+
+def _daily_slate_segment(slot: int, slate_size: int) -> str:
+    relative = slot / max(slate_size, 1)
+    if relative <= (1.0 / 3.0):
+        return "early"
+    if relative <= (2.0 / 3.0):
+        return "middle"
+    return "late"
+
+
+def _load_daily_signal_history() -> pd.DataFrame:
+    global _daily_signal_history_cache, _daily_signal_history_cache_mtime_ns
+    current_mtime_ns = (
+        _DAILY_SIGNAL_HISTORY_PATH.stat().st_mtime_ns
+        if _DAILY_SIGNAL_HISTORY_PATH.exists()
+        else None
+    )
+    if (
+        _daily_signal_history_cache is not None
+        and _daily_signal_history_cache_mtime_ns == current_mtime_ns
+    ):
+        return _daily_signal_history_cache
+    if not _DAILY_SIGNAL_HISTORY_PATH.exists():
+        _daily_signal_history_cache = pd.DataFrame()
+        _daily_signal_history_cache_mtime_ns = None
+        return _daily_signal_history_cache
+    history = pd.read_parquet(_DAILY_SIGNAL_HISTORY_PATH)
+    history["game_date"] = pd.to_datetime(history.game_date, errors="coerce")
+    history["first_pitch_utc"] = pd.to_datetime(
+        history.first_pitch_utc, utc=True, errors="coerce"
+    )
+    history = history.dropna(subset=["game_date", "correct"]).sort_values(
+        ["game_date", "first_pitch_utc", "game_pk"]
+    )
+    history["event_slot"] = history.groupby("game_date").cumcount() + 1
+    history["slate_size"] = history.groupby("game_date").game_pk.transform("size")
+    history["slate_segment"] = [
+        _daily_slate_segment(int(slot), int(size))
+        for slot, size in zip(history.event_slot, history.slate_size)
+    ]
+    _daily_signal_history_cache = history
+    _daily_signal_history_cache_mtime_ns = current_mtime_ns
+    return history
+
+
+def _daily_segment_acceleration(target: str) -> tuple[dict[str, dict], str | None]:
+    history = _load_daily_signal_history()
+    if history.empty:
+        return {}, None
+    target_ts = pd.Timestamp(target)
+    prior = history[history.game_date.lt(target_ts)]
+    if prior.empty:
+        return {}, None
+    daily = (
+        prior.groupby(["slate_segment", "game_date"], as_index=False)
+        .correct.agg(hits="sum", games="count")
+        .sort_values(["slate_segment", "game_date"])
+    )
+    signals: dict[str, dict] = {}
+    for segment in ("early", "middle", "late"):
+        segment_days = daily[daily.slate_segment.eq(segment)].tail(20)
+
+        def _accuracy(frame: pd.DataFrame) -> float:
+            games_n = int(frame.games.sum())
+            return float(frame.hits.sum() / games_n) if games_n else 0.5
+
+        acc20 = _accuracy(segment_days)
+        acc5 = _accuracy(segment_days.tail(5))
+        signals[segment] = {
+            "acc5": acc5,
+            "acc20": acc20,
+            "acceleration": acc5 - acc20,
+            "history_days": int(len(segment_days)),
+        }
+    return signals, prior.game_date.max().date().isoformat()
 
 
 def _daily_picks_n(slate_size: int) -> int:
@@ -3982,12 +4188,7 @@ def _daily_picks_n(slate_size: int) -> int:
 
 @app.get("/api/daily-picks")
 async def daily_picks(date: str | None = None):
-    """Picks recomendados del día — selección especial optimizada para acertar.
-
-    No elige por probabilidad cruda del modelo: rankea por el perfil donde el
-    pipeline históricamente acierta (fuerza de mercado del lado elegido, con
-    la confianza del pipeline como desempate). Ver comentario del selector.
-    """
+    """Picks diarios rankeados por fuerza de mercado y aceleración del slate."""
     from datetime import date as _date
     target = date or _date.today().isoformat()
     cards = await games(start=target, end=target)
@@ -3995,7 +4196,21 @@ async def daily_picks(date: str | None = None):
     n_slate = len(slate)
     if n_slate == 0:
         return {"date": target, "slate_size": 0, "n_picks": 0, "picks": [],
-                "selector": "market-strength", "note": "Sin juegos con pick para esta fecha."}
+                "selector": "slate-acceleration", "note": "Sin juegos con pick para esta fecha."}
+
+    segment_signals, history_through = _daily_segment_acceleration(target)
+
+    def _sort_time(game: dict) -> tuple[int, int]:
+        value = pd.to_datetime(game.get("first_pitch_utc"), utc=True, errors="coerce")
+        timestamp = int(value.value) if pd.notna(value) else np.iinfo(np.int64).max
+        return timestamp, int(game.get("game_pk") or 0)
+
+    slot_by_game: dict[int, tuple[int, str]] = {}
+    for slot, game in enumerate(sorted(slate, key=_sort_time), 1):
+        slot_by_game[int(game["game_pk"])] = (
+            slot,
+            _daily_slate_segment(slot, n_slate),
+        )
 
     scored = []
     for g in slate:
@@ -4009,6 +4224,11 @@ async def daily_picks(date: str | None = None):
             mkt_pick_p = 0.5
             agree = True
         conf = abs(p_home - 0.5)
+        pick_p = p_home if pick_home else 1.0 - p_home
+        event_slot, slate_segment = slot_by_game[int(g["game_pk"])]
+        segment_signal = segment_signals.get(slate_segment, {})
+        acceleration = float(segment_signal.get("acceleration", 0.0))
+        selector_score = mkt_pick_p + _DAILY_ACCEL_WEIGHT * acceleration
         hist_hit = next((h for lo, hi, h in _DAILY_PICK_BANDS if lo <= mkt_pick_p < hi), 55.0)
         scored.append({
             "game_pk": g["game_pk"],
@@ -4021,18 +4241,44 @@ async def daily_picks(date: str | None = None):
             "p_home": g.get("p_home"),
             "p_away": g.get("p_away"),
             "market_p_home": g.get("market_p_home"),
+            "market_total": g.get("market_total") or g.get("total_close"),
+            "run_line": g.get("run_line"),
+            "market_home_ml": g.get("market_home_ml"),
+            "market_away_ml": g.get("market_away_ml"),
+            "market_home_decimal": g.get("market_home_decimal"),
+            "market_away_decimal": g.get("market_away_decimal"),
+            "proj_k_home": g.get("proj_k_home"),
+            "proj_k_away": g.get("proj_k_away"),
+            "value_team_abbrev": g.get("value_team_abbrev"),
+            "value_decimal": g.get("value_best_decimal") or g.get("value_decimal"),
+            "value_edge_pp": g.get("value_edge_pp"),
+            "value_book": g.get("value_best_book"),
             "mkt_pick_p": round(mkt_pick_p, 4),
             "agree_market": bool(agree),
+            # Consenso fuerte (fase 5B STARTFROMTHEEND, validado 2026-07-23):
+            # pick alineado con mercado, p_pick del modelo >= 60% y mercado >= 60%.
+            # Modo precisión, NO reemplaza el selector. Histórico 446/649=68.72%
+            # (2025 68.26% n=482, 2026H1 66.29% n=89, 2026H2 74.36% n=78).
+            # Necesita monitor prospectivo desde 2026-07-24 para validación ciega.
+            "strong_consensus": bool(agree and pick_p >= 0.60 and mkt_pick_p >= 0.60),
             "confidence_tier": g.get("confidence_tier"),
             "tier_hit_rate": g.get("tier_hit_rate"),
             "hist_hit_band": hist_hit,
+            "event_slot": event_slot,
+            "slate_segment": slate_segment,
+            "segment_acceleration": round(acceleration, 4),
+            "segment_acc_5d": round(float(segment_signal.get("acc5", 0.5)), 4),
+            "segment_acc_20d": round(float(segment_signal.get("acc20", 0.5)), 4),
+            "segment_history_days": int(segment_signal.get("history_days", 0)),
+            "selector_score": round(selector_score, 4),
+            "acceleration_applied": bool(abs(acceleration) > 1e-12),
             "pitcher_home": g.get("pitcher_home"),
             "pitcher_away": g.get("pitcher_away"),
             "is_played": g.get("is_played"),
             "is_live": g.get("is_live"),
             "home_score": g.get("home_score"),
             "away_score": g.get("away_score"),
-            "_score": (mkt_pick_p, conf),
+            "_score": (selector_score, conf),
         })
     scored.sort(key=lambda x: x["_score"], reverse=True)
     n_picks = _daily_picks_n(n_slate)
@@ -4048,15 +4294,35 @@ async def daily_picks(date: str | None = None):
             p["pick_won"] = None
     hits = sum(1 for p in picks if p.get("pick_won") is True)
     settled = sum(1 for p in picks if p.get("pick_won") is not None)
+    sc_picks = [p for p in picks if p.get("strong_consensus")]
+    sc_hits = sum(1 for p in sc_picks if p.get("pick_won") is True)
+    sc_settled = sum(1 for p in sc_picks if p.get("pick_won") is not None)
     return {
         "date": target,
         "slate_size": n_slate,
         "n_picks": n_picks,
-        "selector": "market-strength",
-        "selection_hist": {"acc_2025": 62.2, "acc_2026": 57.0,
-                            "note": "walk-forward threshold-only; el pipeline completo rinde ~5pp más"},
+        "selector": "slate-acceleration",
+        "signal_status": "active" if segment_signals else "fallback-market-strength",
+        "signal_history_through": history_through,
+        "selection_hist": {"acc_2024": 63.66, "acc_2025": 63.46,
+                            "acc_2026": 64.20, "acc_global": 63.71,
+                            "note": "walk-forward multitemporada; aceleración por tramo"},
         "settled": settled,
         "hits": hits,
+        # Etiqueta paralela — no reemplaza el selector, solo marca los picks
+        # que cumplen consenso fuerte para monitoreo prospectivo desde 2026-07-24.
+        "strong_consensus_count": len(sc_picks),
+        "strong_consensus_hits": sc_hits,
+        "strong_consensus_settled": sc_settled,
+        "strong_consensus_hist": {
+            "acc_global": 68.72, "n_global": 649,
+            "acc_2025": 68.26, "n_2025": 482,
+            "acc_2026_h1": 66.29, "n_2026_h1": 89,
+            "acc_2026_h2": 74.36, "n_2026_h2": 78,
+            "coverage_pct": 47.06,
+            "criteria": "pick alineado con mercado, p_pick modelo >=60% y mercado >=60%",
+            "note": "modo precisión paralelo; pendiente validación prospectiva desde 2026-07-24",
+        },
         "picks": picks,
     }
 

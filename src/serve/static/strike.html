@@ -27,6 +27,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+<script src="/static/daily-pick-poster.js?v=20260724-poster-v2b"></script>
 <style>
   html {
     margin: 0;
@@ -734,6 +735,31 @@ function displayMlPick(g) {
   return { team, side, decimal, valueShown, bestBook };
 }
 
+function posterPayloadFromGame(g) {
+  const shown = displayMlPick(g);
+  const fallbackPick = g.pick_abbrev || (g.p_home != null
+    ? (g.p_home >= 0.5 ? g.home_abbrev : g.away_abbrev)
+    : null);
+  const pickAbbrev = shown.team || fallbackPick;
+  const pickIsHome = pickAbbrev === g.home_abbrev;
+  const sharpTeam = g.pin_value_side === 'HOME' ? g.home_abbrev
+    : g.pin_value_side === 'AWAY' ? g.away_abbrev
+    : g.value_team_abbrev;
+
+  return {
+    ...g,
+    poster_context: 'today',
+    rank: g.slot || null,
+    pick_abbrev: pickAbbrev,
+    pick_is_home: pickIsHome,
+    poster_pick_decimal: shown.decimal,
+    market_total: g.market_total ?? g.total_close,
+    value_team_abbrev: sharpTeam,
+    value_edge_pp: g.pin_value_edge_pp ?? g.value_edge_pp,
+    value_book: g.pin_value_book || g.value_best_book || g.value_book,
+  };
+}
+
 function GameCard({ g, onOpen, index = 0 }) {
   const ref = useRef(null);
   useLayoutEffect(() => {
@@ -1125,7 +1151,7 @@ function GameCard({ g, onOpen, index = 0 }) {
 
 // ─── COMPACT CARD (used in the new expandable Hoy row) ──────────────────────
 // Narrower version of GameCard that keeps all sections visible vertically.
-function CompactCard({ g, onOpen, onHover, expanded, accent }) {
+function CompactCard({ g, onOpen, onHover, expanded, accent, gameDate }) {
   const isLive = g.is_live, isFinal = g.is_played;
   const evGrade = g.ev_grade || 'no_data';
   const isSweet = evGrade === 'sweet';
@@ -1195,7 +1221,7 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
     } catch { return '—'; }
   };
 
-  // Confidence tier (who-wins reliability). LOCK ~71% hit rate historically.
+  // Confidence tier (2026-WF through July 19). FUERTE is the precision subset.
   const TIER_META = {
     lock:     { label: 'LOCK',     icon: '🔒', cls: 'bg-accent-green/18 text-accent-green border-accent-green/45' },
     fuerte:   { label: 'FUERTE',   icon: '💪', cls: 'bg-accent-blue/18 text-accent-blue border-accent-blue/45' },
@@ -1293,10 +1319,10 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
           )}
           {g.night_elite && (
             <span
-              title="Elite noche: el modelo picka PHI en juegos nocturnos — histórico 66.8% acierto en 4 temporadas (2026 al 73%). Zona de alta confianza."
+              title="Elite noche: pick PHI en juego nocturno. Auditoria 2026: 69% (34 de 49); badge informativo."
               className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-accent-gold/50 bg-accent-gold/12 text-accent-gold text-[8.5px] font-black tracking-[0.14em] uppercase shadow-[0_0_18px_rgba(255,212,59,0.18)]">
               <span>★</span>
-              <span>Elite noche · 67%</span>
+              <span>Elite noche · 69%</span>
             </span>
           )}
           {g.series_flip && (
@@ -1691,6 +1717,14 @@ function CompactCard({ g, onOpen, onHover, expanded, accent }) {
           ) : <div className="text-[10px] text-white/22 mt-2">—</div>}
         </div>
       </div>
+
+      <div className="px-4 pb-4">
+        <DailyPickPosterButton
+          pick={posterPayloadFromGame(g)}
+          gameDate={gameDate || g.date}
+          compact
+        />
+      </div>
     </div>
   );
 }
@@ -1893,13 +1927,13 @@ function HoyExpandableRow({
   emptyText = 'No hay partidos para mostrar en esta fecha.',
 }) {
   const [hoveredPk, setHoveredPk] = useState(null);
-  const [lockOnly, setLockOnly] = useState(false);
+  const [precisionOnly, setPrecisionOnly] = useState(false);
   const [sharpOnly, setSharpOnly] = useState(false);
   const rowRef = useRef(null);
   const headRef = useRef(null);
   const scrollRef = useRef(null);
   const valueCount = games?.filter(g => g.ev_grade === 'sweet' || g.ev_grade === 'marginal').length || 0;
-  const lockCount = games?.filter(g => g.confidence_tier === 'lock' || g.confidence_tier === 'fuerte').length || 0;
+  const precisionCount = games?.filter(g => g.confidence_tier === 'fuerte').length || 0;
   const sharpCount = games?.filter(g => g.pin_value_side && g.pin_value_book).length || 0;
 
   // Convert vertical wheel to horizontal scroll while hovering the row.
@@ -1939,7 +1973,7 @@ function HoyExpandableRow({
 
   const allItems = games || [];
   const items = allItems.filter(g =>
-    (!lockOnly || g.confidence_tier === 'lock' || g.confidence_tier === 'fuerte') &&
+    (!precisionOnly || g.confidence_tier === 'fuerte') &&
     (!sharpOnly || (g.pin_value_side && g.pin_value_book))
   );
   const hovered = items.find(g => g.game_pk === hoveredPk);
@@ -1987,22 +2021,22 @@ function HoyExpandableRow({
           {description}
         </p>
         {/* Filter toggles */}
-        {(lockCount > 0 || sharpCount > 0) && (
+        {(precisionCount > 0 || sharpCount > 0) && (
           <div data-fade className="mt-5 flex items-center gap-3 flex-wrap">
-            {lockCount > 0 && (
+            {precisionCount > 0 && (
               <button
-                onClick={() => { setLockOnly(v => !v); setSharpOnly(false); }}
+                onClick={() => { setPrecisionOnly(v => !v); setSharpOnly(false); }}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-[11px] font-black tracking-[0.14em] uppercase transition
-                  ${lockOnly
+                  ${precisionOnly
                     ? 'bg-accent-green/20 text-accent-green border-accent-green/50'
                     : 'bg-white/[0.04] text-white/55 border-white/[0.12] hover:border-accent-green/40 hover:text-accent-green/80'}`}>
-                <span>🔒</span>
-                {lockOnly ? `Mostrando ${lockCount} de máxima confianza` : `Ver solo máxima confianza (${lockCount})`}
+                <span>💪</span>
+                {precisionOnly ? `Mostrando ${precisionCount} selección precisa` : `Ver selección precisa (${precisionCount})`}
               </button>
             )}
             {sharpCount > 0 && (
               <button
-                onClick={() => { setSharpOnly(v => !v); setLockOnly(false); }}
+                onClick={() => { setSharpOnly(v => !v); setPrecisionOnly(false); }}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-[11px] font-black tracking-[0.14em] uppercase transition
                   ${sharpOnly
                     ? 'bg-accent-gold/20 text-accent-gold border-accent-gold/55'
@@ -2012,7 +2046,7 @@ function HoyExpandableRow({
               </button>
             )}
             <span className="text-[10px] text-white/35 tracking-wide">
-              LOCK ≈ 71% · SHARP = book blando paga sobre Pinnacle
+              PRECISA ≈ 74% · LOCK ≈ 62% · SHARP = book blando paga sobre Pinnacle
             </span>
           </div>
         )}
@@ -2032,6 +2066,7 @@ function HoyExpandableRow({
                   onOpen={onOpen}
                   onHover={setHoveredPk}
                   expanded={g.game_pk === hoveredPk}
+                  gameDate={date}
                   accent={
                     g.ev_grade === 'sweet' ? '#51CF66' :
                     g.ev_grade === 'marginal' ? '#4DABF7' :
@@ -2386,12 +2421,17 @@ function BurstBall() {
 // ─── FLASHCORE BOARD ─────────────────────────────────────────────────────────
 function FlashcoreBoard({ games, onOpen, date }) {
   const slipKey = `strikecast:flash-slip:${date || 'today'}`;
+  const predictionVisibilityKey = 'strikecast:flash-show-predictions';
   const [manualPicks, setManualPicks] = useState(() => {
     try {
       const raw = localStorage.getItem(slipKey);
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
     } catch { return []; }
+  });
+  const [showManualPredictions, setShowManualPredictions] = useState(() => {
+    try { return localStorage.getItem(predictionVisibilityKey) !== 'false'; }
+    catch { return true; }
   });
   useEffect(() => {
     try {
@@ -2403,6 +2443,9 @@ function FlashcoreBoard({ games, onOpen, date }) {
   useEffect(() => {
     try { localStorage.setItem(slipKey, JSON.stringify(manualPicks)); } catch {}
   }, [slipKey, manualPicks]);
+  useEffect(() => {
+    try { localStorage.setItem(predictionVisibilityKey, String(showManualPredictions)); } catch {}
+  }, [showManualPredictions]);
   const sortedGames = useMemo(() => [...games].sort((a, b) => {
     const ta = a.first_pitch_utc ? Date.parse(a.first_pitch_utc) : Number.POSITIVE_INFINITY;
     const tb = b.first_pitch_utc ? Date.parse(b.first_pitch_utc) : Number.POSITIVE_INFINITY;
@@ -2453,13 +2496,15 @@ function FlashcoreBoard({ games, onOpen, date }) {
     }
     return 'pending';
   };
-  const oddStyle = (g, side) => {
+  const oddStyle = (g, side, showPredictions = true) => {
+    if (!showPredictions) return null;
     const status = pickStatus(g, side);
     if (status === 'loss') return { borderColor:'#E63946', background:'rgba(230,57,70,0.16)', color:'#ff6b76' };
     if (status === 'win' || status === 'pending') return { borderColor:'#FFD43B', background:'rgba(255,212,59,0.10)', color:'#fff' };
     return null;
   };
-  const moveMark = (g, side) => {
+  const moveMark = (g, side, showPredictions = true) => {
+    if (!showPredictions) return null;
     if (pickStatus(g, side) === 'loss') return <span style={{ color:'#ff6b76' }} className="mr-1">↓</span>;
     if (predictionSide(g) !== side) return null;
     if (g.value_side === side && g.ev_grade_reason === 'slot_flip') return <span className="text-accent-gold mr-1">↻</span>;
@@ -2467,7 +2512,7 @@ function FlashcoreBoard({ games, onOpen, date }) {
     if (g.value_side === side && g.ev_grade_reason === 'dog_46_48') return <span className="text-accent-green mr-1">↑</span>;
     return <span className="text-accent-green mr-1">↑</span>;
   };
-  const teamLine = (g, side) => {
+  const teamLine = (g, side, showPredictions = true) => {
     const isHome = side === 'HOME';
     const abbr = isHome ? g.home_abbrev : g.away_abbrev;
     const score = isHome ? g.home_score : g.away_score;
@@ -2484,7 +2529,7 @@ function FlashcoreBoard({ games, onOpen, date }) {
         <span className="min-w-0 flex items-baseline gap-2">
           <span className={`truncate text-[13px] ${isWinner ? 'font-extrabold' : 'font-semibold'}`}>{TEAM_NAMES[abbr] || abbr}</span>
           <span className="shrink-0 text-[9px] font-black text-white/25">{abbr}</span>
-          {probability != null && (
+          {showPredictions && probability != null && (
             <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] tabular-nums font-black ${isModelFavorite ? 'bg-accent-blue/10 text-accent-blue' : 'bg-white/[0.035] text-white/35'}`}>
               {(probability * 100).toFixed(1)}%
             </span>
@@ -2494,20 +2539,20 @@ function FlashcoreBoard({ games, onOpen, date }) {
       </div>
     );
   };
-  const oddBox = (g, side) => {
+  const oddBox = (g, side, showPredictions = true) => {
     const dec = side === 'HOME' ? g.market_home_decimal : g.market_away_decimal;
-    const isPick = pickStatus(g, side) !== 'none';
+    const isPick = showPredictions && pickStatus(g, side) !== 'none';
     const isManual = manualMap.get(String(g.game_pk)) === side;
     return (
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); toggleManualPick(g, side); }}
-        title={`Agregar ${side === 'HOME' ? g.home_abbrev : g.away_abbrev} a mi tabla`}
-        style={oddStyle(g, side) || undefined}
+        title={`${isManual ? 'Quitar' : 'Agregar'} ${side === 'HOME' ? g.home_abbrev : g.away_abbrev} ${isManual ? 'de' : 'a'} mi tabla`}
+        style={oddStyle(g, side, showPredictions) || undefined}
         className={`h-[32px] w-full rounded-md border px-2 flex items-center justify-center text-[11px] font-black tabular-nums transition
           ${isPick ? '' : 'border-white/[0.08] bg-ink-2/55 text-white/80'}
           ${isManual ? 'ring-1 ring-accent-green border-accent-green bg-accent-green/15 shadow-[0_0_18px_rgba(81,207,102,0.18)]' : 'hover:border-accent-blue/55 hover:bg-accent-blue/10'}`}>
-        {moveMark(g, side)}{dec != null ? dec.toFixed(2) : '–'}
+        {moveMark(g, side, showPredictions)}{dec != null ? dec.toFixed(2) : '–'}
         <span className="text-[8px] text-white/35 ml-0.5">↗</span>
       </button>
     );
@@ -2525,8 +2570,8 @@ function FlashcoreBoard({ games, onOpen, date }) {
     );
   };
   return (
-    <div className="px-4 md:px-10 pb-32 max-w-[1540px] mx-auto -mt-8">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(820px,1fr)_360px] gap-5 items-start">
+    <div className={`px-4 md:px-10 pb-32 mx-auto -mt-8 ${manualGames.length > 0 ? 'max-w-[1740px]' : 'max-w-[1540px]'}`}>
+      <div className={`grid grid-cols-1 gap-5 items-start ${manualGames.length > 0 ? '2xl:grid-cols-2' : 'xl:grid-cols-[minmax(820px,1fr)_360px]'}`}>
       <div className="overflow-x-auto rounded-xl border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.42)]">
         <div className="min-w-[780px]">
         <div className="h-14 px-5 flex items-center justify-between bg-[linear-gradient(90deg,#0c3150,#0a263d)] border-b border-white/[0.08]">
@@ -2578,16 +2623,30 @@ function FlashcoreBoard({ games, onOpen, date }) {
         })}
         </div>
       </div>
-      <div className="rounded-xl overflow-hidden border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.38)] xl:sticky xl:top-24">
+      <div className={`rounded-xl overflow-x-auto border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.38)] ${manualGames.length > 0 ? '2xl:sticky 2xl:top-24' : 'xl:sticky xl:top-24'}`}>
+        <div className={manualGames.length > 0 ? 'min-w-[700px]' : ''}>
         <div className="flex items-center justify-between h-14 px-4 bg-[linear-gradient(90deg,#123629,#0a2b24)] border-b border-accent-green/20">
           <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-md bg-accent-green text-ink-0 grid place-items-center font-black">+</span>
+            <span className="w-8 h-8 rounded-md bg-accent-green text-ink-0 grid place-items-center font-black">{manualGames.length > 0 ? '✓' : '+'}</span>
             <div><div className="text-[11px] font-black uppercase tracking-[0.16em]">Mi tabla</div><div className="text-[9px] text-white/35">Selecciones manuales</div></div>
           </div>
-          <button type="button" onClick={clearManualPicks}
-            className="text-[9px] uppercase tracking-wider text-white/35 hover:text-accent-red transition">
-            Limpiar
-          </button>
+          <div className="flex items-center gap-3">
+            {manualGames.length > 0 && <span className="px-2.5 py-1 rounded-full bg-accent-green/10 text-accent-green text-[9px] font-black uppercase tracking-wider">{manualGames.length} {manualGames.length === 1 ? 'juego' : 'juegos'}</span>}
+            {manualGames.length > 0 && (
+              <button type="button" aria-pressed={showManualPredictions}
+                onClick={() => setShowManualPredictions(value => !value)}
+                title={showManualPredictions ? 'Ocultar predicciones del modelo' : 'Mostrar predicciones del modelo'}
+                className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition ${showManualPredictions
+                  ? 'border-accent-blue/40 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20'
+                  : 'border-white/10 bg-white/[0.03] text-white/40 hover:text-white/70'}`}>
+                Predicciones: {showManualPredictions ? 'sí' : 'no'}
+              </button>
+            )}
+            <button type="button" onClick={clearManualPicks}
+              className="text-[9px] uppercase tracking-wider text-white/35 hover:text-accent-red transition">
+              Limpiar
+            </button>
+          </div>
         </div>
         {manualGames.length === 0 ? (
           <div className="px-7 py-12 text-center">
@@ -2597,25 +2656,49 @@ function FlashcoreBoard({ games, onOpen, date }) {
               Selecciona una cuota local o visitante para añadirla al boleto.
             </div>
           </div>
-        ) : manualGames.map(({ game:g, side }) => (
-          <div key={`manual-${g.game_pk}`} onClick={() => onOpen(g)} role="button" tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(g); }}
-            className="grid grid-cols-[24px_1fr_auto] items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-[#071722] hover:bg-[#0a2230] transition text-left cursor-pointer">
-            <button type="button" onClick={(e) => { e.stopPropagation(); toggleManualPick(g, side); }}
-              className="w-6 h-6 rounded border border-white/10 text-[15px] text-white/45 hover:text-accent-red hover:border-accent-red/40 leading-none" title="Quitar">×</button>
-            <div className="min-w-0">
-              <div className="text-[9px] text-white/30 mb-1">{fmtStatus(g)} · {g.away_abbrev} @ {g.home_abbrev}</div>
-              <div className="font-bold text-[12px] truncate">{TEAM_NAMES[side === 'HOME' ? g.home_abbrev : g.away_abbrev]}</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-[106px_1fr_88px_88px] items-center gap-3 h-9 px-4 bg-[#06131d] border-b border-white/[0.06] text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
+              <span>Estado</span>
+              <span>Evento / Prob. modelo</span>
+              <span className="text-center">Local</span>
+              <span className="text-center">Visitante</span>
             </div>
-            {manualPickBadge(g, side)}
-          </div>
-        ))}
+            {manualGames.map(({ game:g, side }) => {
+              const modelSide = showManualPredictions ? predictionSide(g) : null;
+              const modelStatus = modelSide ? pickStatus(g, modelSide) : 'none';
+              const rowTone = modelStatus === 'win' ? 'border-l-accent-green bg-accent-green/[0.025]'
+                : modelStatus === 'loss' ? 'border-l-accent-red bg-accent-red/[0.025]'
+                : g.is_live ? 'border-l-accent-green bg-accent-green/[0.02]'
+                : 'border-l-transparent bg-[#071722]';
+              const selectedAbbr = side === 'HOME' ? g.home_abbrev : g.away_abbrev;
+              return (
+                <div key={`manual-${g.game_pk}`} onClick={() => onOpen(g)} role="button" tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(g); }}
+                  className={`grid grid-cols-[106px_1fr_88px_88px] items-center gap-3 px-4 py-2.5 border-l-[3px] border-b border-b-white/[0.055] ${rowTone} hover:bg-[#0a2230] transition text-left cursor-pointer`}>
+                  <div className="self-stretch flex flex-col justify-center border-r border-white/[0.06] pr-3">
+                    <span className={`text-[10px] font-black tracking-[0.12em] ${g.is_live ? 'text-accent-green' : g.is_played ? 'text-white/55' : 'text-accent-blue'}`}>{fmtStatus(g)}</span>
+                    <span className="text-[9px] text-white/25 mt-1">Juego #{g.slot || '–'}</span>
+                    <span className="text-[8px] text-accent-green font-black mt-1">◆ {selectedAbbr}</span>
+                  </div>
+                  <div className="min-w-0">
+                    {teamLine(g, 'HOME', showManualPredictions)}
+                    {teamLine(g, 'AWAY', showManualPredictions)}
+                  </div>
+                  <div className="flex flex-col gap-2">{oddBox(g, 'HOME', showManualPredictions)}</div>
+                  <div className="flex flex-col gap-2">{oddBox(g, 'AWAY', showManualPredictions)}</div>
+                </div>
+              );
+            })}
+          </>
+        )}
         {manualGames.length > 0 && (
           <div className="px-4 py-4 bg-[#05131b] text-[9px] uppercase tracking-[0.18em] text-white/35 flex justify-between">
-            <span>{manualGames.length} selecciones</span>
+            <span>{manualGames.length} {manualGames.length === 1 ? 'selección' : 'selecciones'}</span>
             <span className="text-accent-green">Boleto activo</span>
           </div>
         )}
+        </div>
       </div>
       </div>
     </div>
@@ -2676,11 +2759,55 @@ function MiniStat({ value, suffix, decimals=0, label }) {
   );
 }
 
-// ─── APUESTAS DEL DÍA — selección calibrada walk-forward ────────────────────
-// Selector S2: rankea por fuerza de mercado del lado elegido (no por
-// probabilidad cruda del modelo). Validado: 62.2% (2025) / 57.0% (2026
-// holdout) vs 58.1%/54.9% de todos los juegos; el pipeline completo rinde
-// ~5pp más, hit esperado real ~62-65%. N = 5 (slate>=10), 3 (6-9), 2 (<=5).
+function DailyPickPosterButton({ pick, gameDate, compact = false }) {
+  const [status, setStatus] = React.useState('idle');
+
+  const exportPoster = async (event) => {
+    event?.stopPropagation();
+    if (status === 'working') return;
+    setStatus('working');
+    try {
+      if (typeof window.exportDailyPickPoster !== 'function') {
+        throw new Error('El exportador de imágenes no está disponible.');
+      }
+      await window.exportDailyPickPoster(pick, gameDate);
+      setStatus('done');
+      window.setTimeout(() => setStatus('idle'), 1800);
+    } catch (error) {
+      console.error('No se pudo exportar el pick', error);
+      setStatus('error');
+      window.setTimeout(() => setStatus('idle'), 2600);
+    }
+  };
+
+  const label = status === 'working' ? 'Generando…'
+    : status === 'done' ? '✓ Imagen descargada'
+    : status === 'error' ? 'No se pudo exportar'
+    : '↓ Exportar imagen';
+
+  return (
+    <button
+      type="button"
+      onClick={exportPoster}
+      disabled={status === 'working'}
+      aria-label={`Exportar imagen de ${pick.away_abbrev} contra ${pick.home_abbrev}`}
+      data-export-poster={pick.game_pk}
+      className={`${compact ? 'w-full justify-center py-2.5' : 'ml-auto px-3 py-1.5'} inline-flex items-center rounded-lg border text-[9.5px] font-black uppercase tracking-wider transition-all disabled:cursor-wait ${
+        status === 'done'
+          ? 'border-accent-green/50 bg-accent-green/15 text-accent-green'
+          : status === 'error'
+            ? 'border-accent-red/50 bg-accent-red/15 text-accent-red'
+            : 'border-accent-gold/40 bg-accent-gold/10 text-accent-gold hover:bg-accent-gold/20 hover:border-accent-gold/70'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ─── APUESTAS DEL DÍA — aceleración por tramo del slate ─────────────────────
+// Señal validada en todas las temporadas walk-forward disponibles.
+// 63.66% (2024) / 63.46% (2025) / 64.20% (2026).
 function DailyPicksPage({ data, loading }) {
   if (loading) return (
     <div className="max-w-[900px] mx-auto px-4 py-16 text-center text-white/40 text-sm">
@@ -2708,7 +2835,7 @@ function DailyPicksPage({ data, loading }) {
           <p className="text-white/45 text-sm mt-3 max-w-[560px]">
             No son los picks con mayor probabilidad del modelo: el selector elige los
             juegos con el <span className="text-white/70">perfil donde el pipeline históricamente acierta más</span> —
-            picks alineados con favoritos claros de mercado, con la confianza del modelo como desempate.
+            fuerza de mercado ajustada por la aceleración reciente del tramo temprano, medio o tarde del slate.
           </p>
         </div>
         <div className="text-right">
@@ -2719,10 +2846,37 @@ function DailyPicksPage({ data, loading }) {
             </div>
           )}
           <div className="text-[9px] text-white/30 mt-1 max-w-[220px]">
-            Histórico del selector: 62% (2025) · 57% (2026) sobre picks base — el pipeline completo rinde más.
+            Walk-forward: 63.66% (2024) · 63.46% (2025) · 64.20% (2026).
           </div>
         </div>
       </div>
+
+      {/* ── Etiqueta paralela: Consenso Fuerte (modo precisión) ─────────── */}
+      {data.strong_consensus_count > 0 && (
+        <div className="mb-6 rounded-2xl border border-accent-gold/40 bg-gradient-to-r from-accent-gold/10 to-accent-gold/[0.02] p-5 flex flex-wrap items-center gap-5">
+          <div className="text-[26px] leading-none">⭐</div>
+          <div className="flex-1 min-w-[220px]">
+            <div className="text-[10px] tracking-[0.28em] uppercase text-accent-gold font-black mb-1">Consenso fuerte · modo precisión</div>
+            <div className="text-white/80 text-[13px] leading-snug">
+              {data.strong_consensus_count} de {data.n_picks} pick{data.strong_consensus_count === 1 ? '' : 's'} de hoy
+              cumple{data.strong_consensus_count === 1 ? '' : 'n'} <span className="text-white">modelo ≥60% y mercado ≥60% del mismo lado</span>.
+              Histórico walk-forward: <span className="text-accent-green font-bold">{data.strong_consensus_hist?.acc_global?.toFixed(1)}%</span> en {data.strong_consensus_hist?.n_global} juegos ·
+              2026-H2 <span className="text-accent-green">{data.strong_consensus_hist?.acc_2026_h2?.toFixed(1)}%</span>.
+            </div>
+            <div className="text-[9px] text-white/35 mt-1">
+              Etiqueta paralela — no reemplaza el selector 2/3/5. Pendiente validación prospectiva desde 2026-07-24.
+            </div>
+          </div>
+          {data.strong_consensus_settled > 0 && (
+            <div className="text-right">
+              <div className={`mega text-[24px] leading-none ${data.strong_consensus_hits / data.strong_consensus_settled >= 0.5 ? 'text-accent-green' : 'text-accent-red'}`}>
+                {data.strong_consensus_hits}/{data.strong_consensus_settled}
+              </div>
+              <div className="text-[8px] text-white/40 uppercase tracking-wider mt-1">resueltos hoy</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {picks.length === 0 && (
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-10 text-center text-white/40 text-sm">
@@ -2737,6 +2891,7 @@ function DailyPicksPage({ data, loading }) {
           const oppAbbrev = p.pick_is_home ? p.away_abbrev : p.home_abbrev;
           const pitcher = p.pick_is_home ? p.pitcher_home : p.pitcher_away;
           const reasons = [];
+          const segmentLabel = p.slate_segment === 'early' ? 'temprano' : p.slate_segment === 'middle' ? 'medio' : 'tarde';
           if (p.mkt_pick_p >= 0.70) reasons.push({ t: 'Favorito fuerte de mercado', c: 'text-accent-green' });
           else if (p.mkt_pick_p >= 0.62) reasons.push({ t: 'Favorito claro de mercado', c: 'text-accent-green' });
           else if (p.mkt_pick_p >= 0.55) reasons.push({ t: 'Favorito moderado', c: 'text-accent-blue' });
@@ -2744,9 +2899,19 @@ function DailyPicksPage({ data, loading }) {
           else reasons.push({ t: 'Modelo contradice al mercado', c: 'text-accent-gold' });
           if (p.confidence_tier && p.confidence_tier !== 'parejo')
             reasons.push({ t: `Tier ${p.confidence_tier.toUpperCase()}${p.tier_hit_rate ? ` · ${p.tier_hit_rate.toFixed(0)}%` : ''}`, c: 'text-white/60' });
+          if (p.event_slot) reasons.push({ t: `Casilla ${p.event_slot} · tramo ${segmentLabel}`, c: 'text-white/60' });
+          if (p.segment_acceleration > 0.005)
+            reasons.push({ t: `Tramo acelerando +${(p.segment_acceleration * 100).toFixed(1)}pp`, c: 'text-accent-green' });
+          else if (p.segment_acceleration < -0.005)
+            reasons.push({ t: `Tramo desacelerando ${(p.segment_acceleration * 100).toFixed(1)}pp`, c: 'text-accent-red' });
+          if (p.strong_consensus) reasons.unshift({ t: '⭐ Consenso fuerte · modelo y mercado ≥60%', c: 'text-accent-gold' });
+          const consensusRing = p.strong_consensus ? 'ring-1 ring-accent-gold/40 shadow-[0_0_24px_-8px_rgba(255,193,7,0.35)]' : '';
           return (
             <div key={p.game_pk}
-                 className={`rounded-2xl border ${rankColors[i] || rankColors[4]} p-5 flex flex-wrap items-center gap-5`}>
+                 className={`rounded-2xl border ${rankColors[i] || rankColors[4]} ${consensusRing} p-5 flex flex-wrap items-center gap-5 relative`}>
+              {p.strong_consensus && (
+                <span className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-accent-gold text-black text-[9px] font-black uppercase tracking-wider">⭐ Consenso Fuerte</span>
+              )}
               {/* Rank */}
               <div className={`mega text-[30px] w-[46px] text-center ${i === 0 ? 'text-accent-gold' : 'text-white/25'}`}>
                 #{p.rank}
@@ -2804,6 +2969,7 @@ function DailyPicksPage({ data, loading }) {
                 {reasons.map((r, j) => (
                   <span key={j} className={`text-[9.5px] px-2 py-1 rounded bg-white/[0.04] uppercase tracking-wider font-bold ${r.c}`}>{r.t}</span>
                 ))}
+                <DailyPickPosterButton pick={p} gameDate={data.date} />
               </div>
             </div>
           );
@@ -2811,7 +2977,7 @@ function DailyPicksPage({ data, loading }) {
       </div>
 
       <div className="mt-6 text-[10px] text-white/25 leading-relaxed max-w-[720px]">
-        El selector fue calibrado con walk-forward (desarrollo 2025, validación 2026) y elige
+        El selector usa historial walk-forward hasta {data.signal_history_through || 'la última actualización'} y elige
         {' '}{data.n_picks} picks porque el slate tiene {data.slate_size} juegos (5 con 10+, 3 con 6-9, 2 con 5 o menos).
         Ninguna selección garantiza resultados; apuesta responsablemente.
       </div>
