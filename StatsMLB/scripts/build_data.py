@@ -864,7 +864,7 @@ def fit_model(feature_rows: pd.DataFrame):
     }
 
 
-def build_walkforward(feature_rows: pd.DataFrame, coverage_audit: dict):
+def build_walkforward(feature_rows: pd.DataFrame, coverage_audit: dict, full_rebuild: bool = False):
     frame = feature_rows.copy()
     frame["date_dt"] = pd.to_datetime(frame["date"])
     first_test_month = pd.Timestamp("2024-03-01")
@@ -872,8 +872,9 @@ def build_walkforward(feature_rows: pd.DataFrame, coverage_audit: dict):
     predictions = []
     folds = []
     temporal_violations = 0
-    previous_predictions = load_previous_walkforward_predictions()
+    previous_predictions = {} if full_rebuild else load_previous_walkforward_predictions()
     preserved_historical_predictions = 0
+    cached_folds_skipped = 0
     combination_totals = {
         mask: {
             "games": 0,
@@ -884,6 +885,7 @@ def build_walkforward(feature_rows: pd.DataFrame, coverage_audit: dict):
         for mask in range(1, 2 ** len(FACTOR_KEYS))
     }
     total_periods = len(test_months)
+    today_ts = pd.Timestamp.today().normalize()
     for period_index, period in enumerate(test_months, start=1):
         month_start = period.start_time
         month_end = period.end_time.normalize()
@@ -891,34 +893,65 @@ def build_walkforward(feature_rows: pd.DataFrame, coverage_audit: dict):
         test = frame[frame["date_dt"].between(month_start, month_end)]
         if len(train) < 1000 or test.empty:
             continue
-        print(
-            f"  Walk-forward {period_index}/{total_periods}: {period} "
-            f"({len(train):,} entrenamiento, {len(test):,} prueba)",
-            flush=True,
-        )
         train_through = train["date_dt"].max()
         if train_through >= test["date_dt"].min():
             temporal_violations += 1
-        mask_probabilities = np.full((len(test), 2 ** len(FACTOR_KEYS)), np.nan, dtype=float)
-        def predict_one(mask: int):
-            mask_model = fit_mask_model(train, mask)
-            return mask, predict_mask(mask_model, test, mask)
 
-        with ThreadPoolExecutor(max_workers=MODEL_WORKERS) as executor:
-            predicted_masks = executor.map(predict_one, range(1, 2 ** len(FACTOR_KEYS)))
-            for mask, mask_values in predicted_masks:
-                mask_probabilities[:, mask] = mask_values
+        # Cache fast-path: si el mes ya cerró y TODOS sus juegos tienen mask
+        # probabilities cacheadas del run anterior, saltar el fit+predict de las
+        # 2047 combinaciones. Los resultados walk-forward de folds cerradas son
+        # inmutables por definición (mismo train set = mismos resultados), así
+        # que reusar es 100% seguro. Solo recomputamos la fold del mes actual.
+        is_closed_month = month_end < today_ts
+        test_game_pks = [int(row["gamePk"]) for _, row in test.iterrows()]
+        all_cached = (
+            not full_rebuild
+            and is_closed_month
+            and previous_predictions
+            and all(gpk in previous_predictions for gpk in test_game_pks)
+        )
 
-        preserved_defaults = {}
-        for test_index, (_, row) in enumerate(test.iterrows()):
-            previous = previous_predictions.get(int(row["gamePk"]))
-            if previous is None:
-                continue
-            mask_probabilities[test_index, :] = (
-                np.frombuffer(previous["packed"], dtype=np.uint8).astype(float) / 256.0
+        if all_cached:
+            cached_folds_skipped += 1
+            print(
+                f"  Walk-forward {period_index}/{total_periods}: {period} — cache ({len(test)} juegos, sin reentrenar)",
+                flush=True,
             )
-            preserved_defaults[test_index] = previous["homeProbability"]
-            preserved_historical_predictions += 1
+            mask_probabilities = np.full((len(test), 2 ** len(FACTOR_KEYS)), np.nan, dtype=float)
+            preserved_defaults = {}
+            for test_index, gpk in enumerate(test_game_pks):
+                previous = previous_predictions[gpk]
+                mask_probabilities[test_index, :] = (
+                    np.frombuffer(previous["packed"], dtype=np.uint8).astype(float) / 256.0
+                )
+                preserved_defaults[test_index] = previous["homeProbability"]
+                preserved_historical_predictions += 1
+        else:
+            print(
+                f"  Walk-forward {period_index}/{total_periods}: {period} "
+                f"({len(train):,} entrenamiento, {len(test):,} prueba)",
+                flush=True,
+            )
+            mask_probabilities = np.full((len(test), 2 ** len(FACTOR_KEYS)), np.nan, dtype=float)
+            def predict_one(mask: int):
+                mask_model = fit_mask_model(train, mask)
+                return mask, predict_mask(mask_model, test, mask)
+
+            with ThreadPoolExecutor(max_workers=MODEL_WORKERS) as executor:
+                predicted_masks = executor.map(predict_one, range(1, 2 ** len(FACTOR_KEYS)))
+                for mask, mask_values in predicted_masks:
+                    mask_probabilities[:, mask] = mask_values
+
+            preserved_defaults = {}
+            for test_index, (_, row) in enumerate(test.iterrows()):
+                previous = previous_predictions.get(int(row["gamePk"]))
+                if previous is None:
+                    continue
+                mask_probabilities[test_index, :] = (
+                    np.frombuffer(previous["packed"], dtype=np.uint8).astype(float) / 256.0
+                )
+                preserved_defaults[test_index] = previous["homeProbability"]
+                preserved_historical_predictions += 1
 
         test_dates = test["date"].astype(str).to_numpy()
         day_indices = {day: np.flatnonzero(test_dates == day) for day in np.unique(test_dates)}
@@ -1927,6 +1960,18 @@ def build_today_context(series: pd.DataFrame, games: pd.DataFrame, today_schedul
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Genera walkforward + JSONs para StatsMLB.")
+    parser.add_argument(
+        "--full-rebuild",
+        action="store_true",
+        help="Ignora el cache de walkforward.json anterior y reentrena TODAS las folds "
+             "históricas. Usar cuando cambia el feature set, hyperparams o hay dudas de "
+             "integridad. Toma ~35 min en vez de ~5 min.",
+    )
+    args = parser.parse_args()
+    _full_rebuild = args.full_rebuild
+
     PUBLIC_DATA.mkdir(parents=True, exist_ok=True)
     print("  Cargando histórico final y contexto de series...", flush=True)
     team_games = pd.read_csv(WORK / "games_final_regular.csv")
@@ -2016,7 +2061,7 @@ def main():
         ],
     }
     print("  Ejecutando validación walk-forward mensual...", flush=True)
-    walkforward = build_walkforward(feature_rows, coverage_audit)
+    walkforward = build_walkforward(feature_rows, coverage_audit, full_rebuild=_full_rebuild)
     output["seriesSweepAudit"] = build_series_sweep_audit(
         series, walkforward, summary["coverage"]["last_final_date"]
     )

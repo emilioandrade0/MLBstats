@@ -17,11 +17,9 @@ name: actualizar-historico
 
 on:
   schedule:
-    # build_data.py hace walk-forward completo (2047 combinaciones x 21 folds),
-    # ~30-40 min por corrida. Cada 3h es la cadencia sostenible sin choques
-    # ni excesivo consumo de compute (aun con repo publico ilimitado, mejor
-    # no desperdiciar).
-    - cron: '0 */3 * * *'
+    # Con el cache de walk-forward: cada corrida solo reentrena la fold del mes
+    # actual (~5-8 min). Cadencia horaria es sostenible.
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -88,7 +86,10 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
-      - name: Build StatsMLB dashboard data (build_data.py)
+      - name: Build StatsMLB dashboard data (build_data.py, cached walkforward)
+        # Sin --full-rebuild: reusa las folds walk-forward ya calculadas de meses
+        # cerrados (guardadas en public/data/walkforward-*.json). Solo recomputa
+        # la fold del mes actual. Corre en 5-8 min en vez de 35+.
         working-directory: StatsMLB
         run: python -u scripts/build_data.py
         env:
