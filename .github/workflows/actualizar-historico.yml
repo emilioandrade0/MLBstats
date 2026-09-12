@@ -1,0 +1,129 @@
+name: actualizar-historico
+
+# Automatiza el `ACTUALIZAR HISTORICO.bat` en la nube. Corre diario a las
+# 15:00 UTC (9:00 AM CDMX) — despues de que terminen los juegos West Coast
+# de la noche anterior y antes de que empiecen los del dia.
+#
+# Pipeline (~6-10 min):
+#   1. refresh_history_schedule.py  → MLB schedule del mes actual
+#   2. mlb_three_game_sweep_report  → stats de series (work/sweep_report_*)
+#   3. build_data.py                 → walkforward JSONs (StatsMLB/public/data/)
+#   4. Commit los JSONs actualizados
+#   5. pnpm build + wrangler deploy  → sube el Worker a Cloudflare
+#
+# Requiere secrets:
+#   CLOUDFLARE_API_TOKEN   (perms: Workers Scripts:Edit, D1:Edit, Account:Read)
+#   CLOUDFLARE_ACCOUNT_ID  (8a839b9640e9bd55fd9bb4ec70ac7a4c segun deploy log)
+
+on:
+  schedule:
+    - cron: '0 15 * * *'   # 15:00 UTC daily
+  workflow_dispatch:
+
+concurrency:
+  group: actualizar-historico
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python deps
+        run: |
+          pip install -r requirements.txt
+          pip install scikit-learn
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10
+
+      - name: Refresh MLB schedule (mes actual)
+        working-directory: StatsMLB
+        run: python -u scripts/refresh_history_schedule.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Refresh ESPN odds + rebuild parquets
+        # Reusa el pipeline diario para asegurar games.parquet fresco antes
+        # de correr build_data.py.
+        run: python -m src.refresh --days-forward 7
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Rebuild three-game sweep report
+        run: |
+          mkdir -p work/sweep_report_20260824
+          python -u analysis/mlb_three_game_sweep_report.py --output-dir work/sweep_report_20260824
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Retrain Value Model + regenerate value_picks.parquet
+        run: python -m src.model.value_picks --summary
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Build StatsMLB dashboard data (build_data.py)
+        working-directory: StatsMLB
+        run: python -u scripts/build_data.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Commit JSON updates
+        run: |
+          git config user.name  "strikecast-bot"
+          git config user.email "strikecast-bot@users.noreply.github.com"
+          git add StatsMLB/public/data/*.json \
+                  data/processed/odds_close.parquet \
+                  data/processed/features_market.parquet \
+                  data/processed/value_picks.parquet \
+                  data/processed/games.parquet 2>/dev/null || true
+          git add data/models/value_first.pkl data/models/value_win.pkl 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "data: actualizar historico $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
+
+      - name: Install StatsMLB deps
+        working-directory: StatsMLB
+        run: pnpm install --frozen-lockfile
+
+      - name: Build StatsMLB
+        working-directory: StatsMLB
+        run: pnpm build
+
+      - name: Deploy Cloudflare Worker
+        working-directory: StatsMLB
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy
+
+      - name: Trigger Cloudflare D1 refresh (post-deploy)
+        if: always()
+        run: |
+          curl -sS -X POST "${{ secrets.STATSMLB_URL }}/api/refresh" \
+            -H "Content-Type: application/json" \
+            --max-time 90 \
+            -w "\nHTTP %{http_code}\n" || echo "D1 refresh HTTP error (non-fatal)"
