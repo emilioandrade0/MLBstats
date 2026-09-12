@@ -65,7 +65,8 @@ AUDITREGRESSION/
 STARTFROMTHEEND/
 work/
 outputs/
-analysis/
+analysis/*
+!analysis/mlb_three_game_sweep_report.py
 tests/
 docs/
 sim/
