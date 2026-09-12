@@ -17,10 +17,11 @@ name: actualizar-historico
 
 on:
   schedule:
-    # Cada hora en punto — repo publico = compute ilimitado en GitHub Actions.
-    # Cada corrida ~8 min. Con el frente cada 15 min sirviendo cached JSONs,
-    # asegura frescura maxima sin cliff de datos.
-    - cron: '0 * * * *'
+    # build_data.py hace walk-forward completo (2047 combinaciones x 21 folds),
+    # ~30-40 min por corrida. Cada 3h es la cadencia sostenible sin choques
+    # ni excesivo consumo de compute (aun con repo publico ilimitado, mejor
+    # no desperdiciar).
+    - cron: '0 */3 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -30,7 +31,7 @@ concurrency:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
     permissions:
       contents: write
 
