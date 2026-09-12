@@ -8,8 +8,10 @@ name: pre-game-safety
 #
 # Que hace en cada corrida:
 #   1. Fetch /api/value del Cloudflare Worker
-#   2. Si updated_at > 90 min -> data stale, disparar actualizar-historico
-#   3. Notificar via Telegram el resultado (OK / stale-refreshed / error)
+#   2. Si updated_at > 90 min -> data stale, dispara actualizar-historico
+#   3. Log al Actions job. Sin notificaciones (Telegram queda para picks).
+#
+# Ver resultados: GitHub -> Actions -> pre-game-safety -> click run.
 
 on:
   schedule:
@@ -49,10 +51,10 @@ jobs:
             echo "status=missing" >> "$GITHUB_OUTPUT"
             echo "age_min=99999" >> "$GITHUB_OUTPUT"
             echo "picks_count=$PICKS_COUNT" >> "$GITHUB_OUTPUT"
+            echo "::warning::endpoint value no devolvio updated_at"
             exit 0
           fi
 
-          # Segundos desde epoch
           UPDATED_TS=$(python3 -c "from datetime import datetime; print(int(datetime.fromisoformat('$UPDATED_AT'.replace('Z','+00:00')).timestamp()))")
           NOW_TS=$(date -u +%s)
           AGE_MIN=$(( (NOW_TS - UPDATED_TS) / 60 ))
@@ -63,8 +65,10 @@ jobs:
 
           if [ "$AGE_MIN" -gt 90 ]; then
             echo "status=stale" >> "$GITHUB_OUTPUT"
+            echo "::warning::data stale ($AGE_MIN min old, $PICKS_COUNT picks) — trigger refresh"
           else
             echo "status=fresh" >> "$GITHUB_OUTPUT"
+            echo "::notice::data fresca ($AGE_MIN min old, $PICKS_COUNT picks)"
           fi
 
       - name: Disparar actualizar-historico si data stale
@@ -72,43 +76,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Data stale (${{ steps.freshness.outputs.age_min }} min). Disparando actualizar-historico..."
+          echo "Data status='${{ steps.freshness.outputs.status }}' age=${{ steps.freshness.outputs.age_min }} min."
+          echo "Disparando actualizar-historico via workflow_dispatch..."
           gh workflow run actualizar-historico.yml -r main
-
-      - name: Notificar via Telegram
-        env:
-          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          STATUS: ${{ steps.freshness.outputs.status }}
-          AGE_MIN: ${{ steps.freshness.outputs.age_min }}
-          PICKS_COUNT: ${{ steps.freshness.outputs.picks_count }}
-          UPDATED_AT: ${{ steps.freshness.outputs.updated_at }}
-        run: |
-          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
-            echo "Telegram no configurado en secrets, saltando notificacion."
-            exit 0
-          fi
-
-          case "$STATUS" in
-            fresh)
-              EMOJI="✅"
-              TITLE="Data fresca antes de slate MLB"
-              BODY="Value picks actualizados hace ${AGE_MIN} min. ${PICKS_COUNT} juegos hoy."
-              ;;
-            stale)
-              EMOJI="⚠️"
-              TITLE="Data stale — refresh disparado"
-              BODY="Value picks tenian ${AGE_MIN} min de antiguedad. Se dispara actualizar-historico. ${PICKS_COUNT} juegos hoy."
-              ;;
-            missing)
-              EMOJI="❌"
-              TITLE="Endpoint value_picks no respondio"
-              BODY="El Cloudflare Worker no devolvio updated_at. Revisar Railway backend."
-              ;;
-          esac
-
-          TEXT="${EMOJI} StrikeCast · ${TITLE}%0A%0A${BODY}"
-          curl -sS --max-time 15 "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${CHAT_ID}" \
-            -d "text=${TEXT}" \
-            -w "\nHTTP %{http_code}\n" || echo "Notificacion Telegram fallo (non-fatal)"
+          echo "Dispatch enviado. Revisa Actions -> actualizar-historico para el nuevo run."
