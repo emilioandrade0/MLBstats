@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-12T18:40:21.908993+00:00",
+  "retrievedAt": "2026-09-12T19:16:54.205727+00:00",
   "games": [
     {
       "gamePk": 824224,
@@ -13,7 +13,7 @@
       "away": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": 4,
+        "score": 6,
         "pitcher": "Tanner Gordon"
       },
       "home": {
@@ -33,13 +33,13 @@
       "away": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": 4,
+        "score": 5,
         "pitcher": "Zac Thornton"
       },
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": 1,
+        "score": 2,
         "pitcher": "Gerrit Cole"
       }
     },
@@ -59,7 +59,7 @@
       "home": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": 1,
+        "score": 2,
         "pitcher": "Clay Holmes"
       }
     },
@@ -67,8 +67,8 @@
       "gamePk": 822768,
       "gameDate": "2026-09-12T19:07:00Z",
       "officialDate": "2026-09-12",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Rogers Centre",
       "away": {
         "team": "BAL",
@@ -187,7 +187,7 @@
       "gamePk": 822927,
       "gameDate": "2026-09-12T22:10:00Z",
       "officialDate": "2026-09-12",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Tropicana Field",
       "away": {
