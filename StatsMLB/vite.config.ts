@@ -4,8 +4,11 @@ import vinext from 'vinext';
 import { defineConfig } from 'vite';
 import hostingConfig from './.openai/hosting.json';
 
+// Real Cloudflare D1 database id (created via `wrangler d1 create site-creator-d1`).
+// Local dev via miniflare ignores the id and uses a local SQLite file, so this
+// value is only consulted for production deploys.
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  '00000000-0000-4000-8000-000000000000';
+  process.env.D1_DATABASE_ID ?? '43c266ca-1090-4e2b-a337-8d9956616710';
 
 const { d1, r2 } = hostingConfig;
 
