@@ -80,8 +80,11 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
-      - name: Retrain Value Model + regenerate value_picks.parquet
-        run: python -m src.model.value_picks --summary
+      - name: Refresh value_picks (predict-only, sin pitches.parquet)
+        # Usa los modelos value_first.pkl / value_win.pkl commiteados. No
+        # reentrenamos en CI porque el target requiere pitches.parquet (384 MB).
+        # Los modelos se re-entrenan localmente en tu laptop cuando quieras.
+        run: python -m src.model.value_picks --predict-only --summary
         env:
           PYTHONUNBUFFERED: '1'
 

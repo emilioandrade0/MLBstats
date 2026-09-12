@@ -46,10 +46,10 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
-      - name: Retrain value_picks model
-        # LightGBM training is ~15s. Runs every cron tick so picks stay fresh
-        # with newest closing lines and any completed-game targets that landed.
-        run: python -m src.model.value_picks --summary
+      - name: Refresh value_picks (predict-only)
+        # Reusa modelos .pkl commiteados. No reentrena en CI porque el target
+        # de first-scorer requiere pitches.parquet (384 MB) que no vive en git.
+        run: python -m src.model.value_picks --predict-only --summary
         env:
           PYTHONUNBUFFERED: '1'
 

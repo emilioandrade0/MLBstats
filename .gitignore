@@ -98,6 +98,12 @@ data/processed/*
 !data/processed/features_high_leverage.parquet
 !data/processed/features_catcher_control.parquet
 !data/processed/value_picks.parquet
+!data/processed/features_elo.parquet
+!data/processed/features_pitcher.parquet
+!data/processed/features_team.parquet
+!data/processed/features_lineup.parquet
+!data/processed/features_weather.parquet
+!data/processed/features_park.parquet
 
 # --- Modelos: solo los que copia el Dockerfile ---
 data/models/*

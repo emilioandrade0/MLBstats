@@ -54,13 +54,20 @@ def _ml_to_prob(ml: float | None) -> float | None:
 
 
 def _load_target() -> pd.DataFrame:
-    """First-scorer target: 1 si HOME anotó primero, 0 si visitante."""
+    """First-scorer target: 1 si HOME anotó primero, 0 si visitante.
+
+    Requires pitches.parquet (384 MB), so it's only available on hosts that
+    have the full raw pipeline (local dev, Railway). CI runners just get an
+    empty frame — the target isn't used in predict-only mode."""
+    pitches_path = PROCESSED / "pitches.parquet"
+    if not pitches_path.exists():
+        return pd.DataFrame(columns=["game_pk", "home_scored_first"])
     con = duckdb.connect(":memory:")
     return con.execute(f"""
     WITH terminating AS (
       SELECT game_pk, at_bat_number, inning_topbot,
              home_score, away_score, post_home_score, post_away_score
-      FROM read_parquet('{PROCESSED / "pitches.parquet"}')
+      FROM read_parquet('{pitches_path}')
       WHERE events IS NOT NULL AND events <> ''
     ),
     first_scoring AS (
@@ -164,25 +171,34 @@ def build_dataset() -> tuple[pd.DataFrame, list[str]]:
     return df, feat_cols
 
 
-def train_and_predict() -> pd.DataFrame:
-    import lightgbm as lgb
+def train_and_predict(predict_only: bool = False) -> pd.DataFrame:
+    import lightgbm as lgb  # noqa: F401 — imported so type errors surface early
+    import joblib
 
     df, feat_cols = build_dataset()
 
-    # Entrenamos con juegos que YA se jugaron y tienen target (past).
-    # Predecimos sobre TODOS los juegos con features (past + future).
-    trained = df[df["home_scored_first"].notna() & df["home_won"].notna()].copy()
-    if len(trained) < 500:
-        raise RuntimeError(f"Muy pocos juegos con target ({len(trained)}); se necesita al menos 500.")
+    first_pkl = MODELS_DIR / "value_first.pkl"
+    win_pkl = MODELS_DIR / "value_win.pkl"
 
-    def fit(target_col: str):
-        m = lgb.LGBMClassifier(n_estimators=250, learning_rate=0.05, max_depth=5,
-                               num_leaves=15, min_data_in_leaf=40, verbose=-1)
-        m.fit(trained[feat_cols], trained[target_col].astype(int))
-        return m
+    if predict_only and first_pkl.exists() and win_pkl.exists():
+        # CI path: usar los modelos ya entrenados (commiteados en el repo).
+        # Evita depender de pitches.parquet (384 MB) para el target.
+        m_first = joblib.load(first_pkl)
+        m_win = joblib.load(win_pkl)
+    else:
+        # Path de retrain (local o cuando faltan los .pkl).
+        trained = df[df["home_scored_first"].notna() & df["home_won"].notna()].copy()
+        if len(trained) < 500:
+            raise RuntimeError(f"Muy pocos juegos con target ({len(trained)}); se necesita al menos 500.")
 
-    m_first = fit("home_scored_first")
-    m_win = fit("home_won")
+        def fit(target_col: str):
+            m = lgb.LGBMClassifier(n_estimators=250, learning_rate=0.05, max_depth=5,
+                                   num_leaves=15, min_data_in_leaf=40, verbose=-1)
+            m.fit(trained[feat_cols], trained[target_col].astype(int))
+            return m
+
+        m_first = fit("home_scored_first")
+        m_win = fit("home_won")
 
     # Predicción sobre todo el pool con features (falta target incluído)
     out = df[["game_pk", "d", "season", "home_team_abbrev", "away_team_abbrev",
@@ -219,10 +235,10 @@ def train_and_predict() -> pd.DataFrame:
     out["tier"] = tier_code[0]
     out["pick_code"] = tier_code[1]
 
-    # Guardar modelos por si queremos reusarlos
-    import joblib
-    joblib.dump(m_first, MODELS_DIR / "value_first.pkl")
-    joblib.dump(m_win, MODELS_DIR / "value_win.pkl")
+    # Guardar modelos solo si acabamos de entrenar (predict_only reusa .pkl).
+    if not predict_only:
+        joblib.dump(m_first, first_pkl)
+        joblib.dump(m_win, win_pkl)
 
     # Orden y salida
     out = out[[
@@ -238,10 +254,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true", help="Force retrain + rewrite (default behavior)")
     ap.add_argument("--summary", action="store_true", help="Print summary of tier counts")
+    ap.add_argument("--predict-only", action="store_true",
+                    help="Skip training; reuse existing value_first.pkl/value_win.pkl. "
+                         "Requires pitches.parquet only if models are missing. Used by CI where"
+                         "pitches.parquet (384 MB) is not available.")
     args = ap.parse_args()
 
-    print("[value_picks] entrenando y prediciendo…")
-    picks = train_and_predict()
+    if args.predict_only:
+        print("[value_picks] predict-only (usando modelos guardados)…")
+    else:
+        print("[value_picks] entrenando y prediciendo…")
+    picks = train_and_predict(predict_only=args.predict_only)
     picks.to_parquet(OUT_PATH, index=False)
     print(f"[value_picks] escritos {len(picks):,} juegos → {OUT_PATH}")
 
