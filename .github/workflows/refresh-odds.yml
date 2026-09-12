@@ -75,3 +75,14 @@ jobs:
           git add data/models/value_first.pkl data/models/value_win.pkl 2>/dev/null || true
           git commit -m "data: auto-refresh $(date -u +%Y-%m-%dT%H:%MZ)"
           git push
+
+      - name: Trigger Cloudflare D1 refresh
+        # Poblado del D1 con schedules + odds del dia. Independiente del
+        # commit: aun si no hay cambios en parquets, D1 necesita ver fechas
+        # nuevas cuando amanece un dia distinto.
+        if: always()
+        run: |
+          curl -sS -X POST "${{ secrets.STATSMLB_URL }}/api/refresh" \
+            -H "Content-Type: application/json" \
+            --max-time 90 \
+            -w "\nHTTP %{http_code}\n" || echo "D1 refresh HTTP error (non-fatal)"
