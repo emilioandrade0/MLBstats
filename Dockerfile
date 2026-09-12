@@ -46,7 +46,6 @@ COPY data/processed/features_high_leverage.parquet    ./data/processed/
 COPY data/processed/features_catcher_control.parquet  ./data/processed/
 COPY data/processed/value_picks.parquet               ./data/processed/
 
-COPY data/models/ensemble.pkl     ./data/models/
 COPY data/models/lgb_cls.pkl      ./data/models/
 COPY data/models/lgb_reg.pkl      ./data/models/
 COPY data/models/f5_cls.pkl       ./data/models/
