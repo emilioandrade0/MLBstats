@@ -131,7 +131,16 @@ def parse_feed(path: Path) -> dict | None:
     }
 
 
-def build() -> Path:
+def build(merge: bool = True) -> Path:
+    """Regenera games.parquet desde los raw JSONs de statsapi_feed.
+
+    merge=True (default): mezcla los nuevos rows con el games.parquet existente.
+    Necesario en CI donde solo se ingieren los feeds de los ultimos N dias — sin
+    merge, la historia entera desaparece porque los feeds antiguos no viven en
+    el repo (data/raw/ esta gitignored).
+
+    merge=False: rebuild completo desde cero (uso local con archivo raw completo).
+    """
     rows: list[dict] = []
     for season in SEASONS:
         d = RAW / "statsapi_feed" / str(season)
@@ -140,13 +149,24 @@ def build() -> Path:
             row = parse_feed(p)
             if row is not None:
                 rows.append(row)
-    df = pd.DataFrame(rows)
-    # Drop dup rows defensively (a gamePk should be unique).
-    if "game_pk" in df.columns:
-        df = df.drop_duplicates("game_pk", keep="last")
+    new_df = pd.DataFrame(rows)
+    if "game_pk" in new_df.columns:
+        new_df = new_df.drop_duplicates("game_pk", keep="last")
+
     out = PROCESSED / "games.parquet"
-    df.to_parquet(out, index=False)
-    print(f"wrote {out} ({len(df):,} rows)")
+    if merge and out.exists() and not new_df.empty:
+        existing = pd.read_parquet(out)
+        # Update-in-place: new rows win, existing rows kept for game_pks not
+        # present in the fresh feeds (histórico se conserva).
+        refreshed_pks = set(new_df["game_pk"].astype("int64").tolist())
+        keep_mask = ~existing["game_pk"].astype("int64").isin(refreshed_pks)
+        combined = pd.concat([existing[keep_mask], new_df], ignore_index=True)
+        combined = combined.drop_duplicates("game_pk", keep="last")
+        combined.to_parquet(out, index=False)
+        print(f"wrote {out} ({len(combined):,} rows total; {len(new_df):,} refreshed, {int(keep_mask.sum()):,} preserved)")
+    else:
+        new_df.to_parquet(out, index=False)
+        print(f"wrote {out} ({len(new_df):,} rows; full rebuild)")
     return out
 
 
