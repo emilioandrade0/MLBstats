@@ -1,661 +1,92 @@
 {
   "sourceState": "REAL DATA",
   "source": "STRIKECAST data/processed/odds_pinnacle.parquet",
-  "generatedAt": "2026-09-11T22:48:10.186683+00:00",
-  "sourceUpdatedAt": "2026-09-08T16:33:19Z",
+  "generatedAt": "2026-09-12T18:48:24.071941+00:00",
+  "sourceUpdatedAt": "2026-09-12T07:03:35Z",
   "oddsFormat": "american_and_decimal",
   "selectionRule": "Mejor momio decimal disponible entre las casas presentes para cada lado.",
   "games": [
     {
-      "eventId": "34562a9fcbcea523c510c1e42991506b",
-      "commenceTime": "2026-09-08T22:36:00Z",
-      "awayTeam": "Cleveland Guardians",
-      "homeTeam": "Baltimore Orioles",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 100.0,
-          "homeAmerican": -120.0,
-          "awayDecimal": 2.0,
-          "homeDecimal": 1.83333333,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 102.0,
-          "homeAmerican": -123.0,
-          "awayDecimal": 2.02,
-          "homeDecimal": 1.81300813,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 104.0,
-          "homeAmerican": -122.0,
-          "awayDecimal": 2.04,
-          "homeDecimal": 1.81967213,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 105.0,
-          "homeAmerican": -114.0,
-          "awayDecimal": 2.05,
-          "homeDecimal": 1.87719298,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 105.0,
-        "decimal": 2.05
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -114.0,
-        "decimal": 1.87719298
-      }
-    },
-    {
-      "eventId": "9e2f314d867b53d782c83c17368fae5e",
-      "commenceTime": "2026-09-08T22:41:00Z",
-      "awayTeam": "Houston Astros",
-      "homeTeam": "Philadelphia Phillies",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 118.0,
-          "homeAmerican": -145.0,
-          "awayDecimal": 2.18,
-          "homeDecimal": 1.68965517,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 119.0,
-          "homeAmerican": -143.0,
-          "awayDecimal": 2.19,
-          "homeDecimal": 1.6993007,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 120.0,
-          "homeAmerican": -142.0,
-          "awayDecimal": 2.2,
-          "homeDecimal": 1.70422535,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 125.0,
-          "homeAmerican": -136.0,
-          "awayDecimal": 2.25,
-          "homeDecimal": 1.73529412,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 125.0,
-        "decimal": 2.25
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -136.0,
-        "decimal": 1.73529412
-      }
-    },
-    {
-      "eventId": "10492fa54f9765a1ae3c65266b20ca1a",
-      "commenceTime": "2026-09-08T22:41:00Z",
-      "awayTeam": "Minnesota Twins",
-      "homeTeam": "Detroit Tigers",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 115.0,
-          "homeAmerican": -140.0,
-          "awayDecimal": 2.15,
-          "homeDecimal": 1.71428571,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 114.0,
-          "homeAmerican": -137.0,
-          "awayDecimal": 2.14,
-          "homeDecimal": 1.72992701,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 120.0,
-          "homeAmerican": -142.0,
-          "awayDecimal": 2.2,
-          "homeDecimal": 1.70422535,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 119.0,
-          "homeAmerican": -129.0,
-          "awayDecimal": 2.19,
-          "homeDecimal": 1.7751938,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "FanDuel",
-        "american": 120.0,
-        "decimal": 2.2
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -129.0,
-        "decimal": 1.7751938
-      }
-    },
-    {
-      "eventId": "73c13ede933eb472cc249b925289fd11",
-      "commenceTime": "2026-09-08T22:41:00Z",
-      "awayTeam": "New York Mets",
-      "homeTeam": "Miami Marlins",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 105.0,
-          "homeAmerican": -125.0,
-          "awayDecimal": 2.05,
-          "homeDecimal": 1.8,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 103.0,
-          "homeAmerican": -124.0,
-          "awayDecimal": 2.03,
-          "homeDecimal": 1.80645161,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 108.0,
-          "homeAmerican": -126.0,
-          "awayDecimal": 2.08,
-          "homeDecimal": 1.79365079,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 110.0,
-          "homeAmerican": -119.0,
-          "awayDecimal": 2.1,
-          "homeDecimal": 1.84033613,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 110.0,
-        "decimal": 2.1
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -119.0,
-        "decimal": 1.84033613
-      }
-    },
-    {
-      "eventId": "13b2a30b2be9fb761113ce7cb8d2ea9d",
-      "commenceTime": "2026-09-08T22:46:00Z",
-      "awayTeam": "Los Angeles Angels",
-      "homeTeam": "Boston Red Sox",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 120.0,
-          "homeAmerican": -145.0,
-          "awayDecimal": 2.2,
-          "homeDecimal": 1.68965517,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 123.0,
-          "homeAmerican": -149.0,
-          "awayDecimal": 2.23,
-          "homeDecimal": 1.67114094,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 122.0,
-          "homeAmerican": -144.0,
-          "awayDecimal": 2.22,
-          "homeDecimal": 1.69444444,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 128.0,
-          "homeAmerican": -139.0,
-          "awayDecimal": 2.28,
-          "homeDecimal": 1.71942446,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 128.0,
-        "decimal": 2.28
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -139.0,
-        "decimal": 1.71942446
-      }
-    },
-    {
-      "eventId": "a10aaa5c39074d6ea18faef14d18bfb5",
-      "commenceTime": "2026-09-08T23:06:00Z",
+      "eventId": "c63a7d48eec7289e56b5115bf9fcb09e",
+      "commenceTime": "2026-09-12T17:10:00Z",
       "awayTeam": "Colorado Rockies",
-      "homeTeam": "New York Yankees",
-      "lastUpdated": "2026-09-08T16:33:19Z",
+      "homeTeam": "Detroit Tigers",
+      "lastUpdated": "2026-09-12T07:03:35Z",
       "books": [
         {
           "name": "BetMGM",
-          "awayAmerican": 260.0,
-          "homeAmerican": -325.0,
-          "awayDecimal": 3.6,
-          "homeDecimal": 1.30769231,
-          "lastUpdated": "2026-09-08T16:33:19Z"
+          "awayAmerican": 145.0,
+          "homeAmerican": -175.0,
+          "awayDecimal": 2.45,
+          "homeDecimal": 1.57142857,
+          "lastUpdated": "2026-09-12T07:03:00Z"
         },
         {
           "name": "DraftKings",
-          "awayAmerican": 267.0,
-          "homeAmerican": -340.0,
-          "awayDecimal": 3.67,
-          "homeDecimal": 1.29411765,
-          "lastUpdated": "2026-09-08T16:33:18Z"
+          "awayAmerican": 144.0,
+          "homeAmerican": -175.0,
+          "awayDecimal": 2.44,
+          "homeDecimal": 1.57142857,
+          "lastUpdated": "2026-09-12T07:01:46Z"
         },
         {
           "name": "FanDuel",
-          "awayAmerican": 270.0,
-          "homeAmerican": -335.0,
-          "awayDecimal": 3.7,
-          "homeDecimal": 1.29850746,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 278.0,
-          "homeAmerican": -315.0,
-          "awayDecimal": 3.78,
-          "homeDecimal": 1.31746032,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 278.0,
-        "decimal": 3.78
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -315.0,
-        "decimal": 1.31746032
-      }
-    },
-    {
-      "eventId": "cd725aa57a2f0e5ac106e101cd15fc1d",
-      "commenceTime": "2026-09-08T23:16:00Z",
-      "awayTeam": "Tampa Bay Rays",
-      "homeTeam": "Atlanta Braves",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": -105.0,
-          "homeAmerican": -115.0,
-          "awayDecimal": 1.95238095,
-          "homeDecimal": 1.86956522,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": -105.0,
-          "homeAmerican": -114.0,
-          "awayDecimal": 1.95238095,
-          "homeDecimal": 1.87719298,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": -102.0,
-          "homeAmerican": -116.0,
-          "awayDecimal": 1.98039216,
-          "homeDecimal": 1.86206897,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 103.0,
-          "homeAmerican": -111.0,
-          "awayDecimal": 2.03,
-          "homeDecimal": 1.9009009,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 103.0,
-        "decimal": 2.03
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -111.0,
-        "decimal": 1.9009009
-      }
-    },
-    {
-      "eventId": "e28a92e1cd8fe7ce97b34004a0d2063e",
-      "commenceTime": "2026-09-08T23:40:00Z",
-      "awayTeam": "Arizona Diamondbacks",
-      "homeTeam": "Kansas City Royals",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": -120.0,
-          "homeAmerican": 100.0,
-          "awayDecimal": 1.83333333,
-          "homeDecimal": 2.0,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": -120.0,
-          "homeAmerican": -101.0,
-          "awayDecimal": 1.83333333,
-          "homeDecimal": 1.99009901,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": -120.0,
-          "homeAmerican": 102.0,
-          "awayDecimal": 1.83333333,
-          "homeDecimal": 2.02,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": -113.0,
-          "homeAmerican": 104.0,
-          "awayDecimal": 1.88495575,
-          "homeDecimal": 2.04,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": -113.0,
-        "decimal": 1.88495575
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": 104.0,
-        "decimal": 2.04
-      }
-    },
-    {
-      "eventId": "85c65d8138861fb6a024b339bf4f5ab6",
-      "commenceTime": "2026-09-08T23:41:00Z",
-      "awayTeam": "Chicago Cubs",
-      "homeTeam": "Milwaukee Brewers",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 180.0,
-          "homeAmerican": -220.0,
-          "awayDecimal": 2.8,
-          "homeDecimal": 1.45454545,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 178.0,
-          "homeAmerican": -219.0,
-          "awayDecimal": 2.78,
-          "homeDecimal": 1.456621,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 184.0,
-          "homeAmerican": -220.0,
-          "awayDecimal": 2.84,
-          "homeDecimal": 1.45454545,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 187.0,
-          "homeAmerican": -206.0,
-          "awayDecimal": 2.87,
-          "homeDecimal": 1.48543689,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 187.0,
-        "decimal": 2.87
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -206.0,
-        "decimal": 1.48543689
-      }
-    },
-    {
-      "eventId": "f62b9e0454b38cb2e0509ef206a08138",
-      "commenceTime": "2026-09-08T23:41:00Z",
-      "awayTeam": "Pittsburgh Pirates",
-      "homeTeam": "Chicago White Sox",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 120.0,
-          "homeAmerican": -145.0,
-          "awayDecimal": 2.2,
-          "homeDecimal": 1.68965517,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 120.0,
-          "homeAmerican": -145.0,
-          "awayDecimal": 2.2,
-          "homeDecimal": 1.68965517,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 124.0,
-          "homeAmerican": -146.0,
-          "awayDecimal": 2.24,
-          "homeDecimal": 1.68493151,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 125.0,
-          "homeAmerican": -135.0,
-          "awayDecimal": 2.25,
-          "homeDecimal": 1.74074074,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": 125.0,
-        "decimal": 2.25
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": -135.0,
-        "decimal": 1.74074074
-      }
-    },
-    {
-      "eventId": "9320b01114d200ee9f8d2fb0848e6496",
-      "commenceTime": "2026-09-09T01:41:00Z",
-      "awayTeam": "Texas Rangers",
-      "homeTeam": "Seattle Mariners",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 115.0,
-          "homeAmerican": -140.0,
-          "awayDecimal": 2.15,
-          "homeDecimal": 1.71428571,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 113.0,
-          "homeAmerican": -136.0,
-          "awayDecimal": 2.13,
-          "homeDecimal": 1.73529412,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": 122.0,
-          "homeAmerican": -144.0,
-          "awayDecimal": 2.22,
-          "homeDecimal": 1.69444444,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": 120.0,
-          "homeAmerican": -130.0,
-          "awayDecimal": 2.2,
-          "homeDecimal": 1.76923077,
-          "lastUpdated": "2026-09-08T16:33:18Z"
+          "awayAmerican": 146.0,
+          "homeAmerican": -174.0,
+          "awayDecimal": 2.46,
+          "homeDecimal": 1.57471264,
+          "lastUpdated": "2026-09-12T07:03:35Z"
         }
       ],
       "bestAway": {
         "book": "FanDuel",
-        "american": 122.0,
-        "decimal": 2.22
+        "american": 146.0,
+        "decimal": 2.46
       },
       "bestHome": {
-        "book": "Pinnacle",
-        "american": -130.0,
-        "decimal": 1.76923077
+        "book": "FanDuel",
+        "american": -174.0,
+        "decimal": 1.57471264
       }
     },
     {
-      "eventId": "bbab891f2a9defcd506aafce495b42dc",
-      "commenceTime": "2026-09-09T01:41:00Z",
-      "awayTeam": "Toronto Blue Jays",
-      "homeTeam": "Athletics",
-      "lastUpdated": "2026-09-08T16:33:19Z",
+      "eventId": "ff08b7b349f719f151912ec3a9a09257",
+      "commenceTime": "2026-09-12T17:36:00Z",
+      "awayTeam": "New York Mets",
+      "homeTeam": "New York Yankees",
+      "lastUpdated": "2026-09-12T07:03:35Z",
       "books": [
         {
           "name": "BetMGM",
-          "awayAmerican": -190.0,
-          "homeAmerican": 154.0,
-          "awayDecimal": 1.52631579,
-          "homeDecimal": 2.54,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": -186.0,
-          "homeAmerican": 153.0,
-          "awayDecimal": 1.53763441,
-          "homeDecimal": 2.53,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
-          "awayAmerican": -180.0,
-          "homeAmerican": 152.0,
-          "awayDecimal": 1.55555556,
-          "homeDecimal": 2.52,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": -177.0,
-          "homeAmerican": 162.0,
-          "awayDecimal": 1.56497175,
-          "homeDecimal": 2.62,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        }
-      ],
-      "bestAway": {
-        "book": "Pinnacle",
-        "american": -177.0,
-        "decimal": 1.56497175
-      },
-      "bestHome": {
-        "book": "Pinnacle",
-        "american": 162.0,
-        "decimal": 2.62
-      }
-    },
-    {
-      "eventId": "24d1608c7ffefab567006f6da92fc5f0",
-      "commenceTime": "2026-09-09T01:41:00Z",
-      "awayTeam": "Washington Nationals",
-      "homeTeam": "San Diego Padres",
-      "lastUpdated": "2026-09-08T16:33:19Z",
-      "books": [
-        {
-          "name": "BetMGM",
-          "awayAmerican": 155.0,
-          "homeAmerican": -190.0,
-          "awayDecimal": 2.55,
-          "homeDecimal": 1.52631579,
-          "lastUpdated": "2026-09-08T16:33:19Z"
-        },
-        {
-          "name": "DraftKings",
-          "awayAmerican": 155.0,
-          "homeAmerican": -188.0,
-          "awayDecimal": 2.55,
-          "homeDecimal": 1.53191489,
-          "lastUpdated": "2026-09-08T16:33:18Z"
-        },
-        {
-          "name": "FanDuel",
           "awayAmerican": 154.0,
-          "homeAmerican": -184.0,
+          "homeAmerican": -190.0,
           "awayDecimal": 2.54,
-          "homeDecimal": 1.54347826,
-          "lastUpdated": "2026-09-08T16:32:29Z"
+          "homeDecimal": 1.52631579,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": 153.0,
+          "homeAmerican": -186.0,
+          "awayDecimal": 2.53,
+          "homeDecimal": 1.53763441,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": 146.0,
+          "homeAmerican": -174.0,
+          "awayDecimal": 2.46,
+          "homeDecimal": 1.57471264,
+          "lastUpdated": "2026-09-12T07:03:35Z"
         },
         {
           "name": "Pinnacle",
           "awayAmerican": 163.0,
-          "homeAmerican": -178.0,
+          "homeAmerican": -182.0,
           "awayDecimal": 2.63,
-          "homeDecimal": 1.56179775,
-          "lastUpdated": "2026-09-08T16:33:18Z"
+          "homeDecimal": 1.54945055,
+          "lastUpdated": "2026-09-12T07:03:34Z"
         }
       ],
       "bestAway": {
@@ -664,33 +95,84 @@
         "decimal": 2.63
       },
       "bestHome": {
-        "book": "Pinnacle",
-        "american": -178.0,
-        "decimal": 1.56179775
+        "book": "FanDuel",
+        "american": -174.0,
+        "decimal": 1.57471264
       }
     },
     {
-      "eventId": "7fe872788a9a570ceb3aa6918bbf641d",
-      "commenceTime": "2026-09-09T01:46:00Z",
-      "awayTeam": "St. Louis Cardinals",
-      "homeTeam": "San Francisco Giants",
-      "lastUpdated": "2026-09-08T16:33:19Z",
+      "eventId": "3b910a2e0ac0e7339bf6d0b3857bf1bc",
+      "commenceTime": "2026-09-12T18:21:00Z",
+      "awayTeam": "Pittsburgh Pirates",
+      "homeTeam": "Chicago Cubs",
+      "lastUpdated": "2026-09-12T07:03:35Z",
       "books": [
         {
           "name": "BetMGM",
-          "awayAmerican": -110.0,
-          "homeAmerican": -110.0,
-          "awayDecimal": 1.90909091,
-          "homeDecimal": 1.90909091,
-          "lastUpdated": "2026-09-08T16:33:19Z"
+          "awayAmerican": 105.0,
+          "homeAmerican": -125.0,
+          "awayDecimal": 2.05,
+          "homeDecimal": 1.8,
+          "lastUpdated": "2026-09-12T07:03:00Z"
         },
         {
           "name": "DraftKings",
-          "awayAmerican": -110.0,
-          "homeAmerican": -110.0,
-          "awayDecimal": 1.90909091,
-          "homeDecimal": 1.90909091,
-          "lastUpdated": "2026-09-08T16:33:18Z"
+          "awayAmerican": 104.0,
+          "homeAmerican": -126.0,
+          "awayDecimal": 2.04,
+          "homeDecimal": 1.79365079,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": 104.0,
+          "homeAmerican": -122.0,
+          "awayDecimal": 2.04,
+          "homeDecimal": 1.81967213,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": 111.0,
+          "homeAmerican": -122.0,
+          "awayDecimal": 2.11,
+          "homeDecimal": 1.81967213,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "Pinnacle",
+        "american": 111.0,
+        "decimal": 2.11
+      },
+      "bestHome": {
+        "book": "FanDuel",
+        "american": -122.0,
+        "decimal": 1.81967213
+      }
+    },
+    {
+      "eventId": "a34743d79cd5b394262c790c11e888a2",
+      "commenceTime": "2026-09-12T19:08:00Z",
+      "awayTeam": "Baltimore Orioles",
+      "homeTeam": "Toronto Blue Jays",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": -105.0,
+          "homeAmerican": -115.0,
+          "awayDecimal": 1.95238095,
+          "homeDecimal": 1.86956522,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": -105.0,
+          "homeAmerican": -115.0,
+          "awayDecimal": 1.95238095,
+          "homeDecimal": 1.86956522,
+          "lastUpdated": "2026-09-12T07:01:46Z"
         },
         {
           "name": "FanDuel",
@@ -698,77 +180,547 @@
           "homeAmerican": -108.0,
           "awayDecimal": 1.92592593,
           "homeDecimal": 1.92592593,
-          "lastUpdated": "2026-09-08T16:32:29Z"
-        },
-        {
-          "name": "Pinnacle",
-          "awayAmerican": -107.0,
-          "homeAmerican": -101.0,
-          "awayDecimal": 1.93457944,
-          "homeDecimal": 1.99009901,
-          "lastUpdated": "2026-09-08T16:33:18Z"
+          "lastUpdated": "2026-09-12T07:03:35Z"
         }
       ],
       "bestAway": {
-        "book": "Pinnacle",
-        "american": -107.0,
-        "decimal": 1.93457944
+        "book": "BetMGM",
+        "american": -105.0,
+        "decimal": 1.95238095
       },
       "bestHome": {
-        "book": "Pinnacle",
-        "american": -101.0,
-        "decimal": 1.99009901
+        "book": "FanDuel",
+        "american": -108.0,
+        "decimal": 1.92592593
       }
     },
     {
-      "eventId": "f01c292dd868a51b739e2283164a5e94",
-      "commenceTime": "2026-09-09T02:11:00Z",
-      "awayTeam": "Cincinnati Reds",
-      "homeTeam": "Los Angeles Dodgers",
-      "lastUpdated": "2026-09-08T16:33:19Z",
+      "eventId": "cdf157d86eeb76344f4827066cfb24b7",
+      "commenceTime": "2026-09-12T20:06:00Z",
+      "awayTeam": "Los Angeles Angels",
+      "homeTeam": "Washington Nationals",
+      "lastUpdated": "2026-09-12T07:03:35Z",
       "books": [
         {
           "name": "BetMGM",
-          "awayAmerican": 260.0,
-          "homeAmerican": -325.0,
-          "awayDecimal": 3.6,
-          "homeDecimal": 1.30769231,
-          "lastUpdated": "2026-09-08T16:33:19Z"
+          "awayAmerican": -105.0,
+          "homeAmerican": -115.0,
+          "awayDecimal": 1.95238095,
+          "homeDecimal": 1.86956522,
+          "lastUpdated": "2026-09-12T07:03:00Z"
         },
         {
           "name": "DraftKings",
-          "awayAmerican": 259.0,
-          "homeAmerican": -329.0,
-          "awayDecimal": 3.59,
-          "homeDecimal": 1.30395137,
-          "lastUpdated": "2026-09-08T16:33:18Z"
+          "awayAmerican": -102.0,
+          "homeAmerican": -118.0,
+          "awayDecimal": 1.98039216,
+          "homeDecimal": 1.84745763,
+          "lastUpdated": "2026-09-12T07:01:46Z"
         },
         {
           "name": "FanDuel",
-          "awayAmerican": 270.0,
-          "homeAmerican": -335.0,
-          "awayDecimal": 3.7,
-          "homeDecimal": 1.29850746,
-          "lastUpdated": "2026-09-08T16:32:29Z"
+          "awayAmerican": -102.0,
+          "homeAmerican": -116.0,
+          "awayDecimal": 1.98039216,
+          "homeDecimal": 1.86206897,
+          "lastUpdated": "2026-09-12T07:03:35Z"
         },
         {
           "name": "Pinnacle",
-          "awayAmerican": 271.0,
-          "homeAmerican": -306.0,
-          "awayDecimal": 3.71,
-          "homeDecimal": 1.32679739,
-          "lastUpdated": "2026-09-08T16:33:18Z"
+          "awayAmerican": 101.0,
+          "homeAmerican": -111.0,
+          "awayDecimal": 2.01,
+          "homeDecimal": 1.9009009,
+          "lastUpdated": "2026-09-12T07:03:34Z"
         }
       ],
       "bestAway": {
         "book": "Pinnacle",
-        "american": 271.0,
-        "decimal": 3.71
+        "american": 101.0,
+        "decimal": 2.01
       },
       "bestHome": {
         "book": "Pinnacle",
-        "american": -306.0,
-        "decimal": 1.32679739
+        "american": -111.0,
+        "decimal": 1.9009009
+      }
+    },
+    {
+      "eventId": "119e7c7799ddcc034a09522f5abe00ba",
+      "commenceTime": "2026-09-12T20:06:00Z",
+      "awayTeam": "San Diego Padres",
+      "homeTeam": "San Francisco Giants",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": -160.0,
+          "homeAmerican": 135.0,
+          "awayDecimal": 1.625,
+          "homeDecimal": 2.35,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": -160.0,
+          "homeAmerican": 132.0,
+          "awayDecimal": 1.625,
+          "homeDecimal": 2.32,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": -162.0,
+          "homeAmerican": 136.0,
+          "awayDecimal": 1.61728395,
+          "homeDecimal": 2.36,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": -158.0,
+          "homeAmerican": 142.0,
+          "awayDecimal": 1.63291139,
+          "homeDecimal": 2.42,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "Pinnacle",
+        "american": -158.0,
+        "decimal": 1.63291139
+      },
+      "bestHome": {
+        "book": "Pinnacle",
+        "american": 142.0,
+        "decimal": 2.42
+      }
+    },
+    {
+      "eventId": "7c083bc7ca5ace85fbfaee34ab962b91",
+      "commenceTime": "2026-09-12T20:11:00Z",
+      "awayTeam": "Cleveland Guardians",
+      "homeTeam": "Minnesota Twins",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": -110.0,
+          "homeAmerican": -110.0,
+          "awayDecimal": 1.90909091,
+          "homeDecimal": 1.90909091,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": -108.0,
+          "homeAmerican": -112.0,
+          "awayDecimal": 1.92592593,
+          "homeDecimal": 1.89285714,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": -108.0,
+          "homeAmerican": -108.0,
+          "awayDecimal": 1.92592593,
+          "homeDecimal": 1.92592593,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        }
+      ],
+      "bestAway": {
+        "book": "DraftKings",
+        "american": -108.0,
+        "decimal": 1.92592593
+      },
+      "bestHome": {
+        "book": "FanDuel",
+        "american": -108.0,
+        "decimal": 1.92592593
+      }
+    },
+    {
+      "eventId": "faaa421be783eb6c7c0a7508f6d200a8",
+      "commenceTime": "2026-09-12T20:11:00Z",
+      "awayTeam": "Kansas City Royals",
+      "homeTeam": "Boston Red Sox",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": 155.0,
+          "homeAmerican": -190.0,
+          "awayDecimal": 2.55,
+          "homeDecimal": 1.52631579,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": 158.0,
+          "homeAmerican": -192.0,
+          "awayDecimal": 2.58,
+          "homeDecimal": 1.52083333,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": 160.0,
+          "homeAmerican": -190.0,
+          "awayDecimal": 2.6,
+          "homeDecimal": 1.52631579,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": 164.0,
+          "homeAmerican": -184.0,
+          "awayDecimal": 2.64,
+          "homeDecimal": 1.54347826,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "Pinnacle",
+        "american": 164.0,
+        "decimal": 2.64
+      },
+      "bestHome": {
+        "book": "Pinnacle",
+        "american": -184.0,
+        "decimal": 1.54347826
+      }
+    },
+    {
+      "eventId": "964e45be7256059f585689e2580e6e87",
+      "commenceTime": "2026-09-12T20:11:00Z",
+      "awayTeam": "Los Angeles Dodgers",
+      "homeTeam": "Miami Marlins",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": -200.0,
+          "homeAmerican": 165.0,
+          "awayDecimal": 1.5,
+          "homeDecimal": 2.65,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": -202.0,
+          "homeAmerican": 166.0,
+          "awayDecimal": 1.4950495,
+          "homeDecimal": 2.66,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": -196.0,
+          "homeAmerican": 164.0,
+          "awayDecimal": 1.51020408,
+          "homeDecimal": 2.64,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": -183.0,
+          "homeAmerican": 163.0,
+          "awayDecimal": 1.54644809,
+          "homeDecimal": 2.63,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "Pinnacle",
+        "american": -183.0,
+        "decimal": 1.54644809
+      },
+      "bestHome": {
+        "book": "DraftKings",
+        "american": 166.0,
+        "decimal": 2.66
+      }
+    },
+    {
+      "eventId": "608d0aadfb410ccc31258f78ba3dd5fb",
+      "commenceTime": "2026-09-12T22:11:00Z",
+      "awayTeam": "Houston Astros",
+      "homeTeam": "Tampa Bay Rays",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": 120.0,
+          "homeAmerican": -145.0,
+          "awayDecimal": 2.2,
+          "homeDecimal": 1.68965517,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": 123.0,
+          "homeAmerican": -149.0,
+          "awayDecimal": 2.23,
+          "homeDecimal": 1.67114094,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": 122.0,
+          "homeAmerican": -144.0,
+          "awayDecimal": 2.22,
+          "homeDecimal": 1.69444444,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": 127.0,
+          "homeAmerican": -140.0,
+          "awayDecimal": 2.27,
+          "homeDecimal": 1.71428571,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "Pinnacle",
+        "american": 127.0,
+        "decimal": 2.27
+      },
+      "bestHome": {
+        "book": "Pinnacle",
+        "american": -140.0,
+        "decimal": 1.71428571
+      }
+    },
+    {
+      "eventId": "0669e72856fe5564925b33c66db5c259",
+      "commenceTime": "2026-09-12T23:11:00Z",
+      "awayTeam": "Cincinnati Reds",
+      "homeTeam": "Milwaukee Brewers",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "FanDuel",
+          "awayAmerican": 154.0,
+          "homeAmerican": -184.0,
+          "awayDecimal": 2.54,
+          "homeDecimal": 1.54347826,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        }
+      ],
+      "bestAway": {
+        "book": "FanDuel",
+        "american": 154.0,
+        "decimal": 2.54
+      },
+      "bestHome": {
+        "book": "FanDuel",
+        "american": -184.0,
+        "decimal": 1.54347826
+      }
+    },
+    {
+      "eventId": "14b28cc8951c1250a20d6aa224ec3317",
+      "commenceTime": "2026-09-12T23:16:00Z",
+      "awayTeam": "Chicago White Sox",
+      "homeTeam": "St. Louis Cardinals",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": -105.0,
+          "homeAmerican": -115.0,
+          "awayDecimal": 1.95238095,
+          "homeDecimal": 1.86956522,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": -104.0,
+          "homeAmerican": -116.0,
+          "awayDecimal": 1.96153846,
+          "homeDecimal": 1.86206897,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": -102.0,
+          "homeAmerican": -116.0,
+          "awayDecimal": 1.98039216,
+          "homeDecimal": 1.86206897,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": -102.0,
+          "homeAmerican": -108.0,
+          "awayDecimal": 1.98039216,
+          "homeDecimal": 1.92592593,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "FanDuel",
+        "american": -102.0,
+        "decimal": 1.98039216
+      },
+      "bestHome": {
+        "book": "Pinnacle",
+        "american": -108.0,
+        "decimal": 1.92592593
+      }
+    },
+    {
+      "eventId": "89a101c5567e20eb28151ba175250010",
+      "commenceTime": "2026-09-12T23:16:00Z",
+      "awayTeam": "Philadelphia Phillies",
+      "homeTeam": "Atlanta Braves",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": -105.0,
+          "homeAmerican": -115.0,
+          "awayDecimal": 1.95238095,
+          "homeDecimal": 1.86956522,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": -102.0,
+          "homeAmerican": -118.0,
+          "awayDecimal": 1.98039216,
+          "homeDecimal": 1.84745763,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": 100.0,
+          "homeAmerican": -118.0,
+          "awayDecimal": 2.0,
+          "homeDecimal": 1.84745763,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": 105.0,
+          "homeAmerican": -116.0,
+          "awayDecimal": 2.05,
+          "homeDecimal": 1.86206897,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "Pinnacle",
+        "american": 105.0,
+        "decimal": 2.05
+      },
+      "bestHome": {
+        "book": "BetMGM",
+        "american": -115.0,
+        "decimal": 1.86956522
+      }
+    },
+    {
+      "eventId": "a5da7f95d7c671a9287dc40863b8204e",
+      "commenceTime": "2026-09-13T00:11:00Z",
+      "awayTeam": "Texas Rangers",
+      "homeTeam": "Arizona Diamondbacks",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": 118.0,
+          "homeAmerican": -145.0,
+          "awayDecimal": 2.18,
+          "homeDecimal": 1.68965517,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": 118.0,
+          "homeAmerican": -143.0,
+          "awayDecimal": 2.18,
+          "homeDecimal": 1.6993007,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": 124.0,
+          "homeAmerican": -146.0,
+          "awayDecimal": 2.24,
+          "homeDecimal": 1.68493151,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": 122.0,
+          "homeAmerican": -135.0,
+          "awayDecimal": 2.22,
+          "homeDecimal": 1.74074074,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "FanDuel",
+        "american": 124.0,
+        "decimal": 2.24
+      },
+      "bestHome": {
+        "book": "Pinnacle",
+        "american": -135.0,
+        "decimal": 1.74074074
+      }
+    },
+    {
+      "eventId": "5829b429dfb2b487aaca727451b8c55c",
+      "commenceTime": "2026-09-13T01:41:00Z",
+      "awayTeam": "Seattle Mariners",
+      "homeTeam": "Athletics",
+      "lastUpdated": "2026-09-12T07:03:35Z",
+      "books": [
+        {
+          "name": "BetMGM",
+          "awayAmerican": -175.0,
+          "homeAmerican": 145.0,
+          "awayDecimal": 1.57142857,
+          "homeDecimal": 2.45,
+          "lastUpdated": "2026-09-12T07:03:00Z"
+        },
+        {
+          "name": "DraftKings",
+          "awayAmerican": -175.0,
+          "homeAmerican": 144.0,
+          "awayDecimal": 1.57142857,
+          "homeDecimal": 2.44,
+          "lastUpdated": "2026-09-12T07:01:46Z"
+        },
+        {
+          "name": "FanDuel",
+          "awayAmerican": -180.0,
+          "homeAmerican": 152.0,
+          "awayDecimal": 1.55555556,
+          "homeDecimal": 2.52,
+          "lastUpdated": "2026-09-12T07:03:35Z"
+        },
+        {
+          "name": "Pinnacle",
+          "awayAmerican": -165.0,
+          "homeAmerican": 148.0,
+          "awayDecimal": 1.60606061,
+          "homeDecimal": 2.48,
+          "lastUpdated": "2026-09-12T07:03:34Z"
+        }
+      ],
+      "bestAway": {
+        "book": "Pinnacle",
+        "american": -165.0,
+        "decimal": 1.60606061
+      },
+      "bestHome": {
+        "book": "FanDuel",
+        "american": 152.0,
+        "decimal": 2.52
       }
     }
   ]
