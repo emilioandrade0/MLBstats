@@ -104,6 +104,11 @@ data/processed/*
 !data/processed/features_lineup.parquet
 !data/processed/features_weather.parquet
 !data/processed/features_park.parquet
+!data/processed/value_target_first_scorer.parquet
+!data/processed/team_box.parquet
+!data/processed/player_box.parquet
+!data/processed/pinnacle_value.parquet
+!data/processed/odds_pinnacle.parquet
 
 # --- Modelos: solo los que copia el Dockerfile ---
 data/models/*

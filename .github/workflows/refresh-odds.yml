@@ -46,10 +46,10 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
-      - name: Refresh value_picks (predict-only)
-        # Reusa modelos .pkl commiteados. No reentrena en CI porque el target
-        # de first-scorer requiere pitches.parquet (384 MB) que no vive en git.
-        run: python -m src.model.value_picks --predict-only --summary
+      - name: Retrain value_picks model
+        # Full retrain usando el cache commiteado del target (67 KB) en vez de
+        # pitches.parquet (384 MB). ~15s. Regenera value_picks.parquet.
+        run: python -m src.model.value_picks --summary
         env:
           PYTHONUNBUFFERED: '1'
 

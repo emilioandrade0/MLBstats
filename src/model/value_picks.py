@@ -56,14 +56,22 @@ def _ml_to_prob(ml: float | None) -> float | None:
 def _load_target() -> pd.DataFrame:
     """First-scorer target: 1 si HOME anotó primero, 0 si visitante.
 
-    Requires pitches.parquet (384 MB), so it's only available on hosts that
-    have the full raw pipeline (local dev, Railway). CI runners just get an
-    empty frame — the target isn't used in predict-only mode."""
+    Prefiere `value_target_first_scorer.parquet` (67 KB, commiteado en git)
+    que precomputa el resultado por juego. Si el cache falta o quieres
+    regenerarlo con juegos nuevos, corre pitches.parquet on the fly (384 MB,
+    solo disponible localmente/Railway).
+
+    Para poblar el cache desde cero:
+        python scratchpad/compute_target_cache.py
+    """
+    cache_path = PROCESSED / "value_target_first_scorer.parquet"
+    if cache_path.exists():
+        return pd.read_parquet(cache_path)
     pitches_path = PROCESSED / "pitches.parquet"
     if not pitches_path.exists():
         return pd.DataFrame(columns=["game_pk", "home_scored_first"])
     con = duckdb.connect(":memory:")
-    return con.execute(f"""
+    df = con.execute(f"""
     WITH terminating AS (
       SELECT game_pk, at_bat_number, inning_topbot,
              home_score, away_score, post_home_score, post_away_score
@@ -81,6 +89,9 @@ def _load_target() -> pd.DataFrame:
            CASE WHEN inning_topbot='Bot' THEN 1 ELSE 0 END AS home_scored_first
     FROM first_scoring
     """).fetch_df()
+    # Cache para futuras corridas (esp. utilities de CI)
+    df.to_parquet(cache_path, index=False)
+    return df
 
 
 def _load_odds() -> pd.DataFrame:
