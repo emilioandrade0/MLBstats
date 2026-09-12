@@ -65,10 +65,26 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
-      - name: Refresh ESPN odds + rebuild parquets
-        # Reusa el pipeline diario para asegurar games.parquet fresco antes
-        # de correr build_data.py.
+      - name: Refresh ESPN odds + rebuild odds_close.parquet
         run: python -m src.refresh --days-forward 7
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Refresh StatsAPI feeds (ultimos 3 dias — captura scores finales)
+        # ESPN refresh trae odds y scoreboard pero NO regenera games.parquet
+        # con box scores completos. StatsAPI feed/live nos da los scores
+        # oficiales de juegos ya terminados. Sin esto, walkforward-2026.json
+        # aparece con solo 1 juego del dia anterior.
+        run: |
+          END=$(date -u +%Y-%m-%d)
+          START=$(date -u -d '3 days ago' +%Y-%m-%d)
+          echo "StatsAPI ingest: $START -> $END"
+          python -m src.ingest_statsapi --start "$START" --end "$END" --concurrency 8
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Regenerate games.parquet from StatsAPI feeds
+        run: python -m src.normalize.games
         env:
           PYTHONUNBUFFERED: '1'
 
