@@ -103,7 +103,12 @@ def build() -> Path | None:
         return int(cand.iloc[0]["game_pk"])
 
     rows = []
-    for (away, home), grp in df.groupby(["away_abbr", "home_abbr"]):
+    # A series can expose odds for today's and tomorrow's games at the same
+    # time. Keep each market event isolated so prices from different games are
+    # never compared against one another.
+    for (_, away, home), grp in df.groupby(
+        ["event_id", "away_abbr", "home_abbr"], sort=False
+    ):
         commence = grp["commence_time"].iloc[0]
         game_pk = _match_game(away, home, commence)
         if game_pk is None:

@@ -26,6 +26,7 @@ data/processed/*
 !data/processed/odds_close.parquet
 !data/processed/features_market.parquet
 !data/processed/features_pitcher_season.parquet
+!data/processed/daily_pick_signal_history.parquet
 data/models/*
 !data/models/ensemble.pkl
 !data/models/lgb_cls.pkl

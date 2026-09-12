@@ -73,6 +73,11 @@ function verdictLabel(verdict, win = 'GANO', loss = 'PERDIO') {
   return { win, loss, push: 'PUSH', tbd: 'TBD', none: '' }[verdict] || '';
 }
 
+function flipSummaryText(flip) {
+  if (!flip) return 'Sin datos previos';
+  return flip.summary || 'Sin datos previos';
+}
+
 async function loadDate(d, silent = false) {
   state.date = d;
   document.getElementById('datepick').value = d;
@@ -112,7 +117,8 @@ function renderList(games) {
   grid.innerHTML = games.map(g => {
     const pH = g.p_home;
     const pA = g.p_away;
-    const pickH = pickSide(pH);
+    const originalPick = g.pick_original_xgboost || {};
+    const pickH = originalPick.side === 'HOME' ? 'HOME' : originalPick.side === 'AWAY' ? 'AWAY' : pickSide(pH);
     const homeLogo = `https://www.mlbstatic.com/team-logos/${teamId(g.home_abbrev)}.svg`;
     const awayLogo = `https://www.mlbstatic.com/team-logos/${teamId(g.away_abbrev)}.svg`;
     const played = g.is_played ? 'played' : '';
@@ -149,6 +155,8 @@ function renderList(games) {
     const valueLabel = showValuePick
       ? `🎯 ${valueAbbr} @ ${valueDec?.toFixed(2)}  +${valueEdge?.toFixed(1)}pp`
       : null;
+    const flipSummary = flipSummaryText(g.pick_invertido) || g.flip_summary || 'Sin datos previos';
+    const flipConflict = Boolean(g.conflict_flip || (g.pick_invertido && g.pick_invertido.conflict_flip));
     // Card border = verdict of the pick we're actually showing.
     const shownPickResult = showValuePick ? valueResult : mlResult;
     const cardResult = settledClass(shownPickResult) || settledClass(totalResult);
@@ -215,6 +223,8 @@ function renderList(games) {
                  ${valueResultLabel ? `<span class="result-badge ${valueResult}">${valueResultLabel}</span>` : ''}`
               : `<span class="pick ${pickH}">${mlLabel}</span>
                  ${mlResultLabel ? `<span class="result-badge ${mlResult}">${mlResultLabel}</span>` : ''}`}
+            <span class="pick FLIP" title="Resultado histórico del mismo día hace un año">Flip: ${flipSummary}</span>
+            ${flipConflict ? `<span class="result-badge loss">CONFLICTO FLIP</span>` : ''}
             <span class="pick TOTAL ${totalPick.pick}">${totalLabel}</span>
             ${totalResultLabel ? `<span class="result-badge ${totalResult}">${totalResultLabel}</span>` : ''}
           </span>
@@ -372,6 +382,11 @@ function renderDetail(d) {
   const hp = d.home_pitcher;
   const mdl = d.model;
   const mkt = d.market;
+  const originalPick = d.pick_original_xgboost || {};
+  const flip = d.pick_invertido || {};
+  const flipSummary = d.flip_summary || flip.summary || 'Sin datos previos';
+  const flipConflict = Boolean(d.conflict_flip || flip.conflict_flip);
+  const pickSideOriginal = originalPick.side || (mdl.p_home == null ? 'NONE' : (mdl.p_home >= 0.5 ? 'HOME' : 'AWAY'));
 
   let edge = null;
   let edgeSign = '';
@@ -380,9 +395,9 @@ function renderDetail(d) {
     edgeSign = edge >= 0 ? '+' : '';
   }
 
-  const pickHome = mdl.p_home != null && mdl.p_home > 0.5;
-  const pick = pickHome ? 'HOME' : 'AWAY';
-  const pickAbbr = pickHome ? h.abbrev : a.abbrev;
+  const pickHome = pickSideOriginal === 'HOME';
+  const pick = pickSideOriginal === 'NONE' ? 'NONE' : pickHome ? 'HOME' : 'AWAY';
+  const pickAbbr = originalPick.team_abbrev || (pickHome ? h.abbrev : a.abbrev);
   const pickName = pickHome ? h.name : a.name;
   const mlResult = mlVerdict(pick, d.result.home_score, d.result.away_score);
   const totalPick = ouPick(mdl.pred_total_runs, mkt.total);
@@ -524,6 +539,7 @@ function renderDetail(d) {
         <div class="dash-metric green"><span>↗</span><small>EDGE DETECTADO</small><strong>${edgeText}</strong><em>vs. Linea del mercado</em></div>
         <div class="dash-metric"><span>▥</span><small>TOTAL DE CARRERAS</small><strong>${fmtNum(mdl.pred_total_runs, 1)}</strong><em>Linea: ${totalLine}</em></div>
         <div class="dash-metric"><span>▦</span><small>MARCADOR PROYECTADO</small><strong>${probableScore(mdl.p_home, mdl.pred_total_runs, a.abbrev, h.abbrev)}</strong><em>Confianza: ${fmtPct(modelLeaderPct)}</em></div>
+        <div class="dash-metric"><span>⟲</span><small>FLIP HISTORICO</small><strong>${flipSummary}</strong><em>${flipConflict ? 'Conflicto' : 'Sin conflicto'}</em></div>
       </section>
 
       <section class="dash-main-grid">
@@ -568,6 +584,7 @@ function renderDetail(d) {
         <div class="dash-card dash-picks-card">
           <h3>PICKS RECOMENDADOS</h3>
           <div class="dash-picks-head"><span></span><b>PICK</b><b>LINEA</b><b>CONFIANZA</b><b>RIESGO</b><b>RATIONALE</b></div>
+          ${pickRow('⟲', 'Flip histórico', flipSummary, flipConflict ? 'Conflicto' : 'OK', flipConflict ? 'Alerta' : 'Bajo', 'Mismo día del año anterior')}
           ${pickRow('★', `${pickAbbr} -1.5`, fmtML(fairPick), confidenceLevel, edge != null && edge > 0 ? 'Bajo' : 'Medio', `Edge del modelo ${edgeText}`, true)}
           ${pickRow('•', `Total ${totalPick.pick === 'NONE' ? 'Menos' : totalPick.pick}`, totalLine, 'Media', 'Medio', 'Ambos abridores con buen control')}
           ${pickRow('•', `${pickAbbr} ML`, fmtML(fairPick), 'Media', 'Medio', 'Valor moderado vs probabilidad implicita')}

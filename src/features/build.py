@@ -28,6 +28,16 @@ import pandas as pd
 from ..normalize.paths import PROCESSED
 
 
+def _completed_game_mask(games: pd.DataFrame) -> pd.Series:
+    """True only when an MLB game has an official final result."""
+    status = games["status"].astype(str).str.lower()
+    return (
+        status.str.match(r"^(final|game over|completed early)")
+        & games["home_score"].notna()
+        & games["away_score"].notna()
+    )
+
+
 def _write_parquet_atomic(df: pd.DataFrame, out: Path) -> None:
     """Write parquet atomically and surface a clear error if Windows locks it."""
     tmp = out.with_name(f"{out.stem}.tmp{out.suffix}")
@@ -424,7 +434,7 @@ def build() -> Path:
     # --- targets ---
     # Leave future / canceled games unlabeled. `(NaN > NaN)` becomes False in
     # pandas, which silently turned scheduled games into fake away wins.
-    played_mask = g["home_score"].notna() & g["away_score"].notna()
+    played_mask = _completed_game_mask(g)
     g["home_win"] = pd.Series(pd.NA, index=g.index, dtype="Int64")
     g.loc[played_mask, "home_win"] = (
         g.loc[played_mask, "home_score"] > g.loc[played_mask, "away_score"]
@@ -470,8 +480,8 @@ def build() -> Path:
                     if c.endswith(("_h", "_a", "_diff"))]
     # Add features explicitly that don't follow the _h/_a/_diff convention.
     explicit_features = [
-        "market_logit_p_home", "market_over_under", "market_spread",
-        "market_p_home_std", "market_n_providers",
+        "market_logit_p_home", "market_over_under", "market_over_under_pregame",
+        "market_spread", "market_p_home_std", "market_n_providers",
         # Line movement (open -> close) captura sharp money flow. Signal check
         # muestra +5pp swing en fav_slight cuando linea se mueve al AWAY.
         "market_line_shift_home_pp", "market_line_shift_abs_pp",

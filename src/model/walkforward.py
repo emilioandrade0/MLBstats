@@ -12,7 +12,8 @@ as backtest.py — only now over a much longer, unbiased horizon.
 
 Usage:
   python -m src.model.walkforward
-  python -m src.model.walkforward --start 2024-05 --end 2025-12
+  python -m src.model.walkforward --start 2024-05 --end 2026-08
+  python -m src.model.walkforward --incremental
 """
 from __future__ import annotations
 
@@ -403,7 +404,23 @@ def _train_one_fold(train: pd.DataFrame, feats: list[str]):
     return SeedEnsemble(cals, "cls"), SeedEnsemble(regs, "reg")
 
 
-def run(start: date, end: date) -> pd.DataFrame:
+def _incremental_start(default_start: date) -> date:
+    """Recompute the last partial fold and preserve all earlier OOS rows."""
+    path = PROCESSED / "walkforward_preds.parquet"
+    if not path.exists():
+        return default_start
+    try:
+        existing = pd.read_parquet(path, columns=["game_date"])
+        latest = pd.to_datetime(existing["game_date"], errors="coerce").max()
+    except Exception:
+        return default_start
+    if pd.isna(latest):
+        return default_start
+    latest_month = date(int(latest.year), int(latest.month), 1)
+    return max(default_start, latest_month)
+
+
+def run(start: date, end: date, incremental: bool = False) -> pd.DataFrame:
     df = pd.read_parquet(PROCESSED / "train.parquet")
     df = df.dropna(subset=["home_win", "total_runs"]).copy()
     df["game_date"] = pd.to_datetime(df["game_date"])
@@ -457,9 +474,19 @@ def run(start: date, end: date) -> pd.DataFrame:
         out["fold_month"] = f"{m_start.year}-{m_start.month:02d}"
         all_preds.append(out)
 
-    res = pd.concat(all_preds, ignore_index=True)
     out_path = PROCESSED / "walkforward_preds.parquet"
-    res.to_parquet(out_path, index=False)
+    if not all_preds:
+        raise RuntimeError(f"No walk-forward folds were generated for {start} -> {end}")
+    res = pd.concat(all_preds, ignore_index=True)
+    if incremental and out_path.exists():
+        existing = pd.read_parquet(out_path)
+        existing["game_date"] = pd.to_datetime(existing["game_date"], errors="coerce")
+        preserved = existing[existing["game_date"].lt(pd.Timestamp(start))].copy()
+        res = pd.concat([preserved, res], ignore_index=True, sort=False)
+        res = res.sort_values(["game_date", "game_pk"]).drop_duplicates("game_pk", keep="last")
+    temp_path = out_path.with_suffix(".tmp.parquet")
+    res.to_parquet(temp_path, index=False)
+    temp_path.replace(out_path)
     print(f"\nwrote {out_path} ({len(res):,} predictions)")
     return res
 
@@ -596,12 +623,18 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--start", default="2024-05",
                    help="YYYY-MM. Default 2024-05 (waiting for L30 features to warm up).")
-    p.add_argument("--end", default="2025-12", help="YYYY-MM")
+    p.add_argument("--end", default=date.today().strftime("%Y-%m"), help="YYYY-MM")
+    p.add_argument(
+        "--incremental", action="store_true",
+        help="Recompute the latest partial month and preserve earlier OOS folds.",
+    )
     a = p.parse_args()
     start = date.fromisoformat(a.start + "-01")
+    if a.incremental:
+        start = _incremental_start(start)
     end_m = date.fromisoformat(a.end + "-01")
     end = (end_m + relativedelta(months=1)) - timedelta(days=1)
-    preds = run(start, end)
+    preds = run(start, end, incremental=a.incremental)
     _aggregate_metrics(preds)
     for th in (0.03, 0.05, 0.08):
         _backtest(preds, edge_threshold=th)

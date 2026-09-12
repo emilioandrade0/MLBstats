@@ -1,0 +1,341 @@
+{
+  "generatedAt": "2026-09-08T06:46:00.085703+00:00",
+  "leadThreshold": 0.03,
+  "lagThreshold": -0.03,
+  "totalGames": 6040,
+  "overall": {
+    "matrix": {
+      "LOCK": {
+        "MKT_MAS_ALTO": {
+          "n": 45,
+          "wins": 32,
+          "pct": 0.7111111111111111
+        },
+        "COINCIDEN": {
+          "n": 361,
+          "wins": 251,
+          "pct": 0.6952908587257618
+        },
+        "MKT_MAS_BAJO": {
+          "n": 247,
+          "wins": 172,
+          "pct": 0.6963562753036437
+        }
+      },
+      "FUERTE": {
+        "MKT_MAS_ALTO": {
+          "n": 150,
+          "wins": 101,
+          "pct": 0.6733333333333333
+        },
+        "COINCIDEN": {
+          "n": 990,
+          "wins": 592,
+          "pct": 0.597979797979798
+        },
+        "MKT_MAS_BAJO": {
+          "n": 64,
+          "wins": 36,
+          "pct": 0.5625
+        }
+      },
+      "JUEGA": {
+        "MKT_MAS_ALTO": {
+          "n": 434,
+          "wins": 246,
+          "pct": 0.5668202764976958
+        },
+        "COINCIDEN": {
+          "n": 1519,
+          "wins": 800,
+          "pct": 0.5266622778143516
+        },
+        "MKT_MAS_BAJO": {
+          "n": 68,
+          "wins": 36,
+          "pct": 0.5294117647058824
+        }
+      }
+    },
+    "overallByMarketCat": {
+      "MKT_MAS_ALTO": {
+        "n": 629,
+        "wins": 379,
+        "pct": 0.6025437201907791
+      },
+      "COINCIDEN": {
+        "n": 2870,
+        "wins": 1643,
+        "pct": 0.5724738675958189
+      },
+      "MKT_MAS_BAJO": {
+        "n": 379,
+        "wins": 244,
+        "pct": 0.6437994722955145
+      }
+    },
+    "deltaDistribution": {
+      "p10": -0.026203871634090995,
+      "p25": -0.007562273474236325,
+      "p50": 0.006110581171384466,
+      "p75": 0.02325940028557827,
+      "p90": 0.03602968613908566,
+      "mean": 0.005435443805906096,
+      "std": 0.02545842193397234
+    }
+  },
+  "bySeason": {
+    "2024": {
+      "matrix": {
+        "LOCK": {
+          "MKT_MAS_ALTO": {
+            "n": 17,
+            "wins": 13,
+            "pct": 0.7647058823529411
+          },
+          "COINCIDEN": {
+            "n": 150,
+            "wins": 106,
+            "pct": 0.7066666666666667
+          },
+          "MKT_MAS_BAJO": {
+            "n": 50,
+            "wins": 33,
+            "pct": 0.66
+          }
+        },
+        "FUERTE": {
+          "MKT_MAS_ALTO": {
+            "n": 92,
+            "wins": 63,
+            "pct": 0.6847826086956522
+          },
+          "COINCIDEN": {
+            "n": 328,
+            "wins": 207,
+            "pct": 0.6310975609756098
+          },
+          "MKT_MAS_BAJO": {
+            "n": 26,
+            "wins": 14,
+            "pct": 0.5384615384615384
+          }
+        },
+        "JUEGA": {
+          "MKT_MAS_ALTO": {
+            "n": 148,
+            "wins": 85,
+            "pct": 0.5743243243243243
+          },
+          "COINCIDEN": {
+            "n": 480,
+            "wins": 237,
+            "pct": 0.49375
+          },
+          "MKT_MAS_BAJO": {
+            "n": 21,
+            "wins": 14,
+            "pct": 0.6666666666666666
+          }
+        }
+      },
+      "overallByMarketCat": {
+        "MKT_MAS_ALTO": {
+          "n": 257,
+          "wins": 161,
+          "pct": 0.6264591439688716
+        },
+        "COINCIDEN": {
+          "n": 958,
+          "wins": 550,
+          "pct": 0.5741127348643006
+        },
+        "MKT_MAS_BAJO": {
+          "n": 97,
+          "wins": 61,
+          "pct": 0.6288659793814433
+        }
+      },
+      "deltaDistribution": {
+        "p10": -0.024388802671612995,
+        "p25": -0.005704353978455479,
+        "p50": 0.007698747734817768,
+        "p75": 0.02504870698045883,
+        "p90": 0.03733603143874173,
+        "mean": 0.007331516468616941,
+        "std": 0.024435820847276805
+      },
+      "games": 2002
+    },
+    "2025": {
+      "matrix": {
+        "LOCK": {
+          "MKT_MAS_ALTO": {
+            "n": 18,
+            "wins": 11,
+            "pct": 0.6111111111111112
+          },
+          "COINCIDEN": {
+            "n": 166,
+            "wins": 114,
+            "pct": 0.6867469879518072
+          },
+          "MKT_MAS_BAJO": {
+            "n": 140,
+            "wins": 104,
+            "pct": 0.7428571428571429
+          }
+        },
+        "FUERTE": {
+          "MKT_MAS_ALTO": {
+            "n": 39,
+            "wins": 31,
+            "pct": 0.7948717948717948
+          },
+          "COINCIDEN": {
+            "n": 451,
+            "wins": 263,
+            "pct": 0.5831485587583148
+          },
+          "MKT_MAS_BAJO": {
+            "n": 21,
+            "wins": 11,
+            "pct": 0.5238095238095238
+          }
+        },
+        "JUEGA": {
+          "MKT_MAS_ALTO": {
+            "n": 147,
+            "wins": 70,
+            "pct": 0.47619047619047616
+          },
+          "COINCIDEN": {
+            "n": 638,
+            "wins": 350,
+            "pct": 0.54858934169279
+          },
+          "MKT_MAS_BAJO": {
+            "n": 37,
+            "wins": 18,
+            "pct": 0.4864864864864865
+          }
+        }
+      },
+      "overallByMarketCat": {
+        "MKT_MAS_ALTO": {
+          "n": 204,
+          "wins": 112,
+          "pct": 0.5490196078431373
+        },
+        "COINCIDEN": {
+          "n": 1255,
+          "wins": 727,
+          "pct": 0.5792828685258964
+        },
+        "MKT_MAS_BAJO": {
+          "n": 198,
+          "wins": 133,
+          "pct": 0.6717171717171717
+        }
+      },
+      "deltaDistribution": {
+        "p10": -0.030012997860979305,
+        "p25": -0.009753246753246736,
+        "p50": 0.002527142905085822,
+        "p75": 0.01982558493423814,
+        "p90": 0.03358650950020925,
+        "mean": 0.0025342740313153743,
+        "std": 0.026255461615877704
+      },
+      "games": 2409
+    },
+    "2026": {
+      "matrix": {
+        "LOCK": {
+          "MKT_MAS_ALTO": {
+            "n": 10,
+            "wins": 8,
+            "pct": 0.8
+          },
+          "COINCIDEN": {
+            "n": 45,
+            "wins": 31,
+            "pct": 0.6888888888888889
+          },
+          "MKT_MAS_BAJO": {
+            "n": 57,
+            "wins": 35,
+            "pct": 0.6140350877192983
+          }
+        },
+        "FUERTE": {
+          "MKT_MAS_ALTO": {
+            "n": 19,
+            "wins": 7,
+            "pct": 0.3684210526315789
+          },
+          "COINCIDEN": {
+            "n": 211,
+            "wins": 122,
+            "pct": 0.5781990521327014
+          },
+          "MKT_MAS_BAJO": {
+            "n": 17,
+            "wins": 11,
+            "pct": 0.6470588235294118
+          }
+        },
+        "JUEGA": {
+          "MKT_MAS_ALTO": {
+            "n": 139,
+            "wins": 91,
+            "pct": 0.6546762589928058
+          },
+          "COINCIDEN": {
+            "n": 401,
+            "wins": 213,
+            "pct": 0.5311720698254364
+          },
+          "MKT_MAS_BAJO": {
+            "n": 10,
+            "wins": 4,
+            "pct": 0.4
+          }
+        }
+      },
+      "overallByMarketCat": {
+        "MKT_MAS_ALTO": {
+          "n": 168,
+          "wins": 106,
+          "pct": 0.6309523809523809
+        },
+        "COINCIDEN": {
+          "n": 657,
+          "wins": 366,
+          "pct": 0.5570776255707762
+        },
+        "MKT_MAS_BAJO": {
+          "n": 84,
+          "wins": 50,
+          "pct": 0.5952380952380952
+        }
+      },
+      "deltaDistribution": {
+        "p10": -0.024322038011965353,
+        "p25": -0.007413404918600652,
+        "p50": 0.009605767767463136,
+        "p75": 0.02549182432458663,
+        "p90": 0.03691023695368696,
+        "mean": 0.007395530065109249,
+        "std": 0.025098869057439986
+      },
+      "games": 1629
+    }
+  },
+  "notas": [
+    "MKT_MAS_ALTO = mercado da al pick del modelo probabilidad al menos leadThreshold puntos MÁS que el modelo.",
+    "MKT_MAS_BAJO = mercado da al pick menos de lagThreshold puntos MENOS.",
+    "COINCIDEN = mercado y modelo con confianzas parecidas.",
+    "Hipótesis: MKT_MAS_ALTO tiene win-rate superior; MKT_MAS_BAJO inferior."
+  ]
+}

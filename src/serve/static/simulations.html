@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>STRIKECAST · Simulaciones</title>
+  <link rel="stylesheet" href="/static/simulations.css?v=20260805-2" />
+</head>
+<body>
+  <header class="masthead">
+    <a class="back" href="/">← STRIKECAST</a>
+    <div class="title-block">
+      <span class="eyebrow">START FROM THE END · LABORATORIO SOMBRA</span>
+      <h1>Simulaciones <i>MLB</i></h1>
+      <p>Cómo puede construirse el juego antes de saber quién gana.</p>
+    </div>
+    <div class="mode"><span></span> NO MODIFICA PICKS</div>
+  </header>
+
+  <main>
+    <section class="control-panel">
+      <div class="date-controls">
+        <button id="prev-day" aria-label="Día anterior">‹</button>
+        <label>Fecha<input id="date-input" type="date" /></label>
+        <button id="next-day" aria-label="Día siguiente">›</button>
+        <button id="today" class="outline">HOY</button>
+        <button id="reload" class="primary">ACTUALIZAR</button>
+      </div>
+      <div class="lineage" id="lineage">Preparando motores…</div>
+    </section>
+
+    <section class="hero-grid" id="daily-summary">
+      <article><span>PARTIDOS</span><strong>—</strong><small>en la fecha</small></article>
+      <article><span>ACUERDO</span><strong>—</strong><small>simulación ↔ oficial</small></article>
+      <article><span>CALIFICADOS</span><strong>—</strong><small>acierto / fallo</small></article>
+      <article><span>PRECISIÓN</span><strong>—</strong><small>solo evidencia válida</small></article>
+    </section>
+
+    <section class="section-head">
+      <div><span class="eyebrow">SLATE DIARIO</span><h2 id="slate-title">Simulaciones del día</h2></div>
+      <div class="legend"><span class="dot oos"></span> OOS <span class="dot pre"></span> Pregame <span class="dot retro"></span> Retrospectiva <span class="dot late"></span> Tardía</div>
+    </section>
+    <section id="daily-status" class="status">Cargando simulaciones…</section>
+    <p class="component-rule">Componentes: proyección → real. ACIERTO = error dentro del MAE OOS validado del motor.</p>
+    <section id="simulation-grid" class="simulation-grid"></section>
+
+    <section class="history-shell">
+      <div class="section-head history-head">
+        <div><span class="eyebrow">AUDITORÍA</span><h2>Historial y resultados</h2></div>
+        <div class="history-filters">
+          <label>Desde<input id="history-start" type="date" /></label>
+          <label>Hasta<input id="history-end" type="date" /></label>
+          <label>Resultado
+            <select id="history-result">
+              <option value="all">Todos</option>
+              <option value="correct">Aciertos</option>
+              <option value="incorrect">Fallos</option>
+              <option value="pending">Pendientes</option>
+            </select>
+          </label>
+          <button id="history-apply" class="outline">FILTRAR</button>
+        </div>
+      </div>
+      <div id="history-kpis" class="history-kpis"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Juego</th><th>Simulación</th><th>Oficial</th><th>Marcador</th><th>Evidencia</th><th>Resultado</th></tr></thead>
+          <tbody id="history-body"><tr><td colspan="7">Cargando historial…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>Los motores de componentes son experimentales. La precisión OOS y prospectiva se reporta por separado.</footer>
+  <script src="/static/simulations.js?v=20260805-2"></script>
+</body>
+</html>

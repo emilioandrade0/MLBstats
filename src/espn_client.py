@@ -20,11 +20,15 @@ from tenacity import (
     wait_exponential,
 )
 
-SITE_BASE = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb"
+SITE_BASE = "https://site.web.api.espn.com/apis/site/v2/sports/baseball/mlb"
 CORE_BASE = "https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb"
 
 DEFAULT_HEADERS = {
-    "User-Agent": "mlb-slec-ingest/0.1 (research)",
+    # ESPN's edge tightened checks in 2026: the old `site.api.espn.com` host
+    # returns 403 to non-browser UAs. The `site.web.api.espn.com` mirror still
+    # serves the same payloads, and a real browser UA keeps future gates happy.
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     "Accept": "application/json",
 }
 

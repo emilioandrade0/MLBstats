@@ -3,7 +3,34 @@
 Registro de todas las reglas H2H probadas — activas, retiradas por inertes,
 y retiradas por hacer daño global. Revisar tras cada retrain mensual.
 
-**Última actualización**: 2026-07-18 (familia contexto de serie/calendario)
+**Última actualización**: 2026-08-05 (retiro de `final_phi_low_slate_conf`)
+
+---
+
+## final_phi_low_slate_conf (RETIRADO 2026-08-05)
+
+Regla de flip: en slates con confianza media ≤ 0.055 y temporada ≥ 2025, si
+PHI juega como visitante y el pick apuntaba a HOME, forzar el pick a PHI.
+Se calibró en 2025 y sobrevivió inicialmente 2026-H1 sin cambio.
+
+Fase 12 auditó desactivación por regla individual y esta fue la ÚNICA que
+pasó triple veto dentro del ruido:
+
+| Periodo | Delta al desactivar |
+|---|---:|
+| GLOBAL_WF (5893) | +2 hits (+0.03pp) |
+| 2024 (2020) | 0 |
+| 2025 (2409) | +1 hit (+0.04pp) |
+| 2026-H1 (732) | −1 hit (−0.14pp) |
+| 2026-H2 (732) | +2 hits (+0.27pp) |
+| 2026-JUL (259) | 0 |
+| LATEST_200 | 0 |
+
+Ganancia pequeña pero **sin downside material** en ninguna ventana. Se
+retira en `src/serve/api.py` (variable `phi_slate` fijada a `False`). La
+regla WSH de day-share sigue activa. Ver
+`STARTFROMTHEEND/outputs/12_rule_counterfactual_metrics.csv` para todas
+las candidatas consideradas — el resto falló triple veto y no se toca.
 
 ---
 
@@ -1451,3 +1478,624 @@ oportunidades, carreras no limpias, juegos multi-error y costo del error, con
 retencion completa de la fecha actual. La pasada exacta resulto demasiado lenta
 y no produjo un dictamen valido. No se aplico ninguna regla; antes de retomarla
 se debe cachear la porcion determinista del pipeline.
+
+## Integridad de VALOR SHARP (CORREGIDA 2026-07-20)
+
+El badge no modifica `p_home` ni `pick_abbrev`; es una comparacion informativa
+entre la probabilidad sin vig de Pinnacle y el mejor precio de una casa blanda.
+La jornada del 2026-07-20 mostro ocho falsos positivos porque
+`pinnacle_value.py` agrupaba solo por equipos y mezclaba cuotas de juegos
+consecutivos de una serie. El caso MIN-CLE cruzo `MIN -124` de un dia con
+`MIN +126` del siguiente y fabrico `+9.98pp`.
+
+Se corrigieron `src/normalize/pinnacle_value.py` y su espejo en `backend/src`
+para agrupar por `event_id + away + home`. Tras regenerar, la jornada quedo en
+cero badges y los 15 picks permanecieron identicos. Decision: mantener el dato
+solo como precio informativo; no promoverlo a override de ganador. Prueba:
+`python -m unittest tests.test_pinnacle_value -v`.
+
+## Pick futuro contra pick actual de la serie (DESCARTADA 2026-07-21)
+
+Se probaron 3,880 pares de juegos entre los mismos equipos separados por uno o
+dos dias. El auditor evaluo ambos sentidos: usar la prediccion futura para
+voltear el juego actual y usar el pick actual para voltear el siguiente. Incluyo
+gates por desacuerdo, confianza del target, ventaja de confianza del juego guia,
+separacion de uno/dos dias y repeticion de pick con baja confianza.
+
+- Futuro hacia actual: `-115` netos en 2025 y `-35` en 2026.
+- Actual hacia futuro: `-37` netos en 2025 y `-75` en 2026.
+- Ninguna variante paso 2025, 2026, H1 y H2.
+- Despues del `update_data`, hubo 14 pares reales entre el 21 y el 22 de julio:
+  12 conservaron el pick y dos discreparon (`WSH -> COL` y `SF -> KC`). Los dos
+  juegos adicionales del 22 eran una doble cartelera `PIT-NYY`, sin par el 21.
+- Todos los pronosticos del 22 carecian de mercado y de pitchers probables. Los
+  dos desacuerdos eran forecasts preliminares y no se consideran senales.
+
+El uso retrospectivo de la fila futura es un screening optimista, no una prueba
+pregame estricta, porque algunas features pueden actualizarse tras el primer
+juego. Como aun asi todos los flips robustos perdieron, no se implemento ni se
+abrio monitor. Script:
+`analysis/consecutive_future_prediction_signal_search.py`.
+
+Filtro operativo si se vuelve a estudiar: exigir mercado y ambos pitchers
+probables en el juego futuro. Aun con esos campos, no aplicar flips sin una
+validacion walk-forward nueva.
+
+## Favorito que perdio y repite rival (2025-2026) - descartada
+
+`analysis/repeat_favorite_after_loss_search.py` probo flipear al favorito que
+perdio el dia anterior contra el mismo rival. Solo usa cuotas pregame, excluye
+filas `Live Odds`, exige `status_code=F` para evaluar y mide contra el camino
+final del motor.
+
+- El mismo favorito gano `56.88%` en 538 casos de 2025 y `53.50%` en 329 de
+  2026 despues de perder el dia anterior.
+- Cuando el motor insistia con el mismo favorito, el flip perdio `-73/-60`
+  aciertos en 2025/2026.
+- Con momio previo `<=1.60`, el flip perdio `-21/-18`.
+- Si el mercado se volteo y quedo casi parejo, el flip dio `+4` en 46 casos de
+  2025 y `+1` en 5 de 2026, pero fallo H1/H2 de 2026 (`-1/+2`).
+- `TB-TOR` del 21 de julio pertenece al ultimo grupo: TOR venia de perder a
+  `1.56`, pero el mercado actualizado favorecia apenas a TB (`1.90` contra
+  `1.93`) mientras el motor conservaba TOR.
+
+Decision: no implementar ni flipear automaticamente. Resultado completo:
+`data/processed/repeat_favorite_after_loss_results.csv`.
+
+## Trayectoria del momio y favorito extremo (MONITOREO 2026-07-21)
+
+`analysis/odds_trajectory_pattern_search.py` reconstruyo el pipeline activo y
+emparejo aperturas/cierres pregame no-live de ESPN BET 2025 y DraftKings 2026.
+Cobertura final: 2,471 juegos de 2025 y 1,504 de 2026. La seleccion exigio H1 y
+H2 positivos en 2025 antes de usar 2026 como veto.
+
+- Cruce de favorito, movimiento de 1-5pp, steam, debilitamiento,
+  fortalecimiento, bandas de precio y hold: ninguna regla paso el holdout.
+- Seguir un movimiento `>=3pp` contra el motor perdio `-53/-21` en 2025/2026.
+- Seguir al favorito nuevo tras cruce apertura-cierre perdio `-14/-12`.
+- Candidato: si el favorito de cierre tiene probabilidad justa sin vig `>=66%`
+  y el pick final va con el underdog, cambiar al favorito.
+- Candidato historico: 2025 `+10/36` (`H1 +4`, `H2 +6`); 2026 `+3/7`
+  (`H1 +2`, `H2 +1`), pero H2 contiene un solo trigger.
+- Sensibilidad `63%-70%`: neto global positivo en todos los umbrales. El
+  leave-one-team-out mantuvo neto positivo en 2025 y 2026.
+
+Decision: no aplicar todavia. Congelar el umbral `66%` y recopilar muestra
+prospectiva. Artefactos: `odds_trajectory_pattern_results.csv`,
+`odds_trajectory_sensitivity.csv` y `odds_trajectory_audit_frame.parquet`.
+
+## Suma diaria de momios de ganadores (DESCARTADA 2026-07-21)
+
+`analysis/daily_winner_odds_regime_search.py` sumo por fecha las cuotas
+decimales de cierre de los ganadores y genero medidas normalizadas por cantidad
+de juegos. Todos los contextos predictivos usan T-1 o T-3, con reinicio por
+temporada; la suma del mismo dia solo se usa descriptivamente.
+
+- Suma promedio: 2025 `22.69`, 2026 `25.14`.
+- Juegos promedio por fecha: `11.82/13.08`; por eso la suma bruta esta
+  confundida por el tamano de la jornada.
+- Momio ganador promedio: `1.917/1.924`.
+- Correlacion retrospectiva momio promedio-accuracy del mismo dia:
+  `-0.421/-0.452`.
+- Correlacion pregame T-1 con accuracy siguiente: `-0.088/+0.090`; el signo no
+  se conserva.
+- Correlacion de la suma bruta T-1: apenas `-0.058/-0.031`.
+- Ninguna cola, ventana T-3, shock ni accion favorito/underdog/flip paso 2025 y
+  ambas mitades de 2026.
+
+Decision: no implementar. Resultados en `daily_winner_odds_regimes.csv`,
+`daily_winner_odds_relationships.csv` y
+`daily_winner_odds_signal_results.csv`.
+
+## Regimen intradia de juegos ya terminados (DESCARTADO 2026-07-21)
+
+Se probo recalcular juegos tardios usando solo resultados del mismo dia que
+terminaron antes de su primer lanzamiento. `first_pitch_utc + duration_minutes`
+definio disponibilidad historica estricta; no se permitio usar un resultado
+que aun no habria terminado.
+
+- Cobertura con dos resultados previos: 2025 `971`, 2026 `543` targets.
+- Suma/promedio de momios, tasa de underdogs y accuracy temprano tuvieron
+  correlaciones casi nulas con el resultado/acierto del juego tardio.
+- Catorce reglas pasaron H1/H2 de 2025; cero pasaron H1/H2 de 2026.
+- Mejor regla 2025: momios tempranos con exceso bajo y seguir favorito,
+  `+13`; en 2026 dio `-3` (`H1 -5`, `H2 +2`).
+
+Decision: no implementar actualizacion intradia. Script:
+`analysis/intraday_completed_odds_regime_search.py`.
+
+## Busqueda exclusiva 2026 (SIN REGLA 2026-07-21)
+
+El usuario retiro 2025 y temporadas anteriores del universo de nuevas
+busquedas. `analysis/odds_patterns_2026_only_search.py` filtra 2026 antes de
+aprender umbrales y usa estos bloques:
+
+- Discovery: marzo-abril, 467 juegos.
+- Confirmacion: mayo, 419; junio, 394.
+- Holdout: julio H1/H2, 112 juegos por bloque.
+
+Se probaron 450 reglas de mercado, apertura-cierre, T-1/T-3 e intradia. Solo
+dos pasaron discovery, cero confirmaron mayo/junio y cero llegaron al holdout.
+Aunque 20 reglas mejoraron ambas mitades de julio, todas fueron negativas antes
+de julio. No se considera estable un signo que aparece solo despues de observar
+el deterioro reciente.
+
+Baseline por periodo: marzo-abril `66.38%`, mayo `68.50%`, junio `62.94%`,
+julio `53.57%` y julio H2 `43.75%`. Decision: no aplicar regla. Resultado:
+`data/processed/odds_patterns_2026_only_results.csv`.
+
+## Invertir reglas alrededor de julio (DESCARTADO 2026-07-21)
+
+`analysis/regime_switch_2026_only_search.py` probo dos cambios de signo usando
+solo 2026. La seleccion uso marzo-junio y julio H1; julio H2 quedo como holdout.
+
+- Invertir pre-julio una accion positiva en julio: 2 de 450 reversals, ambos
+  fades de favoritos extremos; dieron `-3/-4` en julio H1 y no fueron elegibles.
+- Mantener la accion pre-julio e invertir despues de un H1 negativo: cero
+  reglas combinaron pre-julio positivo, H1 negativo y muestra minima.
+- Cero reglas llegaron a H2 y cero pasaron el criterio estricto.
+
+Decision: no implementar un switch de calendario ni inversion automatica.
+Resultados en `regime_switch_2026_only_results.csv` y
+`regime_switch_invert_after_july_h1_results.csv`.
+
+## Equipos calientes y abridores fuertes (DESCARTADO 2026-07-21)
+
+`analysis/error_attribution_2026_only.py` clasifico los 539 errores del
+pipeline final entre 1,504 juegos de 2026 y probo 50 reglas de regresion.
+
+- Ofensiva apagada: 181; ofensiva y pitcheo: 113; colapso del abridor: 120.
+- Bullpen o tramo tardio: 60; derrota por una carrera: 29; otros: 36.
+- La ofensiva estuvo involucrada en 294 errores (`54.5%`).
+- Equipos top 20% en carreras recientes: `62.65%` de accuracy.
+- Muchas carreras sin xwOBA fuerte: `51.54%`, pero el flip fue `+3/0/-12`
+  en marzo-abril/mayo/junio y `-4` global.
+- Abridores top 20% por xwOBA: `65.64%`; de sus 100 derrotas, 55 tuvieron
+  ofensiva apagada y solo 18 fueron colapso del abridor.
+- La mayor brecha pregame entre aciertos y fallos fue apenas `0.107` SD.
+- Dos reglas pasaron discovery; cero pasaron mayo/junio y julio.
+
+Decision: no flipear automaticamente por racha, calidad del abridor, carga o
+muestra pequena. Artefactos: `error_attribution_2026.parquet`,
+`error_feature_gaps_2026.csv`, `error_group_profiles_2026.csv` y
+`error_regression_rules_2026.csv`.
+
+Detalle explicativo postpartido de los 294 apagones: dominio del abridor rival
+134, trafico varado 79, exceso de ponches 47, casi sin trafico 30 y otros 4.
+De los 120 colapsos del abridor elegido: dano por jonron 52, contacto 36,
+descontrol 23 y estallido temprano 9. No usar estos resultados postgame como
+features.
+
+La busqueda pregame complementaria
+`analysis/offense_shutdown_matchup_2026_search.py` probo 171 reglas de
+alineacion vs mano, forma ofensiva, abridor rival y bullpen rival. Ninguna fue
+positiva siquiera en marzo-abril; cero pasaron discovery, validacion y holdout.
+Decision: no implementar. Resultado:
+`data/processed/offense_shutdown_matchup_rules_2026.csv`.
+
+## Repertorio del probable abridor, rehecho 2026-only (DESCARTADO 2026-07-21)
+
+`analysis/pitch_arsenal_matchup_2026_search.py` creo snapshots estrictamente
+pregame con historial anterior de 2026. Usa mezcla de los cinco inicios previos
+por familia de pitcheo y xwOBA/whiff suavizados de los nueve bateadores.
+
+- 3,008 filas lado-juego; 1,269 juegos con ambos lados y 1,043 con cobertura
+  fuerte.
+- Discovery marzo-abril: 233 juegos con ocho bateadores y 100+ pitcheos de
+  historial para ambos starters.
+- 18 reglas directas: cero pasaron discovery.
+- 50 reglas incluyendo picks marginales: tres pasaron discovery, cero
+  confirmaron mayo y junio.
+- Mejor regla: `+3/9`, `-4/10`, `-1/5`, `+3/3`, `+1/5` en
+  discovery/mayo/junio/julio H1/H2; neto global `+2` pero inestable.
+
+Decision: no implementar ni reactivar `src/features/arsenal.py` en el modelo.
+Resultados: `features_pitch_arsenal_2026.parquet` y
+`pitch_arsenal_matchup_rules_2026.csv`.
+
+## Estados generativos: ofensiva, abridor y bullpen (DESCARTADO 2026-07-21)
+
+El usuario autorizo buscar en 2025 y 2026, pero cada temporada se evaluo de
+forma independiente. `analysis/generative_failure_risk_2526.py` entreno cada
+semana con datos anteriores del mismo ano y estimo tres riesgos por equipo:
+anotar dos o menos, permitir cuatro o mas ER del starter y permitir tres o mas
+carreras despues de un starter efectivo.
+
+- AUC 2025: apagón `0.542`, starter `0.546`, bullpen `0.531`.
+- AUC 2026: apagón `0.505`, starter `0.548`, bullpen `0.580`.
+- Se probaron 324 flips por diferencial de riesgo y confianza baja.
+- 2025: 8 discovery, 2 validacion, 0 holdout.
+- 2026: 0 discovery, 0 validacion y 0 holdout.
+
+Aunque el riesgo de bullpen 2026 detecta eventos, no decide ganador: los picks
+de alto riesgo aun tuvieron 70-75% de accuracy. Decision: no implementar.
+Artefactos: `generative_risk_features_2526.parquet`,
+`generative_risk_predictions_2526.parquet` y `generative_risk_rules_2526.csv`.
+
+## Simulacion semanal de carreras (DESCARTADA 2026-07-21)
+
+`analysis/generative_runs_2526.py` predijo carreras esperadas por lado con
+datos pregame de semanas anteriores de la misma temporada. Se siguio el
+simulador unicamente ante desacuerdo con el pipeline y confianza marginal.
+
+- MAE: `2.535` carreras 2025, `2.590` 2026.
+- Cero reglas pasaron discovery en 2025.
+- Una regla paso discovery en 2026, pero perdio en junio y ambas mitades de
+  julio; cero llegaron al holdout.
+- Cobertura comun: pipeline `59.28%/63.98%`; simulador `53.36%/52.59%`.
+
+Decision: no convertir el estimador de carreras en selector de ganador.
+Resultados: `generative_runs_predictions_2526.parquet` y
+`generative_runs_rules_2526.csv`.
+
+## Ablacion source-aware de overrides (2025/2026, 2026-07-21)
+
+`analysis/source_runtime_season_ablation_2526.py` recompuso los picks finales
+con las mismas funciones activas en `src/serve/api.py`; excluye
+`umpire_market` y `burn_resilience`, porque ya estan retirados de esa ruta.
+Se retiro una sola componente a la vez dentro de su propio ano y se exigio
+aporte no negativo en ambas mitades cronologicas.
+
+- `interleague` 2025: 58 cambios, `+10` netos (`+6` H1, `+4` H2). Se aplica
+  exclusivamente como excepcion historica: `_interleague_nl_bias()` devuelve
+  cero para la temporada 2025. No cambia 2026 ni se extiende a anos futuros.
+- `h2h_venue_regression` 2026: seis cambios, `+4` (`+1` H1, `+3` H2).
+  Se conserva activa: seis flips no alcanzan evidencia suficiente para una
+  regla futura.
+- `lob_persistence` 2025 gano `+3` en 29 cambios, pero su primera mitad fue
+  neutra; no se adiciona una segunda excepcion por una mejora pequena.
+
+La repeticion con el codigo ya modificado dejo el baseline 2025 en `59.40%`
+y el de 2026 en `59.69%`. El CSV incluye el counterfactual
+`restore_interleague_2025_prechange`, que revierte 58 picks y pierde `-10`
+(`-6` H1, `-4` H2).
+
+Las combinaciones de componentes no se implementaron: surgen de seleccionar
+sobre el mismo historial y no aportan un holdout independiente. Resultados:
+`data/processed/source_runtime_season_ablation_2526.csv`.
+
+## Escalas de componentes activos 2026 (DESCARTADA 2026-07-21)
+
+`analysis/source_runtime_strength_2026_search.py` midio por separado las
+escalas `0/25/50/75/125/150%` de cada override activo de la ruta `src`.
+La escala se podia elegir solo con el primer cuarto cronologico; los otros tres
+cuartos eran vetos sin retuning. Ninguna alcanzo el minimo de cinco flips y
+`+2` netos en discovery.
+
+- `situational_streaks x1.25`: `+2` en cuatro flips del primer bloque, luego
+  `-2`, `0`, `-2`; neto `-2`.
+- `travel_resilience x1.50`: neto `+2`, pero solo seis flips y bloque final
+  `-1`.
+
+Decision: no escalar, apagar ni amplificar componentes en 2026. Resultados:
+`data/processed/source_runtime_strength_2026_search.csv`.
+
+## Coherencia entre overrides 2026 (DESCARTADA 2026-07-21)
+
+`analysis/source_runtime_stack_coherence_2026_search.py` evaluo ocho acciones
+predefinidas sobre stacks con senales mezcladas, canceladas o reforzadas. La
+unica regla seleccionada en B1 fue retirar el stack mezclado: `+3` en siete
+flips, pero `-2/-2/+2` en B2-B4 y solo `+1` global en 35 cambios. Las escalas
+`reinforced2 x1.25/x1.50` lograron `+3`, pero con solo tres flips.
+
+Decision: no modificar el stack por conflicto, cancelacion ni refuerzo.
+Resultado: `data/processed/source_runtime_stack_coherence_2026.csv`.
+
+## Ejecucion defensiva L20 2026 (DESCARTADA 2026-07-21)
+
+`analysis/source_runtime_defense_2026_search.py` creo features leakage-safe de
+errores por 100 oportunidades, carreras no limpias, costo de error y recuperacion
+L20. Se evaluaron solo extremos 75/85%, banda `p_home` 0.45-0.55 y ajustes
+`0.03/0.05` hacia o contra la ventaja defensiva; umbrales y seleccion usaron B1.
+
+Ninguna de las 32 variantes logro cinco flips y `+3` en discovery. La de mayor
+cobertura (`error_cost` q75, seguir defensa) cambio 40 picks y perdio `-6`.
+Decision: no agregar sesgo defensivo. Resultado:
+`data/processed/source_runtime_defense_2026.csv`.
+
+## Umpire por banda de mercado 2026 (DESCARTADA 2026-07-21)
+
+`analysis/source_runtime_umpire_market_2026_search.py` evaluo `ump_acc_above_x`
+alto/bajo, cuatro bandas de favorito y sesgos `0.03/0.05` a favor o contra el
+mercado. B1 eligio umbrales y B2-B4 fueron vetos. Ninguna de las 32 variantes
+consiguio cinco flips y `+3` en B1. La mejor global fue `+5`, pero solo tuvo
+tres flips y `+1` en B1; otra gano `+3` en B1 y cambio siete picks todo el ano.
+
+Decision: conservar retirado `umpire_market`; no agregar variantes por banda.
+Resultado: `data/processed/source_runtime_umpire_market_2026.csv`.
+
+## Auditoria de badges del card 2026 (2026-07-24)
+
+`analysis/badge_audit_2026.py` audito picks finales walk-forward hasta el
+2026-07-19. Los tiers de confianza y ELITE NOCHE son informativos; AJUSTE
+NOCHE, VIAJE y LOB tienen contrafactual A/B.
+
+- LOCK: `64/104 = 61.5%`, no 72%; FUERTE: `43/58 = 74.1%` y `28/37 = 75.7%`
+  en B2-B4. LOCK+FUERTE, que alimenta el filtro actual, es `107/162 = 66.0%`.
+  FUERTE puede ser una futura vista de precision menor cobertura, no un cambio
+  de pick global.
+- MODERADO: `234/403 = 58.1%`, cercano a su badge de 58%. ELITE NOCHE:
+  `34/49 = 69.4%`; seguir informativo.
+- Quitar AJUSTE NOCHE: `-1` global, pero `+4` en B4; no ajustar con evidencia
+  contradictoria. Quitar VIAJE: `0` en 18 flips. Quitar LOB: `-4` en 12 flips.
+
+Decision: no modificar biases. Corregir la calibracion visual o crear un filtro
+FUERTE separado solo si el usuario aprueba reducir cobertura. Resultado:
+`data/processed/badge_audit_2026.csv`.
+
+## Calibracion visual y filtro FUERTE (APLICADO 2026-07-24)
+
+No se alteraron picks ni biases. Se actualizaron ambas APIs para devolver los
+hit rates auditados 2026: LOCK `61.5%`, FUERTE `74.1%`, MODERADO `58.1%` y
+PAREJO `59.2%`; los thresholds ahora son identicos en `src` y `backend/src`.
+
+El antiguo filtro LOCK+FUERTE (`107/162 = 66.0%`) se reemplazo por
+**Seleccion precisa**, que filtra exclusivamente FUERTE (`43/58 = 74.1%`,
+validacion B2-B4 `28/37 = 75.7%`). Es un selector de cobertura reducida, no
+una afirmacion de accuracy global. Tambien se corrigio ELITE NOCHE local a
+69% (`34/49`).
+
+## Inventario de badges universales 2026 (SIN DESPLIEGUE 2026-07-24)
+
+`analysis/event_badge_inventory_2026.py` examino el pick final del mismo
+walk-forward hasta 2026-07-19. Se fijaron antes de medir: consenso de mercado,
+favorito de mercado 60/65%, respaldo de la probabilidad del modelo, modelo
+base y triple consenso. B1 descubre; B2-B4 son vetos.
+
+Solo `Modelo respalda 60%` paso: `129/190 = 67.89%`, lifts
+`+3.30/+6.18/+16.13/+9.35pp` por bloque. No crear badge adicional: contiene
+los 162 LOCK+FUERTE existentes y solo extiende 28 MODERADO, por lo que seria
+una duplicacion visual sin un nuevo selector util.
+
+Descartados como badges persistentes: consenso mercado `60.43%`, triple
+consenso `61.04%`, doble respaldo 60% `67.44%` con B1 `-2.08pp`, favorito de
+mercado 60% `64.57%` con B1 `-1.96pp`, y contra mercado `57.46%` sin
+estabilidad temprana. No tocar picks ni UI. Resultado:
+`data/processed/event_badge_inventory_2026.csv`.
+
+## HR en derrotas como resiliencia ofensiva (DESCARTADA 2026-07-24)
+
+Hay granularidad suficiente: `team_box.parquet` registra `bat_homeRuns` y
+`plays.parquet` registra cada `home_run` con `rbi`. El search
+`analysis/hr_loss_resilience_2026_search.py` uso solo valores previos L10/L20
+por equipo: HR por derrota, HR por derrota cerrada, RBI de HR por derrota y
+RBI de HR por derrota cerrada. Solo podia flippear picks del motor entre 45-55%
+hacia el lado con mayor valor, y B1 seleccionaba mientras B2-B4 vetaban.
+
+Ninguna de las 16 variantes tuvo discovery positivo. RBI-HR por derrota L10
+perdio `-13` en 103 flips; la mejor global (RBI-HR por derrota cerrada L10)
+gano solo `+1` en 57 flips y perdio `-1` en B1. No agregar feature, badge ni
+bias: HR en una derrota tambien codifica debilidad de pitcheo/bullpen y no
+anticipa ganador. Resultado: `data/processed/hr_loss_resilience_2026_search.csv`.
+
+## Poder Statcast / HR (DESCARTADAS 2026-07-24)
+
+Se agotaron dos extensiones de HR sobre el pick final de produccion, con B1
+discovery y B2-B4 veto. `analysis/barrel_conversion_resilience_2026_search.py`
+midio barriles sin HR por contacto L10/L20. La seleccion B1 L20/gap 1.5pp dio
+`+4` en ocho flips, pero B2 fue `-14` y el total `-10` en 36; no hay regla.
+Resultado: `data/processed/barrel_conversion_resilience_2026_search.csv`.
+
+`analysis/power_vs_starter_hr_2026_search.py` cruzo barriles ofensivos L10/L20
+con HR permitidos por PA del abridor probable rival L5/L10. Las ocho candidatas
+fallaron el minimo B1; la mejor empato en 16 flips y las demas perdieron. No
+agregar interaccion, bias o badge de HR contra abridor. Resultado:
+`data/processed/power_vs_starter_hr_2026_search.csv`.
+
+## HR y barriles para Totales / F5 (SIN DESPLIEGUE 2026-07-24)
+
+`analysis/hr_power_totals_f5_search.py` es un backtest mensual OOS
+2025-01..2026-07 de mercados, no de ganadores. Compara baseline contra
+barriles L10/L20, barriles sin HR, HR permitidos por PA del abridor probable y
+presion ofensiva-abridor; mide MAE de total/F5 y direccion O/U del total con
+edge de al menos 0.5 sobre la linea.
+
+F5 da una mejora global pequena (`2.5402 -> 2.5308`) pero no estable: 2026
+solo gana `0.0049` MAE, B4 pierde `0.0107`, e IC bootstrap 2026
+`-0.0074..+0.0171` cruza cero. El total completo empeora en 2026
+(`3.3954 -> 3.4034`) y O/U cae `57.61% -> 56.46%`. No regenerar F5 ni total,
+ni exponer recomendacion. Resultado:
+`data/processed/hr_power_totals_f5_preds.parquet`.
+
+## Filtro de fallo dentro de tramos repetidos (DESCARTADO 2026-07-24)
+
+`analysis/daily_picks_failure_filter_search.py` reconstruyo el selector 5/3/2
+y estudio por separado los grupos donde dos o mas selecciones comparten
+`Tramo acelerando/desacelerando`. Cada feature fue prepartido; los modelos de
+2025 entrenaron solo con 2024, la configuracion se fijo con ambas mitades de
+2025 y 2026 quedo como veto. El walk-forward se extendio honestamente hasta
+2026-07-23 antes de abrir el resultado final.
+
+El mejor identificador general de 2025 fue marcar el miembro con menor
+confianza del modelo, con lift de riesgo `+3.76pp/+10.00pp` en sus dos
+mitades. En 2026 el lift cayo a `+1.01pp` y su bootstrap por grupo fue
+`[-4.67pp, +6.69pp]`: no separa fallos mejor que azar con confianza.
+
+La variante selectiva, limitada a grupos de 3+ con diferencia interna minima,
+parecia fuerte en 2025 (`+10.21pp/+15.50pp`), pero invirtio signo en 2026:
+los marcados fallaron `25.64%` contra `36.00%` del grupo, lift
+`-10.47pp` (`-11.76pp/-9.47pp` por mitad). Voltear sistematicamente el miembro
+debil tambien degrado el selector: acelerar 3+ bajo de `63.83%` a `59.57%`
+en 2026.
+
+Decision: no agregar alerta, flip, badge ni filtro runtime. La repeticion de la
+etiqueta aumenta la probabilidad de que el grupo contenga algun fallo, pero no
+identifica de forma estable cual evento sera. Produccion queda sin cambios.
+
+## Fragilidad por semillas y etapas del pipeline (DESCARTADA 2026-07-24)
+
+`analysis/build_walkforward_seed_uncertainty.py` regenero, sin tocar
+produccion, las probabilidades de las cinco semillas calibradas y las diez
+etapas de ajuste para 5,893 juegos OOS entre 2024-05-01 y 2026-07-23. El
+promedio de semillas y la etapa final reprodujeron el parquet canonico con
+diferencia maxima cero. El artefacto separado es
+`data/processed/walkforward_seed_uncertainty.parquet`.
+
+`analysis/daily_picks_seed_fragility_engine.py` uso soporte, votos, rango y
+distancia a 50% de las semillas; cambios de lado entre etapas; conflicto con
+mercado; y calidad de datos. Los modelos de correccion fueron mensuales y solo
+vieron fechas anteriores. La receta se bloqueo con ambas mitades de 2025 y
+conservo cobertura fija 5/3/2.
+
+La configuracion elegida (`rank_meta_lgb`, blend 40%) sumo `+5/+5` aciertos en
+las dos mitades de 2025, pero fallo de forma concluyente en 2026:
+
+- baseline: `330/517 = 63.83%`;
+- fragilidad: `315/517 = 60.93%`, `-15` aciertos;
+- H1: `153 -> 148`; H2: `177 -> 167`;
+- meses abril-julio: lifts `-1/-6/-5/-3`;
+- bootstrap diario: `-2.94pp`, IC95% `[-5.05pp, -0.84pp]`;
+- retiro 86 picks que acertaron 62 veces y agrego 86 que acertaron 47.
+
+Decision: no desplegar ranking, sustitucion, alerta ni artefacto de modelo.
+La incertidumbre interna medida de esta forma no generaliza como detector de
+fallos; produccion y UI quedan intactas.
+
+## Inversion de senales HR (DESCARTADA 2026-07-24)
+
+Se invirtieron las 28 candidatas de ganador que miden HR/RBI en derrotas,
+barriles sin HR y presion ofensiva de HR frente al abridor rival. El ejecutable
+`analysis/hr_signal_inverse_2026_search.py` conserva el pick final, usa B1
+solo para elegir y B2-B4 como veto: ninguna regla supero B1. La mejor por
+volumen apenas empato en 34 flips y termino negativa en B3/B4. Las familias
+de HR por derrota perdieron de forma amplia. No aplicar flip inverso.
+
+Tambien se evaluo la hipotesis literal de regresion: despues de 2+ HR de un
+equipo, 3+/4+ combinados o HR de ambos ayer, bajar la proyeccion del siguiente
+juego. `analysis/hr_next_game_regression_totals_f5_2026.py` probo descuentos
+de total `0.25/0.50/0.75` y F5 `0.15/0.30/0.45`. F5 tuvo lifts globales muy
+pequenos, pero todos los mejores candidatos arrancaron negativos en B1;
+total completo tampoco tuvo una candidata estable. No cambiar `pred_total`,
+`pred_f5_total`, ganador, badge ni UI. Artefactos:
+`data/processed/hr_signal_inverse_2026_search.csv` y
+`data/processed/hr_next_game_regression_totals_f5_2026.csv`.
+
+## Equipo por posicion de serie (DESCARTADO 2026-07-24)
+
+Se evaluo literalmente el entrenamiento de cada equipo para G1/G2/G3/G4+ de
+una serie. `analysis/team_series_position_residual_2025_2026.py` forma, antes
+de cada fecha, el residuo `resultado - probabilidad OOS` previo de cada equipo
+en esa posicion y lo encoge estadisticamente; compara los dos residuos para
+ajustar el pick final. Se probaron historial de temporada o de temporadas
+previas, shrinkages 6/12/24, minimos 5/10 y escalas 0.15/0.30/0.45.
+
+2025 no tuvo una sola candidata con B1 positivo suficiente y las mejores
+acabaron `-33` a `-45` aciertos. En 2026 la seleccion B1 gano `+4`, pero
+perdio `-3/-2` en B2/B3 y termino `0` en 50 flips. No aplicar una regla por
+equipo/juego de serie, ni cambiar modelo, API, badges o predicciones.
+Artefacto: `data/processed/team_series_position_residual_2025_2026.csv`.
+
+## Resultado del mismo dia del ano previo (DESCARTADO 2026-07-25)
+
+La comparacion visual 2025/2026 se convirtio en una prueba prepartido:
+resultado del mismo mes-dia de 2025 para cada equipo, aun si cambia localia.
+`analysis/yoy_calendar_result_signal_2026.py` evaluo repeticion/inversion
+global y por rol previo (local o visitante), tanto en todos los juegos como
+en p_home 40-60% y 45-55%. Solo usa 2025 para construir la senal, B1 para
+discovery y B2-B4 para veto.
+
+En 2,464 equipo-fechas, los cuatro grupos de rol/resultado previo dieron
+`48.6%..51.3%` de victoria 2026. Las 12 variantes fueron negativas desde B1;
+la mejor fue `-4` B1 y `-23` global. El patron de una fecha es ruido de muestra,
+no una regla de ganador. Sin cambio a modelo, API, UI, badge o predicciones.
+Artefacto: `data/processed/yoy_calendar_result_signal_2026.csv`.
+
+## Auditoria de retiro controlado de traps (APLICADO 2026-08-04)
+
+Se reconstruyo la ruta `src` con las 5,893 probabilidades mensuales OOS del
+parquet canonico hasta 2026-07-23. La capa final seguia positiva en el total
+retrospectivo de 2026, pero habia caido a `134/259 = 51.74%` en julio y a
+`98/200 = 49.00%` en los 200 juegos mas recientes. En esas mismas ventanas,
+el pick `p_home >= 0.50` quedo en `55.98%` y `56.00%`.
+
+La atribucion aislada por trap senalo tres reglas para una prueba de retiro:
+
+- `DET` de noche: `14/28` antes y despues del flip; en julio convirtio siete
+  aciertos en siete fallos.
+- Fade de `WSH` en sabado: `6/12` antes y despues; perdio sus dos casos de
+  julio.
+- Pick de `BAL` en sabado: `4/8` antes y despues; perdio sus dos casos de
+  julio.
+
+Como series double-down y las correcciones finales interactuan con esos
+flips, se probaron las siete combinaciones posibles sobre la ruta completa:
+
+- Retirar solo `DET` dejo 2025 en `1431` aciertos y 2026 en `866`, ambos sin
+  cambio; movio H1 `-5`, H2 `+5`, julio `+6` y los ultimos 200 `+6`.
+- Retirar solo `WSH` perdio `-2` en 2025 y `-1` en 2026-H2: rechazado.
+- Retirar solo `BAL` perdio `-1` en 2026 completo: rechazado.
+- Retirar los tres perdio `-2` en 2025 y `-1` en 2026: rechazado.
+
+Decision final: vaciar solamente `NIGHT_TRAP_FADE`. `DAY_TRAP_FADE` conserva
+`("WSH", 5)` y `PICK_DAY_FADE` conserva `("BAL", 5)`. No se tocaron el
+modelo, sus probabilidades, los otros traps ni los biases. La ruta heredada
+`backend/src/serve/api.py` no contenia estas reglas; el cambio de produccion
+corresponde exclusivamente a la ruta activa `src`.
+
+## Auditoria de degradacion por capa y regla (SIN CAMBIO 2026-08-04)
+
+`STARTFROMTHEEND/src/12_layer_degradation_audit.py` reconstruyo el motor
+`5901ac3f0b7d18fb` sobre 5,893 juegos walk-forward y midio modelo base,
+threshold, biases, traps, serie y reglas finales. Tambien probo el
+contrafactual de desactivar individualmente cada componente sin modificar
+los parquets ni la API.
+
+El pick final conserva valor en 2026 completo (`866/1464 = 59.15%` frente a
+`809/1464 = 55.26%` del modelo base), pero muestra drift reciente: en julio
+quedo `140/259 = 54.05%` frente a `145/259 = 55.98%`, y en los ultimos 200
+quedo `104/200 = 52.00%` frente a `112/200 = 56.00%`. Los overrides cambiaron
+171 juegos y aportaron `+41` aciertos en 2026-H1; en H2 cambiaron 190 y
+aportaron `+16`, pero en julio restaron `-5` y en los ultimos 200 `-8`.
+
+Ninguna retirada individual paso el veto completo: al menos tres flips en
+2026, no perder en 2025, 2026, H1 ni H2, y mejorar julio y los ultimos 200.
+Por tanto no se retiro ninguna regla. Las matrices acuerdo modelo-mercado,
+tiers y ventanas moviles quedan en `STARTFROMTHEEND/outputs/12_*` para el
+monitor prospectivo; produccion permanece intacta.
+
+## Motores dedicados de componentes MLB (PARCIAL, SIN CAMBIO 2026-08-04)
+
+`STARTFROMTHEEND/src/13_component_engines.py` entreno motores Poisson
+walk-forward para hits, corredores (`H + BB + HBP`), bases totales, LOB y
+carreras por equipo, mas un clasificador de primera anotacion. Uso 43
+variables pregame de ofensiva, lineup, abridor rival, bullpen rival, parque,
+clima, descanso y Elo; marcador y resultado del juego objetivo quedaron
+prohibidos por contrato.
+
+Los cinco motores de conteo si superaron al promedio movil L20 estrictamente
+previo en 2025, 2026-H1 y 2026-H2. En 8,223 equipo-juegos de 2025-2026, las
+mejoras MAE fueron: hits `+0.1130`, corredores `+0.1501`, bases totales
+`+0.2080`, LOB `+0.1147` y carreras `+0.0970`. Esto valida que la anatomia
+postgame puede convertirse en estimaciones pregame de su propio target.
+
+El motor de primera anotacion no supero la tasa historica: accuracy global
+`53.60%` frente a `54.13%`, con Brier `0.2501` frente a `0.2485`. El combinador
+de ganador tampoco paso el veto. Por la ruta productiva completa quedo en
+`57.64%` global 2025-2026 frente a `59.39%` de produccion; perdio `-59`
+aciertos en 2025 y `-8` en 2026, aunque sumo `+3` en 2026-H2. Decision:
+conservar los motores intermedios como investigacion reutilizable, rechazar
+primera anotacion y el combinador actual, y no modificar modelo, API ni picks.
+
+## Sistema ligado de componentes y simulacion (PARCIAL, SIN CAMBIO 2026-08-04)
+
+`STARTFROMTHEEND/src/14_linked_game_simulator.py` conecto las predicciones OOS
+de fase 13 mediante contratos verificables: componentes por equipo,
+reconciliador Poisson de carreras, distribucion Negative Binomial de marcador,
+probabilidad simulada de victoria y blend residual logit con `p_home`. Cada
+probabilidad candidata volvio a pasar por thresholds, biases, traps, serie y
+reglas finales. El script falla si el hash de train, team_box, walk-forward o
+API no coincide con el linaje de fase 13.
+
+La reconciliacion de carreras si generalizo. Contra la proyeccion directa,
+redujo MAE `0.0143/0.0171` en las dos mitades de 2025 y `0.0102/0.0035` en las
+dos mitades de 2026. El modelo ligado de primera anotacion mejoro al
+clasificador de fase 13, pero no supero de forma estable la tasa historica en
+accuracy.
+
+La integracion al ganador fallo desde design 2025, antes de usar 2026 como
+criterio de seleccion. Los pesos preregistrados `0.20/0.50/1.00` perdieron
+respectivamente `-40/-49/-56` aciertos en 2025 y todos fueron negativos en
+ambas mitades. Por gobernanza no se selecciono peso (`NO_DESIGN_CANDIDATE`),
+y 2026 no se uso para rescatar la idea. Los resultados 2026 tambien fueron
+negativos (`-15/-13/-17`). Decision: conservar el reconciliador para motores
+de carreras/totales, no integrarlo al ganador global y no cambiar produccion.

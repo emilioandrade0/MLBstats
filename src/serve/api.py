@@ -10,6 +10,7 @@ Run:
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import pickle
 import time
@@ -32,6 +33,8 @@ from ..normalize.paths import PROCESSED, RAW
 MODELS = PROCESSED.parent / "models"
 STATIC_DIR = Path(__file__).parent / "static"
 STATSAPI_LIVE_URL = "https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live"
+API_SOURCE_PATH = Path(__file__).resolve()
+API_SOURCE_SHA256 = hashlib.sha256(API_SOURCE_PATH.read_bytes()).hexdigest()
 
 # Background refresh interval. Override with env var if needed.
 REFRESH_INTERVAL_SEC = int(os.environ.get("STRIKECAST_REFRESH_SEC", "3600"))  # 1 hour
@@ -82,7 +85,9 @@ async def _run_refresh() -> None:
         _last_refresh["running"] = True
         try:
             from ..refresh import refresh_async
-            await refresh_async(days_back=1, days_forward=0,
+            # Include tomorrow so the app and prospective monitor can use
+            # posted overnight lines instead of waiting for local midnight.
+            await refresh_async(days_back=1, days_forward=1,
                                 statsapi=True, include_savant=False,
                                 verbose=False)
             _cache["market_lines"] = _build_market_lines()
@@ -154,7 +159,13 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "service": "strikecast"}
+    return {
+        "ok": True,
+        "service": "strikecast",
+        "backend_module": __name__,
+        "backend_file": "src/serve/api.py",
+        "source_sha256": API_SOURCE_SHA256,
+    }
 
 
 @app.get("/api/refresh-status")
@@ -186,7 +197,7 @@ _cache: dict = {}
 # Response cache for /api/games keyed by (start, end, team). 15s TTL — fast page reloads
 # avoid recomputing predictions and re-fetching live feeds, while in-game state
 # stays current enough for a sport that scores once every few minutes.
-_GAMES_CACHE_TTL_SEC = 15
+_GAMES_CACHE_TTL_SEC = 5
 _games_response_cache: dict[tuple[str, str, str | None], tuple[float, list]] = {}
 
 
@@ -202,6 +213,7 @@ def _runtime_dependency_signature() -> tuple[tuple[str, int, int], ...]:
         Path(__file__),
         PROCESSED / "train.parquet",
         PROCESSED / "games.parquet",
+        PROCESSED / "features_market.parquet",
         PROCESSED / "features_circadian.parquet",
         PROCESSED / "features_travel.parquet",
         PROCESSED / "features_luck.parquet",
@@ -243,6 +255,50 @@ def _invalidate_prediction_caches() -> None:
         cache = globals().get(name)
         if isinstance(cache, dict):
             cache.clear()
+
+
+def _overlay_runtime_market(train: pd.DataFrame) -> pd.DataFrame:
+    """Overlay the light market refresh onto the heavier frozen train frame.
+
+    src.refresh intentionally rebuilds features_market.parquet but not
+    train.parquet. Without this overlay, today's odds are visible on disk yet
+    the accuracy blend receives NaN until a manual full feature build.
+    """
+    path = PROCESSED / "features_market.parquet"
+    if not path.exists() or "game_pk" not in train.columns:
+        return train
+    columns = [
+        "market_p_home",
+        "market_over_under",
+        "market_spread",
+        "market_n_providers",
+        "market_p_home_std",
+        "market_line_shift_home_pp",
+        "market_line_shift_abs_pp",
+        "market_total_shift",
+    ]
+    try:
+        fresh = pd.read_parquet(path, columns=["game_pk", *columns])
+        fresh = fresh.drop_duplicates("game_pk", keep="last").set_index("game_pk")
+        out = train.copy()
+        updated_probability = pd.Series(False, index=out.index)
+        for column in columns:
+            values = out["game_pk"].map(fresh[column])
+            if column == "market_p_home":
+                updated_probability = values.notna()
+            if column in out.columns:
+                out[column] = values.combine_first(out[column])
+            else:
+                out[column] = values
+        if "market_logit_p_home" in out.columns and updated_probability.any():
+            probability = pd.to_numeric(out.loc[updated_probability, "market_p_home"], errors="coerce")
+            probability = probability.clip(1e-6, 1.0 - 1e-6)
+            out.loc[updated_probability, "market_logit_p_home"] = np.log(
+                probability / (1.0 - probability)
+            )
+        return out
+    except Exception:
+        return train
 
 
 def _merge_runtime_game_context(train: pd.DataFrame) -> pd.DataFrame:
@@ -330,6 +386,7 @@ def _load():
         _cache.clear()
         _invalidate_prediction_caches()
     train = pd.read_parquet(PROCESSED / "train.parquet")
+    train = _overlay_runtime_market(train)
     train = _merge_runtime_game_context(train)
     train["game_date"] = pd.to_datetime(train["game_date"]).dt.date
     games = pd.read_parquet(PROCESSED / "games.parquet")
@@ -1593,13 +1650,11 @@ TRAP_PICK_TEAMS = {"LAA"}
 TRAP_FADE_TEAMS = {"MIL"}
 MIL_TRAP_MODEL_MARKET_MAX_GAP = 0.07
 
-# Day-specific fades: (opponent, dayofweek Mon=0..Sun=6) where the pick fails
-# below 50% in 3+ seasons of walk-forward, small-n but consistent enough to
-# survive protocol.
-#   fade WSH on Saturday → 2024 n=19 acc=0.37, 2025 n=21 acc=0.43, 2026 n=10 acc=0.30
-# Impact vs threshold+trap baseline: +0.18pp global, +0.50pp in 2026.
-# Watched closely; small sample size means high sensitivity to multiple-testing.
-DAY_TRAP_FADE = {("WSH", 5)}  # (opponent_abbrev, dayofweek)
+# Day-specific fades: (opponent, dayofweek Mon=0..Sun=6).
+# WSH Saturday was re-audited on 2026-08-04. Removing it gained one hit in
+# 2026 but lost two in 2025 and one in 2026-H2, so the chronological veto kept
+# the rule active.
+DAY_TRAP_FADE = {("WSH", 5)}
 
 # Night-trap fade — equipos donde el modelo picka mal en juegos nocturnos
 # en 2026 especifico (regime rule, gated season >= 2026). El pick sobre
@@ -1608,19 +1663,21 @@ DAY_TRAP_FADE = {("WSH", 5)}  # (opponent_abbrev, dayofweek)
 #   2023-2025 el modelo pegaba bien con DET noche (0.556/0.692/0.586),
 #   asi que gate a 2026+. Detectado 2026-07-10. Impacto medido: +0.715pp
 #   acc 2026 en n=32, +0.113pp global.
-# ⚠ N pequeño (32). Revalidar mensual. Si acc_night_2026 >= 0.45 en
-# proximo backtest, quitar la regla.
-NIGHT_TRAP_FADE = {"DET"}  # pick sobre este equipo en night game (2026+) → flip
+# The predeclared retirement gate fired on 2026-08-04: the refreshed canonical
+# walk-forward was 14/28 before and after the rule (50%, net zero), while July
+# alone changed seven correct DET picks into seven misses. Leave the registry
+# empty until a new independent holdout supports a future rule.
+NIGHT_TRAP_FADE: set[str] = set()
 
 # Pick x day-of-week fade — combos donde el modelo picka MAL sistematicamente
 # en 2025-2026. Detectados via sweep (team_picked, dow) con acc<=0.42 en 2026
 # Y acc<=0.48 en 2025. Todos fallan holdout 23-24 (regime specific) → gate 2026+.
-# Los 6:
-#   BOS Sun: 2026 25% (n=8), 2025 40% (n=10)   |   BAL Sat: 2026 38%, 2025 48%
-#   HOU Mon: 2026 29% (n=7), 2025 42% (n=12)   |   CLE Mon: 2026 33%, 2025 44%
-#   BAL Tue: 2026 36% (n=11), 2025 38% (n=16)  |   CLE Sun: 2026 38%, 2025 44%
+# BAL Saturday was re-audited on 2026-08-04. Removing it recovered two July
+# hits but lost one hit in 2026 overall, so the full-season veto kept it active.
+# Active entries:
+#   BOS Sun | HOU Mon | CLE Mon | BAL Tue | BAL Sat | CLE Sun
 # Backtest: +1.13pp acc 2026 (n=48 afectados), gate 2026+ → 0 regresion 23-25.
-# ⚠ 6 combos, N chico por combo → high multi-test risk. Revalidar mensual;
+# N chico por combo implica alto riesgo de multiple testing. Revalidar mensual;
 # quitar cualquier combo cuyo acc_2026 suba de 0.48 en el proximo check.
 # dow: Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6
 PICK_DAY_FADE = {
@@ -2114,6 +2171,86 @@ def _is_night_elite(pick_home: bool, home_team: str | None,
     return picked in NIGHT_ELITE_TEAMS
 
 
+def _winner_runtime_bias(c, r, p_home: float) -> float:
+    """Return the exact active pre-threshold bias used by the winner route."""
+    ht = r.get("home_team_abbrev")
+    at = r.get("away_team_abbrev")
+    season = int(r["season"]) if pd.notna(r.get("season")) else None
+    hpid = r.get("probable_home_pitcher_id")
+    apid = r.get("probable_away_pitcher_id")
+    try:
+        return float(
+            _h2h_bias(ht, at, season)
+            + _h2h_venue_regression_bias(c, r, p_home)
+            + _pitcher_bias(hpid, apid, season)
+            + _home_cold_streak_bias(c, r)
+            + _away_hot_streak_bias(c, r)
+            + _home_blowout_momentum_bias(c, r)
+            + _away_cold_streak_bias(c, r)
+            + _home_team_calibration_bias(r, p_home)
+            + _home_band_calibration_bias(r, p_home)
+            + _interleague_nl_bias(r, p_home)
+            + _circadian_extreme_bias(r, p_home)
+            + _travel_resilience_bias(r)
+            + _pythag_luck_bias(r, p_home)
+            + _babip_persistence_bias(r, p_home)
+            + _lob_persistence_bias(r, p_home)
+            + _cws_night_bias(r, p_home)
+            + _comeback_deficit_regression_bias(r, p_home)
+            + _runs_median_persistence_bias(r, p_home)
+            + _starter_workload_regression_bias(r, p_home)
+            + _highlev_fatigue_bias(r, p_home)
+            + _catcher_battery_regime_bias(r, p_home)
+        )
+    except Exception:
+        return 0.0
+
+
+def _winner_decision_stages(c, r, p_home: float) -> dict[str, object]:
+    """Expose auditable winner stages without changing the production pick."""
+    if not np.isfinite(p_home):
+        return {
+            "model_pick_home": False,
+            "threshold_pick_home": False,
+            "pretrap_pick_home": False,
+            "trap_pick_home": False,
+            "series_pick_home": False,
+            "runtime_bias": 0.0,
+            "trap_reason": None,
+        }
+    ht = r.get("home_team_abbrev")
+    at = r.get("away_team_abbrev")
+    mp = r.get("market_p_home", float("nan"))
+    season = int(r["season"]) if pd.notna(r.get("season")) else None
+    gd = r.get("game_date")
+    dn = r.get("day_night")
+    bias = _winner_runtime_bias(c, r, p_home)
+    p_adj = float(np.clip(p_home + bias, 0.001, 0.999)) if bias else p_home
+    threshold_pick = bool(
+        p_home >= _winner_threshold(mp, p_home, ht, at, season)
+    )
+    pretrap_pick = bool(
+        p_adj >= _winner_threshold(mp, p_adj, ht, at, season)
+    )
+    reason = _flip_reason(pretrap_pick, ht, at, gd, dn, p_home, mp)
+    trap_pick = (not pretrap_pick) if reason else pretrap_pick
+    series_pick = trap_pick
+    try:
+        if _series_double_down_market(c, r, series_pick) and pd.notna(mp):
+            series_pick = bool(float(mp) > 0.5)
+    except Exception:
+        pass
+    return {
+        "model_pick_home": bool(p_home >= 0.5),
+        "threshold_pick_home": threshold_pick,
+        "pretrap_pick_home": pretrap_pick,
+        "trap_pick_home": trap_pick,
+        "series_pick_home": series_pick,
+        "runtime_bias": bias,
+        "trap_reason": reason,
+    }
+
+
 def _final_pick_home(c, r, p_home: float) -> bool:
     """Pick FINAL replicando exactamente la lógica del card builder.
 
@@ -2126,58 +2263,7 @@ def _final_pick_home(c, r, p_home: float) -> bool:
 
     Se usa desde /api/performance para dar el mismo numero que Resultados.
     """
-    if not np.isfinite(p_home):
-        return False
-    ht = r.get("home_team_abbrev")
-    at = r.get("away_team_abbrev")
-    mp = r.get("market_p_home", float("nan"))
-    season = int(r["season"]) if pd.notna(r.get("season")) else None
-    gd = r.get("game_date")
-    hpid = r.get("probable_home_pitcher_id")
-    apid = r.get("probable_away_pitcher_id")
-    dn = r.get("day_night")
-    try:
-        bias = (
-            _h2h_bias(ht, at, season)
-            + _h2h_venue_regression_bias(c, r, p_home)
-            + _pitcher_bias(hpid, apid, season)
-            + _home_cold_streak_bias(c, r)
-            + _away_hot_streak_bias(c, r)
-            + _home_blowout_momentum_bias(c, r)
-            + _away_cold_streak_bias(c, r)
-            # + _weather_extreme_bias(r)  # RETIRED 2026-07-12 (audit)
-            + _home_team_calibration_bias(r, p_home)
-            + _home_band_calibration_bias(r, p_home)
-            + _interleague_nl_bias(r, p_home)
-            # + _umpire_market_bias(r)  # RETIRED 2026-07-17 (audit + sweep: -1 net 2026, ninguna variante rescata)
-            + _circadian_extreme_bias(r, p_home)
-            + _travel_resilience_bias(r)
-            + _pythag_luck_bias(r, p_home)
-            + _babip_persistence_bias(r, p_home)
-            + _lob_persistence_bias(r, p_home)
-            + _cws_night_bias(r, p_home)
-            + _comeback_deficit_regression_bias(r, p_home)
-            + _runs_median_persistence_bias(r, p_home)
-            # + _burn_resilience_bias(r, p_home)  # RETIRED 2026-07-17 (audit + A/B pipeline confirman -3 hits, mantener retirado)
-            + _starter_workload_regression_bias(r, p_home)
-            + _highlev_fatigue_bias(r, p_home)
-            + _catcher_battery_regime_bias(r, p_home)
-        )
-    except Exception:
-        bias = 0.0
-    p_adj = float(np.clip(p_home + bias, 0.001, 0.999)) if bias else p_home
-    raw = bool(p_adj >= _winner_threshold(mp, p_adj, ht, at, season))
-    reason = _flip_reason(raw, ht, at, gd, dn, p_home, mp)
-    pick_is_home = (not raw) if reason else raw
-    # Series double-down trap (2026+): defer to market cuando el modelo
-    # repite un pick previamente fallido en la misma serie.
-    try:
-        if _series_double_down_market(c, r, pick_is_home):
-            if pd.notna(mp):
-                pick_is_home = bool(float(mp) > 0.5)
-    except Exception:
-        pass
-    return pick_is_home
+    return bool(_winner_decision_stages(c, r, p_home)["series_pick_home"])
 
 
 def _mil_trap_market_agrees(
@@ -3595,9 +3681,11 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             "home_score": home_score,
             "away_score": away_score,
         })
-    # PHI road correction on uncertain slates. The threshold was learned on
-    # 2025 and validated unchanged on both halves of 2026. This is a final-pick
-    # correction because it must run after traps and series double-down.
+    # PHI road correction (RETIRED 2026-08-05 via phase-12 audit).
+    # Deactivation yielded +2 net hits across GLOBAL_WF with no meaningful
+    # damage in 2025/H1/H2 (max loss 1 hit in H1, gains 1 in 2025 and 2 in H2).
+    # See docs/rules_backlog.md. WSH day-share correction below stays active.
+    phi_slate = False
     by_date: dict[str, list[dict]] = {}
     for game in out:
         by_date.setdefault(str(game["date"])[:10], []).append(game)
@@ -3605,14 +3693,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
         game_day = date.fromisoformat(game_date[:10])
         mean_confidence = slate_mean_confidence.get(game_day, float("nan"))
         day_share = float(slate_day_share.get(game_day, 0.0))
-        if int(game_date[:4]) < 2025 or not np.isfinite(mean_confidence) or float(mean_confidence) > 0.055:
-            phi_slate = False
-        else:
-            phi_slate = True
         for game in slate:
-            if phi_slate and game.get("away_abbrev") == "PHI" and game.get("pick_abbrev") == game.get("home_abbrev"):
-                game["pick_abbrev"] = "PHI"
-                game["phi_road_slate_flip"] = True
             teams = {game.get("away_abbrev"), game.get("home_abbrev")}
             if (
                 int(game_date[:4]) >= 2025 and "WSH" in teams
@@ -3811,6 +3892,92 @@ def game_detail(game_pk: int):
         "park_runs_factor": _safe(r.get("park_runs_factor")),
         "context": _game_context(c, r, games_df=c["games"]),
     }
+
+
+@app.get("/api/simulations")
+async def simulations(sim_date: str | None = None):
+    """Linked component simulations in shadow mode; never changes official picks."""
+    from .simulations import (
+        daily_payload, history_payload, hydrate_saved_metadata,
+        save_snapshots, simulate_slate,
+    )
+
+    selected = date.fromisoformat(sim_date) if sim_date else date.today()
+    if selected < date.today():
+        historical = history_payload(start=selected, end=selected, limit=100)
+        if historical["games"]:
+            historical_agreement = [
+                game["agreement"] for game in historical["games"]
+                if game.get("agreement") is not None
+            ]
+            return {
+                "date": selected.isoformat(),
+                "mode": "historical_oos_or_snapshot",
+                "production_changed": False,
+                "games": historical["games"],
+                "summary": {
+                    "games": len(historical["games"]),
+                    "agreement_rate": float(np.mean(historical_agreement))
+                    if historical_agreement else None,
+                    "graded": historical["summary"]["settled"],
+                    "accuracy": historical["summary"]["oos_accuracy"]
+                    if historical["summary"]["oos_games"] else historical["summary"]["prospective_accuracy"],
+                },
+                "governance": {
+                    "historical": "chronological_oos or immutable shadow snapshot",
+                    "prospective": "only pregame snapshots count toward prospective accuracy",
+                    "late_capture": "visible but excluded from prospective accuracy",
+                    "winner_path": "official picks are unchanged",
+                },
+            }
+
+    runtime_train = pd.read_parquet(PROCESSED / "train.parquet")
+    runtime_games = pd.read_parquet(PROCESSED / "games.parquet")
+    # Reuse the official slate already opened in the main frontend.  Do not
+    # force the simulation page to wait on 15 live-feed requests: its own
+    # component forecast is independent, and saved official metadata is
+    # hydrated below when available.
+    cache_key = (selected.isoformat(), selected.isoformat(), None)
+    cached_official = _games_response_cache.get(cache_key)
+    if selected < date.today():
+        # A gap after the last OOS fold but before shadow snapshots existed.
+        # Reconstruct it once from the same pregame feature rows, label it as
+        # retrospective, and never count it as OOS/prospective accuracy.
+        official = await games(start=selected.isoformat(), end=selected.isoformat(), days=0)
+    else:
+        official = cached_official[1] if cached_official is not None else []
+    rows = await asyncio.to_thread(
+        simulate_slate, runtime_train, runtime_games, official, selected
+    )
+    if selected < date.today():
+        for row in rows:
+            row["capture_quality"] = "retrospective_backfill"
+            row["evidence"] = "retrospective_backfill"
+    rows = await asyncio.to_thread(hydrate_saved_metadata, rows)
+    await asyncio.to_thread(save_snapshots, rows)
+    payload = daily_payload(rows, selected)
+    if selected < date.today():
+        payload["mode"] = "retrospective_backfill"
+        payload["governance"]["retrospective"] = (
+            "visible and graded, but excluded from OOS and prospective accuracy"
+        )
+    return payload
+
+
+@app.get("/api/simulations/history")
+def simulations_history(
+    start: str | None = None,
+    end: str | None = None,
+    result: str = "all",
+    limit: int = 200,
+):
+    from .simulations import history_payload
+
+    start_date = date.fromisoformat(start) if start else None
+    end_date = date.fromisoformat(end) if end else None
+    if result not in {"all", "correct", "incorrect", "pending"}:
+        raise HTTPException(400, "result must be all, correct, incorrect, or pending")
+    return history_payload(start=start_date, end=end_date, result=result, limit=limit)
 
 
 # ---------- static frontend ----------
@@ -4327,6 +4494,78 @@ async def daily_picks(date: str | None = None):
     }
 
 
+_VALUE_PICKS_CACHE: dict = {"mtime": 0.0, "df": None}
+
+
+def _load_value_picks() -> tuple[pd.DataFrame, float]:
+    """Cached read of value_picks.parquet. Reloads automatically when the file
+    on disk changes (mtime bump), so a fresh retrain from the scheduled task is
+    picked up by the next request without restarting uvicorn."""
+    path = PROCESSED / "value_picks.parquet"
+    if not path.exists():
+        raise HTTPException(503, f"value_picks.parquet missing at {path}. Run: python -m src.model.value_picks")
+    mtime = path.stat().st_mtime
+    if _VALUE_PICKS_CACHE["df"] is None or mtime > _VALUE_PICKS_CACHE["mtime"]:
+        df = pd.read_parquet(path)
+        df["game_date"] = pd.to_datetime(df["game_date"]).dt.date.astype(str)
+        _VALUE_PICKS_CACHE["df"] = df
+        _VALUE_PICKS_CACHE["mtime"] = mtime
+    return _VALUE_PICKS_CACHE["df"], _VALUE_PICKS_CACHE["mtime"]
+
+
+@app.get("/api/value_picks")
+def value_picks(start: str, end: str | None = None):
+    """Value picks del modelo LGBM (first-scorer + winner) vs mercado.
+
+    Devuelve por juego: p_home_win del modelo, imp_home del mercado, edge, tier.
+    tier: 'VALOR-FUERTE' (edge>=7% + cross-model), 'VALOR' (edge>=5%), 'NEUTRO'.
+
+    El parquet se recarga automaticamente si cambia en disco (hot-reload).
+    """
+    from datetime import date as _date, datetime as _dt, timezone as _tz
+    end = end or start
+    df, mtime = _load_value_picks()
+    try:
+        _s, _e = _date.fromisoformat(start), _date.fromisoformat(end)
+    except ValueError:
+        raise HTTPException(400, "Fechas inválidas (YYYY-MM-DD)")
+    mask = (df["game_date"] >= start) & (df["game_date"] <= end)
+    sub = df.loc[mask].copy()
+
+    def _pick_prob(row):
+        # prob del lado del pick (mayor entre p_home_win y 1-p_home_win)
+        p = row["p_home_win"]
+        if pd.isna(p) or row["pick_code"] is None:
+            return None
+        return float(p) if row["pick_code"] == row["home_team_abbrev"] else float(1.0 - p)
+
+    sub["pick_prob"] = sub.apply(_pick_prob, axis=1)
+
+    def _val(x):
+        return None if pd.isna(x) else float(x)
+
+    picks = []
+    for r in sub.itertuples(index=False):
+        picks.append({
+            "game_pk": int(r.game_pk),
+            "date": r.game_date,
+            "home_abbrev": r.home_team_abbrev,
+            "away_abbrev": r.away_team_abbrev,
+            "home_ml": _val(r.home_ml),
+            "away_ml": _val(r.away_ml),
+            "p_home_win": _val(r.p_home_win),
+            "p_home_first": _val(r.p_home_first),
+            "imp_home": _val(r.imp_home),
+            "edge_win": _val(r.edge_win),
+            "edge_first": _val(r.edge_first),
+            "pick_code": r.pick_code if r.pick_code else None,
+            "pick_prob": _val(r.pick_prob),
+            "tier": r.tier,
+        })
+    updated_at = _dt.fromtimestamp(mtime, tz=_tz.utc).isoformat()
+    return {"updated_at": updated_at, "picks": picks}
+
+
 @app.get("/api/burn")
 def burn_report(date: str | None = None):
     """Per-team "carne al asador" report for a given date.
@@ -4458,3 +4697,8 @@ def strike():
 @app.get("/predict")
 def predict_page():
     return FileResponse(STATIC_DIR / "predict.html")
+
+
+@app.get("/simulaciones")
+def simulations_page():
+    return FileResponse(STATIC_DIR / "simulations.html")

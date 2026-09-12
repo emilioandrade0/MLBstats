@@ -33,12 +33,26 @@ COPY data/processed/games_xref.parquet               ./data/processed/
 COPY data/processed/odds_close.parquet               ./data/processed/
 COPY data/processed/features_market.parquet          ./data/processed/
 COPY data/processed/features_pitcher_season.parquet  ./data/processed/
+COPY data/processed/daily_pick_signal_history.parquet ./data/processed/
+COPY data/processed/features_circadian.parquet       ./data/processed/
+COPY data/processed/features_travel.parquet          ./data/processed/
+COPY data/processed/features_luck.parquet            ./data/processed/
+COPY data/processed/features_cluster_luck.parquet    ./data/processed/
+COPY data/processed/features_comeback.parquet        ./data/processed/
+COPY data/processed/features_game_flow.parquet       ./data/processed/
+COPY data/processed/features_burn.parquet            ./data/processed/
+COPY data/processed/features_starter_workload.parquet ./data/processed/
+COPY data/processed/features_high_leverage.parquet    ./data/processed/
+COPY data/processed/features_catcher_control.parquet  ./data/processed/
+COPY data/processed/value_picks.parquet               ./data/processed/
 
-COPY data/models/ensemble.pkl  ./data/models/
-COPY data/models/lgb_cls.pkl   ./data/models/
-COPY data/models/lgb_reg.pkl   ./data/models/
-COPY data/models/f5_cls.pkl    ./data/models/
-COPY data/models/f5_reg.pkl    ./data/models/
+COPY data/models/ensemble.pkl     ./data/models/
+COPY data/models/lgb_cls.pkl      ./data/models/
+COPY data/models/lgb_reg.pkl      ./data/models/
+COPY data/models/f5_cls.pkl       ./data/models/
+COPY data/models/f5_reg.pkl       ./data/models/
+COPY data/models/value_first.pkl  ./data/models/
+COPY data/models/value_win.pkl    ./data/models/
 
 EXPOSE 8000
 

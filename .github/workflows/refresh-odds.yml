@@ -42,7 +42,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run odds refresh
-        run: python -m src.refresh
+        run: python -m src.refresh --days-forward 7
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Retrain value_picks model
+        # LightGBM training is ~15s. Runs every cron tick so picks stay fresh
+        # with newest closing lines and any completed-game targets that landed.
+        run: python -m src.model.value_picks --summary
         env:
           PYTHONUNBUFFERED: '1'
 
@@ -53,13 +60,18 @@ jobs:
 
       - name: Commit + push if changed
         run: |
-          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/raw/odds 2>/dev/null)" ]]; then
+          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/value_picks.parquet data/raw/odds 2>/dev/null)" ]]; then
             echo "No data changes — skipping commit."
             exit 0
           fi
           git config user.name  "strikecast-bot"
           git config user.email "strikecast-bot@users.noreply.github.com"
-          # Only commit the slim parquets — raw JSONs stay local.
-          git add data/processed/odds_close.parquet data/processed/features_market.parquet
-          git commit -m "data: auto-refresh odds $(date -u +%Y-%m-%dT%H:%MZ)"
+          # Slim commit: only the working parquets ship. Raw JSONs stay in the
+          # runner's tmp filesystem and get discarded when the job ends.
+          git add data/processed/odds_close.parquet \
+                  data/processed/features_market.parquet \
+                  data/processed/value_picks.parquet
+          # Value model pkls only if they changed (rare — same shape each retrain).
+          git add data/models/value_first.pkl data/models/value_win.pkl 2>/dev/null || true
+          git commit -m "data: auto-refresh $(date -u +%Y-%m-%dT%H:%MZ)"
           git push

@@ -1,13 +1,14 @@
 """STRIKECAST · Actualizacion incremental de datos (paralela).
 
-Reemplazo directo del viejo update_data.bat. Corre los mismos 8 pasos pero
-paralelizando lo que se puede: ingest (ESPN/StatsAPI/Savant), features y
-comeback+burn se ejecutan en grupos concurrentes.
+Reemplazo directo del viejo update_data.bat. Actualiza la base, reconstruye
+features y, por defecto, cierra el walk-forward OOS y los motores ligados de
+STARTFROMTHEEND. No reentrena ni despliega automaticamente el modelo oficial.
 
 Uso:
     python update_data.py               # ventana de 14 dias hasta hoy
     python update_data.py --days 30     # ventana de 30 dias
     python update_data.py --workers 6   # mas paralelismo
+    python update_data.py --data-only   # omite OOS/simulaciones
 
 Logs por modulo se guardan en ./logs/<step_name>.log — si algo falla el
 driver aborta la fase y te dice cual modulo revisar.
@@ -44,6 +45,77 @@ def run_module(name: str, args: list[str]) -> tuple[str, int, float]:
             stderr=subprocess.STDOUT,
         )
     return name, rc, time.time() - t0
+
+
+def run_script_step(label: str, relative_path: str) -> None:
+    """Run one repository script with the same logged/fail-fast contract."""
+    path = ROOT / relative_path
+    if not path.is_file():
+        print(f"ERROR: no existe {path}")
+        sys.exit(1)
+    LOGS.mkdir(exist_ok=True)
+    log_path = LOGS / f"script_{path.stem}.log"
+    print(f"\n── {label} ──")
+    print(f"  corriendo: {relative_path}")
+    started = time.time()
+    with open(log_path, "w", encoding="utf-8") as handle:
+        handle.write(f"$ {PYTHON} {path}\n")
+        handle.flush()
+        rc = subprocess.call(
+            [PYTHON, str(path)], cwd=str(ROOT), stdout=handle, stderr=subprocess.STDOUT
+        )
+    elapsed = time.time() - started
+    tag = "OK" if rc == 0 else f"FAIL rc={rc}"
+    print(f"  [{tag:>9}] {path.stem:<28} {elapsed:7.1f}s   log: {log_path.relative_to(ROOT)}")
+    if rc != 0:
+        tail = _tail_last_line(log_path)
+        if tail:
+            print(f"  ultimo mensaje: {tail}")
+        sys.exit(1)
+
+
+def verify_simulation_freshness() -> None:
+    """Fail closed if the full update leaves chronological artifacts behind."""
+    import pandas as pd
+
+    processed = ROOT / "data" / "processed"
+    games = pd.read_parquet(
+        processed / "games.parquet", columns=["game_pk", "game_date", "game_type", "status"]
+    )
+    games["game_date"] = pd.to_datetime(games["game_date"], errors="coerce")
+    final = games[
+        games["game_type"].eq("R")
+        & games["status"].astype(str).str.lower().str.match(r"^(final|game over|completed early)")
+    ]
+    if final.empty:
+        raise RuntimeError("No hay juegos finales para verificar frescura")
+    expected = final["game_date"].max().date()
+
+    artifacts = {
+        "walkforward": processed / "walkforward_preds.parquet",
+        "componentes": ROOT / "STARTFROMTHEEND" / "outputs" / "13_component_predictions.parquet",
+        "simulador": ROOT / "STARTFROMTHEEND" / "outputs" / "14_linked_simulation_predictions.csv",
+    }
+    observed: dict[str, date] = {}
+    for name, path in artifacts.items():
+        if not path.exists():
+            raise RuntimeError(f"Falta artefacto obligatorio: {path}")
+        frame = pd.read_csv(path) if path.suffix == ".csv" else pd.read_parquet(path)
+        column = "game_date" if "game_date" in frame.columns else "date"
+        latest = pd.to_datetime(frame[column], errors="coerce").max()
+        if pd.isna(latest):
+            raise RuntimeError(f"{name} no contiene fechas validas")
+        observed[name] = latest.date()
+
+    stale = {name: value for name, value in observed.items() if value < expected}
+    print("\n── VERIFICACION FINAL · Frescura cronologica ──")
+    print(f"  Ultimo juego final regular: {expected}")
+    for name, value in observed.items():
+        print(f"  {name:<14}: {value}")
+    if stale:
+        detail = ", ".join(f"{name}={value}" for name, value in stale.items())
+        raise RuntimeError(f"Actualizacion incompleta; artefactos atrasados: {detail}")
+    print("  OK - datos, OOS y simulador estan alineados")
 
 
 def _progress_bar(done: int, total: int, width: int = 24) -> str:
@@ -245,6 +317,10 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=14, help="ventana de re-descarga (default 14)")
     ap.add_argument("--workers", type=int, default=8, help="procesos paralelos por fase (default 8)")
+    ap.add_argument(
+        "--data-only", action="store_true",
+        help="omite walk-forward y STARTFROMTHEEND (actualizacion rapida de datos solamente)",
+    )
     args = ap.parse_args()
 
     today = date.today().isoformat()
@@ -326,6 +402,41 @@ def main() -> None:
 
     # ── FASE 6: train.parquet (necesita TODO) ────────────────────────────────
     run_group("FASE 6/6 · Ensamblar train.parquet", [("src.features.build", [])], W)
+
+    if not args.data_only:
+        # Evaluation is deliberately separate from production model deployment.
+        # This keeps OOS/history current without silently promoting a new model.
+        current_month = date.today().strftime("%Y-%m")
+        run_group(
+            "FASE 7a/7 · Walk-forward OOS incremental",
+            [("src.model.walkforward", ["--incremental", "--end", current_month])],
+            1,
+        )
+        run_script_step(
+            "FASE 7b/7 · Guion temporal de juegos finales",
+            "STARTFROMTHEEND/src/03_game_script.py",
+        )
+        run_script_step(
+            "FASE 7c/7 · Motores OOS de componentes",
+            "STARTFROMTHEEND/src/13_component_engines.py",
+        )
+        run_script_step(
+            "FASE 7d/7 · Simulador ligado OOS",
+            "STARTFROMTHEEND/src/14_linked_game_simulator.py",
+        )
+        try:
+            verify_simulation_freshness()
+        except Exception as exc:
+            print(f"\nERROR: {exc}")
+            sys.exit(1)
+
+    # ── StatsMLB · motor de momios (JSONs derivados que consume la UI) ────────
+    statsmlb_odds = ROOT / "StatsMLB" / "scripts" / "odds_walkforward.py"
+    if statsmlb_odds.is_file():
+        run_script_step(
+            "FASE 8/8 · StatsMLB motor de momios (JSONs)",
+            "StatsMLB/scripts/odds_walkforward.py",
+        )
 
     total = time.time() - t_start
     print("\n" + "=" * 60)

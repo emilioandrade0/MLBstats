@@ -1,119 +1,208 @@
-# STRIKECAST — Deploy guide
+# STRIKECAST — Deploy guide (24/7 en el cloud)
 
-Architecture:
-- **Frontend** → Vercel (static, free, edge CDN)
-- **Backend** → Railway (FastAPI in Docker, $5/mo after free trial)
+## Arquitectura final
 
-Routing: Vercel rewrites `/api/*` → Railway. Browser only ever talks to the Vercel domain; CORS is not exercised in normal traffic. CORS middleware is still on in the backend so direct calls work (curl, dev, alt frontends).
+```
+                    ┌─────────────────────────────────┐
+                    │   GitHub Actions (gratis)       │
+                    │   cron cada 2h Mar-Nov:         │
+                    │   src.refresh → src.model.      │
+                    │   value_picks → git push        │
+                    └───────────────┬─────────────────┘
+                                    │ push → auto-deploy
+                                    ▼
+  ┌─────────────────┐         ┌────────────────────┐
+  │  Vercel (free)  │────────▶│   Railway ($5/mo)  │
+  │  StatsMLB       │  /api   │   FastAPI Docker   │
+  │  Next.js UI     │◀────────│   uvicorn :8000    │
+  └─────────────────┘         └────────────────────┘
+        ▲                              ▲
+        │                              │
+    tu browser                    parquets bakeados
+    /móvil                       en la imagen Docker
+```
+
+**Costo total: ~$5/mes** (Railway Hobby). Tu laptop puede quedarse apagada.
+
+**Los 40 GB de raw se quedan en tu laptop** como archivo. El cron de GitHub Actions descarga solo los raw del día (~5 MB) en el runner y los desecha; los parquets sí se commitean.
 
 ---
 
-## 0 · Pre-flight (one-time, local)
+## 0 · Pre-flight (una sola vez, local)
 
-You need a recent `train.parquet` + `odds_close.parquet` baked into the image as a baseline. Refresh locally:
+Asegúrate de tener los archivos que Railway va a bakear en la imagen:
 
 ```powershell
-python -m src.refresh
+cd C:\Users\andra\Desktop\STRIKECAST
+python -m src.refresh --days-forward 7
+python -m src.model.value_picks --summary
 ```
 
-That writes today's ESPN data into `data/raw/odds/` and rebuilds `odds_close.parquet` + `features_market.parquet`. The image picks these up via the `COPY` lines in `Dockerfile`.
-
-> ⚡ **Auto-refresh on visit** is enabled in production. When someone hits `/api/games?start=<today>`, the backend automatically fetches fresh ESPN odds (~1–2s on cold cache, throttled to once every 120s afterwards). The background loop is OFF (`STRIKECAST_DISABLE_REFRESH=1`) so the container stays idle when no one's browsing.
->
-> **The only thing that still requires a redeploy:** new games whose features aren't in `train.parquet` (lineups, pitcher stats…). Those need a local `python -m src.features.build && python -m src.train` + push. In practice: rebuild and push once a day.
+Esto deja fresh:
+- `data/processed/odds_close.parquet`
+- `data/processed/features_market.parquet`
+- `data/processed/value_picks.parquet`
+- `data/models/value_first.pkl`, `value_win.pkl`
 
 ---
 
 ## 1 · Backend → Railway
 
-### 1a. Push code to GitHub
+### 1a. Subir código a GitHub
+
 ```powershell
-git init                      # if not already
-git add Dockerfile .dockerignore railway.json requirements.txt src/ data/processed/*.parquet data/models/*.pkl
+cd C:\Users\andra\Desktop\STRIKECAST
+git init                          # si aún no está
+git add .gitignore Dockerfile .dockerignore railway.json requirements.txt src/ .github/
+# Parquets/modelos slim que embarcan en Docker:
+git add data/processed/train.parquet `
+        data/processed/games.parquet `
+        data/processed/games_xref.parquet `
+        data/processed/odds_close.parquet `
+        data/processed/features_market.parquet `
+        data/processed/features_pitcher_season.parquet `
+        data/processed/value_picks.parquet
+git add data/models/*.pkl
 git commit -m "deploy: initial Railway backend"
-git remote add origin https://github.com/<you>/strikecast.git
+git remote add origin https://github.com/<tu-usuario>/strikecast.git
 git push -u origin main
 ```
 
-> Note: parquets and `.pkl` are normally `.gitignore`'d. Either force-add them (`git add -f ...`) or move them to a Railway volume later. For first deploy, force-add is simplest — total is ~8 MB.
+### 1b. Crear servicio Railway
 
-### 1b. Create Railway service
-1. Go to [railway.com](https://railway.com) → New Project → Deploy from GitHub repo
-2. Pick this repo. Railway auto-detects `Dockerfile` + `railway.json`.
-3. Add env vars (Settings → Variables):
-   - `STRIKECAST_DISABLE_REFRESH=1` (already in Dockerfile, but pin it here too)
-   - `STRIKECAST_CORS_ORIGINS=https://<your-vercel-domain>.vercel.app` *(set after step 2 gives you the domain — temporarily use `*`)*
-4. Settings → Networking → **Generate Domain**. You'll get e.g. `strikecast-production.up.railway.app`.
-5. Wait for build (~3 min). Check `/api/health` returns `{"ok": true, ...}`.
+1. [railway.com](https://railway.com) → New Project → Deploy from GitHub repo
+2. Selecciona el repo. Railway detecta `Dockerfile` + `railway.json` automáticamente.
+3. Settings → Variables → agrega:
 
-### 1c. Smoke test
+   | Variable | Valor |
+   |---|---|
+   | `STRIKECAST_DISABLE_REFRESH` | `1` |
+   | `STRIKECAST_ONREQ_TTL_SEC` | `120` |
+   | `STRIKECAST_CORS_ORIGINS` | `*` (temporal, se ajusta en 2c) |
+   | `ODDS_API_KEY` | `f5be61575edbd4a77f398d40df2d8c83` |
+
+4. Settings → Networking → **Generate Domain**. Anota el URL, ej: `strikecast-production.up.railway.app`.
+5. Wait ~3 min para el build. Verifica:
+   ```powershell
+   curl https://<tu-railway>.up.railway.app/api/health
+   ```
+   Debe devolver `{"ok": true, ...}`.
+
+### 1c. Smoke test del Value endpoint
+
 ```powershell
-curl https://strikecast-production.up.railway.app/api/health
-curl "https://strikecast-production.up.railway.app/api/games?start=2025-08-15&end=2025-08-15" | head -200
+curl "https://<tu-railway>.up.railway.app/api/value_picks?start=2026-08-02&end=2026-08-02"
 ```
+
+Debe devolver `{updated_at, picks: [...]}` con al menos algunos tier `VALOR-FUERTE`.
 
 ---
 
 ## 2 · Frontend → Vercel
 
-### 2a. Point `vercel.json` at your Railway domain
-Edit `vercel/vercel.json` line 5 — replace `REPLACE_WITH_RAILWAY_DOMAIN` with the host from step 1b.4 (no `https://`, just the host — actually keep the `https://`, see file).
+El frontend real es **`StatsMLB/`** (Next.js). La carpeta `vercel/` es el static viejo (index.html) — se puede ignorar.
 
-### 2b. Deploy
-Option A — Vercel CLI (fastest):
+### 2a. Deploy
+
+**Opción A — Vercel CLI (rápido):**
 ```powershell
 npm i -g vercel
-cd vercel
-vercel              # first time: link / create project
-vercel --prod       # promote to production
+cd C:\Users\andra\Desktop\STRIKECAST\StatsMLB
+vercel                # primera vez: linkea el proyecto
+vercel --prod         # promueve a producción
 ```
 
-Option B — GitHub integration:
-1. vercel.com → Add New Project → Import this repo
-2. Root Directory: `vercel`
-3. Framework Preset: **Other** (it's a static dir)
+**Opción B — Integración GitHub:**
+1. vercel.com → Add New Project → Import repo
+2. Root Directory: `StatsMLB`
+3. Framework Preset: **Next.js** (auto-detectado)
 4. Deploy
 
-You'll get `https://strikecast.vercel.app` (or whatever name).
+### 2b. Configurar la variable de backend
 
-### 2c. Lock down CORS
-Go back to Railway → set `STRIKECAST_CORS_ORIGINS=https://strikecast.vercel.app` (your actual domain). Click **Redeploy**.
+En Vercel → Project → Settings → Environment Variables:
 
----
+| Variable | Valor |
+|---|---|
+| `STRIKECAST_BASE_URL` | `https://<tu-railway>.up.railway.app` |
+| `TELEGRAM_BOT_TOKEN` | (el tuyo, si usas Telegram picks) |
+| `TELEGRAM_CHAT_ID` | (el tuyo) |
 
-## 3 · Daily update workflow
+Redeploy tras agregarlas para que las tome.
 
-Whenever you want fresh predictions for today's slate:
+### 2c. Cerrar CORS
 
-```powershell
-python -m src.refresh                 # 30s — updates today's odds JSON + parquet
-git add data/processed/odds_close.parquet data/processed/features_market.parquet
-git commit -m "data: refresh $(Get-Date -Format yyyy-MM-dd)"
-git push
+En Railway → Variables → cambia `STRIKECAST_CORS_ORIGINS`:
 ```
-
-Railway auto-rebuilds & redeploys (~3 min). Vercel doesn't need to be touched — it just proxies.
-
-To automate: set up a GitHub Action with a daily cron that runs `python -m src.refresh` + commits. Worth doing once Railway is stable.
+https://<tu-vercel>.vercel.app
+```
+Redeploy Railway.
 
 ---
 
-## 4 · Custom domain (optional)
+## 3 · Automatización 24/7 (GitHub Actions)
 
-- Buy `strikecast.com` (Cloudflare ~$10/yr, no markup)
-- Vercel → Project → Settings → Domains → add `strikecast.com`
-- Vercel gives you the DNS records → paste into Cloudflare
-- Optionally point `api.strikecast.com` → Railway with a CNAME, then update `vercel.json` rewrites
+Ya está configurado en `.github/workflows/refresh-odds.yml`. Cada 2 horas durante temporada MLB (Mar-Nov):
+
+1. Descarga odds frescas de ESPN (`src.refresh --days-forward 7`)
+2. Reentrenar Value Model (`src.model.value_picks`)
+3. Auto-commit `odds_close.parquet` + `features_market.parquet` + `value_picks.parquet`
+4. Push → Railway auto-rebuild ~3 min → Vercel proxy ve la data fresca
+
+**Nada más que hacer.** Tu laptop puede quedarse apagada. La app queda viva 24/7.
+
+Para triggear manualmente en cualquier momento:
+GitHub → tu repo → Actions → refresh-odds → Run workflow.
+
+---
+
+## 4 · Dominio custom (opcional)
+
+- Compra `strikecast.com` en Cloudflare (~$10/año)
+- Vercel → Project → Settings → Domains → añade `strikecast.com`
+- Pega los DNS records que te da Vercel en Cloudflare
+- Opcional: `api.strikecast.com` → CNAME al Railway; actualiza `STRIKECAST_BASE_URL` en Vercel
 
 ---
 
 ## Cost summary
 
-| service | tier | monthly |
-|---|---|---|
-| Vercel | Hobby | $0 |
-| Railway | Hobby ($5 trial) | ~$5 (always-on container, 512 MB RAM) |
-| Domain | optional | ~$1/mo amortized |
-| **Total** | | **$0–6/mo** |
+| Servicio | Tier | $/mes |
+|---|---|---:|
+| Vercel Hobby | Frontend Next.js | $0 |
+| Railway Hobby | Backend Docker 512 MB RAM | ~$5 |
+| GitHub Actions | 2000 min/mes gratis (usamos ~50 min/mes) | $0 |
+| Dominio (opcional) | Cloudflare Registry | ~$1/mes amortizado |
+| **Total** | | **$0-6/mo** |
 
-Free alternative: deploy backend to **Fly.io** (3 shared-cpu-1x VMs free, 256 MB each — enough for STRIKECAST). Same `Dockerfile` works. Replace step 1 with `fly launch && fly deploy`.
+---
+
+## Alternativa 100% gratis (sin Railway)
+
+Si quieres cero costos: **Fly.io** ofrece 3 VMs gratis de 256 MB RAM cada una — suficiente para STRIKECAST. Mismo `Dockerfile`.
+
+```powershell
+curl -L https://fly.io/install.sh | sh
+fly launch --dockerfile Dockerfile
+fly deploy
+```
+
+Reemplaza el URL de Railway en `STRIKECAST_BASE_URL` de Vercel.
+
+---
+
+## Troubleshooting
+
+### El endpoint `/api/value_picks` devuelve 503 en Railway
+Falta el parquet dentro de la imagen. Verifica que hiciste `git add data/processed/value_picks.parquet` antes del push, y que `.gitignore` NO lo excluye (línea `!data/processed/value_picks.parquet`).
+
+### GitHub Actions no pushea cambios
+Verifica que el repo tenga permisos `contents: write` en Actions (Settings → Actions → General → Workflow permissions → **Read and write**).
+
+### Vercel no puede hablar con Railway
+- Confirma que `STRIKECAST_BASE_URL` en Vercel apunta al dominio Railway con `https://`.
+- Confirma que Railway `STRIKECAST_CORS_ORIGINS` incluye el dominio Vercel exacto.
+- Tests: `curl https://<railway>/api/health` desde tu terminal (bypasses Vercel).
+
+### El modelo Value da NEUTRO en todos los games
+El parquet vino sin odds. Espera al siguiente ciclo de cron (~2h) o dispara manualmente el workflow en GitHub → Actions.

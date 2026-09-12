@@ -125,25 +125,12 @@ async def _refresh_loop():
     Skips past/future days entirely. Only touches today + N days back. Doesn't
     re-download files that already exist unless `force=True`.
     """
-    from ..refresh import refresh_async
     # Initial delay so the server can start serving requests first.
     await asyncio.sleep(45)
     while True:
-        _last_refresh["started"] = time.time()
-        _last_refresh["running"] = True
-        try:
-            await refresh_async(days_back=1, days_forward=0,
-                                statsapi=True, include_savant=False,
-                                verbose=False)
-            # Invalidate just the market_lines cache so the next request
-            # rebuilds it from the freshly-written odds_close.parquet.
-            _cache["market_lines"] = _build_market_lines()
-            _last_refresh["ok"] = time.time()
-            _last_refresh["err"] = None
-        except Exception as e:
-            _last_refresh["err"] = repr(e)
-        finally:
-            _last_refresh["running"] = False
+        # Share the on-demand lock so periodic and request-triggered refreshes
+        # cannot rewrite the same artifacts concurrently.
+        await _run_refresh()
         await asyncio.sleep(REFRESH_INTERVAL_SEC)
 
 
@@ -188,39 +175,159 @@ async def refresh_now():
     """Trigger an immediate refresh in the background (non-blocking)."""
     if _last_refresh["running"]:
         return {"queued": False, "reason": "already running"}
-    from ..refresh import refresh_async
-
-    async def _run():
-        _last_refresh["running"] = True
-        _last_refresh["started"] = time.time()
-        try:
-            await refresh_async(days_back=1, statsapi=True, verbose=False)
-            _cache["market_lines"] = _build_market_lines()
-            _last_refresh["ok"] = time.time()
-            _last_refresh["err"] = None
-        except Exception as e:
-            _last_refresh["err"] = repr(e)
-        finally:
-            _last_refresh["running"] = False
-
-    asyncio.create_task(_run())
+    asyncio.create_task(_run_refresh())
     return {"queued": True}
 
 
 # ---------------- caches ----------------
 _cache: dict = {}
 
-# Response cache for /api/games keyed by (start, end). 15s TTL — fast page reloads
+# Response cache for /api/games keyed by (start, end, team). 15s TTL — fast page reloads
 # avoid recomputing predictions and re-fetching live feeds, while in-game state
 # stays current enough for a sport that scores once every few minutes.
-_GAMES_CACHE_TTL_SEC = 15
-_games_response_cache: dict[tuple[str, str], tuple[float, list]] = {}
+_GAMES_CACHE_TTL_SEC = 5
+_games_response_cache: dict[tuple[str, str, str | None], tuple[float, list]] = {}
+
+
+def _runtime_dependency_signature() -> tuple[tuple[str, int, int], ...]:
+    """Version the in-memory engine from every model/data input it consumes.
+
+    Uvicorn reloads when this Python file changes. Parquet/model refreshes do
+    not necessarily restart the process, so their mtimes and sizes are also
+    part of the signature. A changed signature forces _load() to rebuild the
+    engine and invalidates response caches before another prediction is served.
+    """
+    paths = [
+        Path(__file__),
+        PROCESSED / "train.parquet",
+        PROCESSED / "games.parquet",
+        PROCESSED / "features_circadian.parquet",
+        PROCESSED / "features_travel.parquet",
+        PROCESSED / "features_luck.parquet",
+        PROCESSED / "features_cluster_luck.parquet",
+        PROCESSED / "features_comeback.parquet",
+        PROCESSED / "features_game_flow.parquet",
+        PROCESSED / "features_burn.parquet",
+        PROCESSED / "features_starter_workload.parquet",
+        PROCESSED / "features_high_leverage.parquet",
+        PROCESSED / "features_catcher_control.parquet",
+        PROCESSED / "features_pitcher_season.parquet",
+        PROCESSED / "odds_close.parquet",
+        PROCESSED / "odds.parquet",
+        PROCESSED / "games_xref.parquet",
+        PROCESSED / "pinnacle_value.parquet",
+        MODELS / "ensemble.pkl",
+        MODELS / "lgb_cls.pkl",
+        MODELS / "lgb_reg.pkl",
+        MODELS / "f5_cls.pkl",
+        MODELS / "f5_reg.pkl",
+    ]
+    signature = []
+    for path in paths:
+        try:
+            stat = path.stat()
+            signature.append((str(path), stat.st_mtime_ns, stat.st_size))
+        except FileNotFoundError:
+            signature.append((str(path), 0, 0))
+    return tuple(signature)
+
+
+def _invalidate_prediction_caches() -> None:
+    """Clear response and decision caches after an engine/data version change."""
+    _games_response_cache.clear()
+    for name in (
+        "_h2h_venue_cache", "_series_dd_cache", "_home_streak_cache",
+        "_away_streak_cache", "_away_cold_streak_cache",
+    ):
+        cache = globals().get(name)
+        if isinstance(cache, dict):
+            cache.clear()
+
+
+def _merge_runtime_game_context(train: pd.DataFrame) -> pd.DataFrame:
+    path = PROCESSED / "games.parquet"
+    if not path.exists():
+        return train
+    wanted = [
+        "game_pk", "weather_temp_f",
+    ]
+    try:
+        games = pd.read_parquet(path, columns=wanted)
+        missing = [col for col in wanted[1:] if col not in train.columns]
+        train = train.merge(games[["game_pk", *missing]], on="game_pk", how="left") if missing else train
+        circ_path = PROCESSED / "features_circadian.parquet"
+        if circ_path.exists() and "circ_x_day_home" not in train.columns:
+            circ = pd.read_parquet(circ_path, columns=["game_pk", "circ_x_day_home"])
+            train = train.merge(circ, on="game_pk", how="left")
+        travel_path = PROCESSED / "features_travel.parquet"
+        if travel_path.exists() and "travel_dist_miles_a" not in train.columns:
+            travel = pd.read_parquet(travel_path, columns=["game_pk", "side", "travel_dist_miles"])
+            wide = travel.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        luck_path = PROCESSED / "features_luck.parquet"
+        if luck_path.exists() and "babip_luck_net_a" not in train.columns:
+            luck = pd.read_parquet(luck_path, columns=["game_pk", "side", "babip_luck_net"])
+            wide = luck.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        cluster_path = PROCESSED / "features_cluster_luck.parquet"
+        if cluster_path.exists() and "lob_off_dev_h" not in train.columns:
+            cluster = pd.read_parquet(cluster_path, columns=["game_pk", "team", "lob_off_dev", "lob_def_dev"])
+            home = cluster.rename(columns={"team": "home_team_abbrev", "lob_off_dev": "lob_off_dev_h", "lob_def_dev": "lob_def_dev_h"})
+            away = cluster.rename(columns={"team": "away_team_abbrev", "lob_off_dev": "lob_off_dev_a", "lob_def_dev": "lob_def_dev_a"})
+            train = train.merge(home, on=["game_pk", "home_team_abbrev"], how="left")
+            train = train.merge(away, on=["game_pk", "away_team_abbrev"], how="left")
+        comeback_path = PROCESSED / "features_comeback.parquet"
+        if comeback_path.exists() and "cb_avg_def_l30_h" not in train.columns:
+            comeback = pd.read_parquet(comeback_path, columns=["game_pk", "side", "cb_avg_def_l30"])
+            wide = comeback.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        flow_path = PROCESSED / "features_game_flow.parquet"
+        if flow_path.exists() and "runs_median_l20_h" not in train.columns:
+            flow = pd.read_parquet(flow_path, columns=["game_pk", "side", "runs_median_l20"])
+            wide = flow.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        burn_path = PROCESSED / "features_burn.parquet"
+        if burn_path.exists() and "burn_score_h" not in train.columns:
+            burn = pd.read_parquet(burn_path, columns=["game_pk", "side", "burn_score"])
+            wide = burn.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        workload_path = PROCESSED / "features_starter_workload.parquet"
+        if workload_path.exists() and "starter_prev_pitches_h" not in train.columns:
+            workload = pd.read_parquet(workload_path)
+            train = train.merge(workload, on="game_pk", how="left")
+        highlev_path = PROCESSED / "features_high_leverage.parquet"
+        if highlev_path.exists() and "highlev_pitches_1d_h" not in train.columns:
+            highlev = pd.read_parquet(highlev_path)
+            train = train.merge(highlev, on="game_pk", how="left")
+        catcher_path = PROCESSED / "features_catcher_control.parquet"
+        if catcher_path.exists() and "battery_kbb_l8_h" not in train.columns:
+            catcher = pd.read_parquet(catcher_path, columns=["game_pk", "side", "battery_kbb_l8"])
+            wide = catcher.pivot(index="game_pk", columns="side")
+            wide.columns = [f"{metric}_{str(side)[0]}" for metric, side in wide.columns]
+            train = train.merge(wide.reset_index(), on="game_pk", how="left")
+        return train
+    except Exception:
+        return train
 
 
 def _load():
-    if _cache:
+    # Avoid reloading from a partially-written refresh. Once it finishes, the
+    # final dependency signature triggers exactly one complete engine reload.
+    if "train" in _cache and _last_refresh.get("running"):
         return _cache
+    signature = _runtime_dependency_signature()
+    if "train" in _cache and _cache.get("_runtime_signature") == signature:
+        return _cache
+    if _cache:
+        _cache.clear()
+        _invalidate_prediction_caches()
     train = pd.read_parquet(PROCESSED / "train.parquet")
+    train = _merge_runtime_game_context(train)
     train["game_date"] = pd.to_datetime(train["game_date"]).dt.date
     games = pd.read_parquet(PROCESSED / "games.parquet")
     games["game_date"] = pd.to_datetime(games["game_date"]).dt.date
@@ -277,7 +384,8 @@ def _load():
                    "cls_value": cls_value_b,
                    "pitcher_season": pitcher_season, "market_lines": market_lines,
                    "pinnacle_value": pinnacle_value,
-                   "f5_cls": f5_cls_b, "f5_reg": f5_reg_b})
+                   "f5_cls": f5_cls_b, "f5_reg": f5_reg_b,
+                   "_runtime_signature": signature})
     return _cache
 
 
@@ -366,19 +474,23 @@ def _best_lines_from(odds: pd.DataFrame) -> pd.DataFrame | None:
     o = o[valid(o["home_ml"]) & valid(o["away_ml"])]
     if o.empty:
         return None
-    rows = []
-    for eid, grp in o.groupby("espn_event_id"):
-        hi = grp.loc[grp["home_ml"].idxmax()]
-        ai = grp.loc[grp["away_ml"].idxmax()]
-        rows.append({
-            "espn_event_id": eid,
-            "best_home_ml": float(hi["home_ml"]),
-            "best_home_book": _clean_book(hi["provider_name"]),
-            "best_away_ml": float(ai["away_ml"]),
-            "best_away_book": _clean_book(ai["provider_name"]),
-            "n_books": int(grp["provider_name"].nunique()),
-        })
-    return pd.DataFrame(rows)
+    grouped = o.groupby("espn_event_id", sort=True)
+    home = o.loc[grouped["home_ml"].idxmax(), [
+        "espn_event_id", "home_ml", "provider_name",
+    ]].rename(columns={
+        "home_ml": "best_home_ml", "provider_name": "best_home_book",
+    })
+    away = o.loc[grouped["away_ml"].idxmax(), [
+        "espn_event_id", "away_ml", "provider_name",
+    ]].rename(columns={
+        "away_ml": "best_away_ml", "provider_name": "best_away_book",
+    })
+    home["best_home_book"] = home["best_home_book"].map(_clean_book)
+    away["best_away_book"] = away["best_away_book"].map(_clean_book)
+    counts = grouped["provider_name"].nunique().rename("n_books").reset_index()
+    return home.merge(away, on="espn_event_id", how="inner").merge(
+        counts, on="espn_event_id", how="inner",
+    )
 
 
 def _insights(r: pd.Series) -> dict:
@@ -639,10 +751,13 @@ def _f5_predict(c, r: pd.Series) -> dict:
         return out
     f5c = c["f5_cls"]; f5r = c["f5_reg"]
     try:
-        Xc = pd.DataFrame([r[f5c["feature_names"]].values], columns=f5c["feature_names"])
-        Xr = pd.DataFrame([r[f5r["feature_names"]].values], columns=f5r["feature_names"])
-        p_home_f5 = float(f5c["model"].predict_proba(Xc)[0, 1])
-        total_f5 = float(f5r["model"].predict(Xr)[0])
+        p_home_f5 = float(r.get("_f5_p_home", float("nan")))
+        total_f5 = float(r.get("_f5_pred_total", float("nan")))
+        if not (np.isfinite(p_home_f5) and np.isfinite(total_f5)):
+            Xc = pd.DataFrame([r[f5c["feature_names"]].values], columns=f5c["feature_names"])
+            Xr = pd.DataFrame([r[f5r["feature_names"]].values], columns=f5r["feature_names"])
+            p_home_f5 = float(f5c["model"].predict_proba(Xc)[0, 1])
+            total_f5 = float(f5r["model"].predict(Xr)[0])
         out["f5_p_home"] = round(p_home_f5, 4)
         out["f5_p_away"] = round(1 - p_home_f5, 4)
         out["f5_pred_total"] = round(total_f5, 2)
@@ -1420,17 +1535,304 @@ def _pick_home_from_phome(
     )
 
 
+HOT_WEATHER_AWAY_BIAS = -0.03
+STL_HOME_CALIBRATION_BIAS = 0.07
+HOME_BAND_BIAS_SCALE = 1.50
+HOME_BAND_CALIBRATION: list[tuple[str, float, float, float]] = [
+    ("CWS", .35, .40, +.07), ("WSH", .55, .60, -.07),
+    ("PHI", .60, .65, +.07), ("CWS", .45, .50, +.07),
+    ("MIA", .50, .55, +.07), ("NYM", .60, .65, -.07),
+    ("CLE", .55, .60, -.07), ("PIT", .55, .60, -.07),
+    ("STL", .55, .60, -.07), ("HOU", .40, .45, +.07),
+    ("CLE", .50, .55, +.07), ("MIL", .50, .55, +.07),
+    ("AZ", .40, .45, +.07), ("NYY", .60, .65, -.07),
+    ("MIA", .40, .45, +.07),
+]
+INTERLEAGUE_NL_BIAS = 0.05
+UMPIRE_ACCX_HIGH_THRESHOLD = 1.0360444022338606
+UMPIRE_MARKET_AWAY_BIAS = -0.05
+CIRCADIAN_HOME_BIAS = 0.03
+TRAVEL_RESILIENCE_THRESHOLD_MILES = 1200.0
+TRAVEL_RESILIENCE_AWAY_BIAS = -0.07
+PYTHAG_LUCK_THRESHOLD = 0.12
+PYTHAG_LUCK_REGRESSION_BIAS = 0.03
+BABIP_PERSISTENCE_THRESHOLD = 0.07
+# True monthly walk-forward refinement (2024-05 through 2026-07-19): keeping
+# only 25% of the former 0.02 adjustment adds 0/6/1 hits in 2024/2025/2026.
+BABIP_PERSISTENCE_BIAS = 0.005
+LOB_PERSISTENCE_THRESHOLD = 0.12
+LOB_PERSISTENCE_BIAS = 0.07
+CWS_NIGHT_BIAS = 0.07
+COMEBACK_DEFICIT_REGRESSION_THRESHOLD = 0.30
+COMEBACK_DEFICIT_REGRESSION_BIAS = 0.05
+RUNS_MEDIAN_PERSISTENCE_THRESHOLD = 2.0
+RUNS_MEDIAN_PERSISTENCE_BIAS = 0.04
+BURN_RESILIENCE_THRESHOLD = 14.0
+BURN_RESILIENCE_BIAS = 0.06
+STARTER_WORKLOAD_REGRESSION_THRESHOLD = 34.0
+STARTER_WORKLOAD_REGRESSION_BIAS = 0.04
+HIGHLEV_FATIGUE_THRESHOLD = 27.0
+HIGHLEV_FATIGUE_BIAS = 0.03
+CATCHER_BATTERY_REGIME_THRESHOLD = 2.60
+CATCHER_BATTERY_REGIME_BIAS = 0.05
+H2H_VENUE_MIN_PRIOR = 3
+H2H_VENUE_SHRINK_GAMES = 5.0
+H2H_VENUE_HOME_WPCT_THRESHOLD = 0.70
+H2H_VENUE_REGRESSION_BIAS = -0.07
+_h2h_venue_cache: dict[tuple[str, str, str, int, int], float] = {}
+AL_TEAMS = {"BAL", "BOS", "CWS", "CLE", "DET", "HOU", "KC", "LAA", "MIN", "NYY", "ATH", "SEA", "TB", "TEX", "TOR"}
+NL_TEAMS = {"AZ", "ATL", "CHC", "CIN", "COL", "LAD", "MIA", "MIL", "NYM", "PHI", "PIT", "SD", "SF", "STL", "WSH"}
+
+
+def _h2h_venue_regression_bias(c, r, p_home: float) -> float:
+    """Fade strong same-venue H2H dominance for modest home favorites."""
+    try:
+        if not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        home = r.get("home_team_abbrev")
+        away = r.get("away_team_abbrev")
+        game_date = pd.Timestamp(r.get("game_date"))
+        if not home or not away or pd.isna(game_date):
+            return 0.0
+        train = c["train"]
+        dates = pd.to_datetime(train["game_date"], errors="coerce")
+        prior = train[
+            (train["home_team_abbrev"] == home)
+            & (train["away_team_abbrev"] == away)
+            & dates.lt(game_date)
+            & train["home_win"].notna()
+        ]
+        n_prior = len(prior)
+        if n_prior < H2H_VENUE_MIN_PRIOR:
+            return 0.0
+        last_pk = int(pd.to_numeric(prior["game_pk"], errors="coerce").max())
+        key = (home, away, game_date.date().isoformat(), n_prior, last_pk)
+        cached = _h2h_venue_cache.get(key)
+        if cached is not None:
+            return cached
+        home_wins = float(pd.to_numeric(prior["home_win"], errors="coerce").sum())
+        alpha = H2H_VENUE_SHRINK_GAMES / 2.0
+        shrunk_wpct = (home_wins + alpha) / (n_prior + H2H_VENUE_SHRINK_GAMES)
+        bias = H2H_VENUE_REGRESSION_BIAS if shrunk_wpct >= H2H_VENUE_HOME_WPCT_THRESHOLD else 0.0
+        _h2h_venue_cache[key] = bias
+        return bias
+    except Exception:
+        return 0.0
+
+
+def _weather_extreme_bias(r) -> float:
+    try:
+        if int(r.get("season")) >= 2026 and float(r.get("weather_temp_f")) >= 90:
+            return HOT_WEATHER_AWAY_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _home_team_calibration_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) >= 2025 and r.get("home_team_abbrev") == "STL" and 0.40 <= float(p_home) < 0.45:
+            return STL_HOME_CALIBRATION_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _home_band_calibration_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) < 2025:
+            return 0.0
+        home = r.get("home_team_abbrev")
+        p = float(p_home)
+        for team, lo, hi, bias in HOME_BAND_CALIBRATION:
+            if home == team and lo <= p < hi:
+                return bias * HOME_BAND_BIAS_SCALE
+    except Exception:
+        pass
+    return 0.0
+
+
+def _interleague_nl_bias(r, p_home: float) -> float:
+    try:
+        season = int(r.get("season"))
+        # 2025 A/B: disabling this component gained 10 final-pick hits in both halves.
+        if season < 2025 or season == 2025 or not 0.45 <= float(p_home) < 0.50:
+            return 0.0
+        home = r.get("home_team_abbrev")
+        away = r.get("away_team_abbrev")
+        if home in NL_TEAMS and away in AL_TEAMS:
+            return INTERLEAGUE_NL_BIAS
+        if home in AL_TEAMS and away in NL_TEAMS:
+            return -INTERLEAGUE_NL_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _umpire_market_bias(r) -> float:
+    try:
+        if int(r.get("season")) < 2025:
+            return 0.0
+        if float(r.get("market_p_home")) < 0.45 and float(r.get("ump_acc_above_x")) >= UMPIRE_ACCX_HIGH_THRESHOLD:
+            return UMPIRE_MARKET_AWAY_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _circadian_extreme_bias(r, p_home: float) -> float:
+    try:
+        if (int(r.get("season")) >= 2025 and 0.40 <= float(p_home) < 0.50
+                and float(r.get("circ_x_day_home")) >= 2):
+            return CIRCADIAN_HOME_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _travel_resilience_bias(r) -> float:
+    try:
+        if int(r.get("season")) < 2025:
+            return 0.0
+        if float(r.get("travel_dist_miles_a")) - float(r.get("travel_dist_miles_h")) >= TRAVEL_RESILIENCE_THRESHOLD_MILES:
+            return TRAVEL_RESILIENCE_AWAY_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _pythag_luck_bias(r, p_home: float) -> float:
+    """Retired: the L30 luck regression hurt true walk-forward accuracy."""
+    return 0.0
+
+
+def _babip_persistence_bias(r, p_home: float) -> float:
+    """Lightly follow extreme net BABIP differential near the away boundary."""
+    try:
+        if int(r.get("season")) < 2025 or not 0.40 <= float(p_home) < 0.50:
+            return 0.0
+        diff = float(r.get("babip_luck_net_h")) - float(r.get("babip_luck_net_a"))
+        if abs(diff) >= BABIP_PERSISTENCE_THRESHOLD:
+            return float(np.sign(diff)) * BABIP_PERSISTENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _lob_persistence_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        net_h = float(r.get("lob_def_dev_h")) - float(r.get("lob_off_dev_h"))
+        net_a = float(r.get("lob_def_dev_a")) - float(r.get("lob_off_dev_a"))
+        diff = net_h - net_a
+        if abs(diff) >= LOB_PERSISTENCE_THRESHOLD:
+            return float(np.sign(diff)) * LOB_PERSISTENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _cws_night_bias(r, p_home: float) -> float:
+    try:
+        if (int(r.get("season")) < 2025 or not 0.40 <= float(p_home) < 0.60
+                or str(r.get("day_night") or "").lower() != "night"):
+            return 0.0
+        if r.get("home_team_abbrev") == "CWS":
+            return CWS_NIGHT_BIAS
+        if r.get("away_team_abbrev") == "CWS":
+            return -CWS_NIGHT_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _comeback_deficit_regression_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        diff = float(r.get("cb_avg_def_l30_h")) - float(r.get("cb_avg_def_l30_a"))
+        if abs(diff) >= COMEBACK_DEFICIT_REGRESSION_THRESHOLD:
+            return -float(np.sign(diff)) * COMEBACK_DEFICIT_REGRESSION_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _runs_median_persistence_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        diff = float(r.get("runs_median_l20_h")) - float(r.get("runs_median_l20_a"))
+        if abs(diff) >= RUNS_MEDIAN_PERSISTENCE_THRESHOLD:
+            return float(np.sign(diff)) * RUNS_MEDIAN_PERSISTENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _burn_resilience_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) < 2025 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        advantage = float(r.get("burn_score_a")) - float(r.get("burn_score_h"))
+        if abs(advantage) >= BURN_RESILIENCE_THRESHOLD:
+            return -float(np.sign(advantage)) * BURN_RESILIENCE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _starter_workload_regression_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) < 2025 or not 0.40 <= float(p_home) < 0.50:
+            return 0.0
+        advantage = float(r.get("starter_prev_pitches_a")) - float(r.get("starter_prev_pitches_h"))
+        if abs(advantage) >= STARTER_WORKLOAD_REGRESSION_THRESHOLD:
+            return -float(np.sign(advantage)) * STARTER_WORKLOAD_REGRESSION_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _highlev_fatigue_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) < 2025 or not 0.45 <= float(p_home) < 0.55:
+            return 0.0
+        advantage = float(r.get("highlev_pitches_1d_a")) - float(r.get("highlev_pitches_1d_h"))
+        if abs(advantage) >= HIGHLEV_FATIGUE_THRESHOLD:
+            return float(np.sign(advantage)) * HIGHLEV_FATIGUE_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
+def _catcher_battery_regime_bias(r, p_home: float) -> float:
+    try:
+        if int(r.get("season")) != 2026 or not 0.50 <= float(p_home) < 0.60:
+            return 0.0
+        advantage = float(r.get("battery_kbb_l8_h")) - float(r.get("battery_kbb_l8_a"))
+        if abs(advantage) >= CATCHER_BATTERY_REGIME_THRESHOLD:
+            return -float(np.sign(advantage)) * CATCHER_BATTERY_REGIME_BIAS
+    except Exception:
+        pass
+    return 0.0
+
+
 # Confidence tiers — calibrated on the display-probability walk-forward
 # (5,763 games). Selecting only confident games trades coverage for accuracy:
-#   |p-0.5| >= 0.16 (~10% of games) → 71.5% hit rate  → LOCK
-#   |p-0.5| >= 0.12 (~20%)          → 68.0%           → FUERTE
-#   |p-0.5| >= 0.066 (~50%)         → 60.0%           → MODERADO
-#   below                                              → PAREJO (toss-up)
+# Confidence tiers — audit exacto 2026-WF hasta 2026-07-19 (n=1,414).
+# Son etiquetas de confianza, no cambios de pick. La UI usa FUERTE como
+# "Seleccion precisa" de menor cobertura; revalidar al regenerar walk-forward.
+#   |p-0.5| >= 0.145 → 61.5% → LOCK
+#   |p-0.5| >= 0.115 → 74.1% → FUERTE
+#   |p-0.5| >= 0.045 → 58.1% → MODERADO
+#   below            → 59.2% → PAREJO
 _TIER_BANDS = [
-    (0.16,  "lock",     71.5),
-    (0.12,  "fuerte",   68.0),
-    (0.066, "moderado", 60.0),
-    (0.0,   "parejo",   56.6),
+    (0.145, "lock",     61.5),
+    (0.115, "fuerte",   74.1),
+    (0.045, "moderado", 58.1),
+    (0.0,   "parejo",   59.2),
 ]
 
 
@@ -1482,6 +1884,127 @@ def _safe(v):
     if isinstance(v, (np.integer,)):
         return int(v)
     return v
+
+
+_TEAM_ALIAS_LOOKUP: dict[str, tuple[str, ...]] = {
+    "ATH": ("ATH", "OAK"),
+    "OAK": ("OAK", "ATH"),
+    "CHW": ("CHW", "CWS"),
+    "CWS": ("CWS", "CHW"),
+    "TB": ("TB", "TBR"),
+    "TBR": ("TBR", "TB"),
+    "KC": ("KC", "KCR"),
+    "KCR": ("KCR", "KC"),
+    "SD": ("SD", "SDP"),
+    "SDP": ("SDP", "SD"),
+    "SF": ("SF", "SFG"),
+    "SFG": ("SFG", "SF"),
+    "WSH": ("WSH", "WSN"),
+    "WSN": ("WSN", "WSH"),
+}
+
+
+def _team_aliases(team_abbrev: str | None) -> tuple[str, ...]:
+    team = str(team_abbrev).strip().upper() if team_abbrev is not None else ""
+    if not team:
+        return ()
+    return _TEAM_ALIAS_LOOKUP.get(team, (team,))
+
+
+def _flip_pick_for_team(games_df: pd.DataFrame, game_date: date | None, team_abbrev: str | None) -> dict:
+    """Return the same-day-last-year result and inverted pick for one team."""
+    team = str(team_abbrev).strip().upper() if team_abbrev is not None else ""
+    if not team or game_date is None or pd.isna(game_date):
+        return {
+            "team_abbrev": team or None,
+            "previous_game_pk": None,
+            "previous_game_date": None,
+            "previous_result": None,
+            "pick_invertido": None,
+            "source_found": False,
+        }
+    try:
+        prev_date = game_date.replace(year=game_date.year - 1)
+    except ValueError:
+        return {
+            "team_abbrev": team,
+            "previous_game_pk": None,
+            "previous_game_date": None,
+            "previous_result": None,
+            "pick_invertido": None,
+            "source_found": False,
+        }
+    aliases = _team_aliases(team)
+    hist = games_df[
+        (games_df["game_date"] == prev_date)
+        & (
+            games_df["home_team_abbrev"].astype(str).str.upper().isin(aliases)
+            | games_df["away_team_abbrev"].astype(str).str.upper().isin(aliases)
+        )
+    ].copy()
+    hist = hist.dropna(subset=["home_score", "away_score"])
+    if hist.empty:
+        return {
+            "team_abbrev": team,
+            "previous_game_pk": None,
+            "previous_game_date": prev_date.isoformat(),
+            "previous_result": None,
+            "pick_invertido": None,
+            "source_found": False,
+        }
+
+    prev = hist.sort_values(["game_date", "game_pk"]).iloc[0]
+    is_home = str(prev["home_team_abbrev"]).upper() in aliases
+    home_score = prev["home_score"]
+    away_score = prev["away_score"]
+    if home_score == away_score:
+        return {
+            "team_abbrev": team,
+            "previous_game_pk": int(prev["game_pk"]),
+            "previous_game_date": prev_date.isoformat(),
+            "previous_result": "EMPATE",
+            "pick_invertido": None,
+            "source_found": True,
+        }
+    won = bool(home_score > away_score) if is_home else bool(away_score > home_score)
+    return {
+        "team_abbrev": team,
+        "previous_game_pk": int(prev["game_pk"]),
+        "previous_game_date": prev_date.isoformat(),
+        "previous_result": "GANO" if won else "PERDIO",
+        "pick_invertido": "PIERDE" if won else "GANA",
+        "source_found": True,
+    }
+
+
+def _flip_pick_block(games_df: pd.DataFrame, game_date: date | None,
+                     home_team_abbrev: str | None, away_team_abbrev: str | None) -> dict:
+    home = _flip_pick_for_team(games_df, game_date, home_team_abbrev)
+    away = _flip_pick_for_team(games_df, game_date, away_team_abbrev)
+    home_pick = home.get("pick_invertido")
+    away_pick = away.get("pick_invertido")
+    conflict_flip = bool(home_pick and away_pick and home_pick == away_pick)
+    if conflict_flip:
+        summary = "CONFLICTO_FLIP"
+    elif not home_pick and not away_pick:
+        summary = "Sin datos previos"
+    else:
+        parts: list[str] = []
+        if home_pick:
+            parts.append(f"{home_team_abbrev} {home_pick}")
+        else:
+            parts.append(f"{home_team_abbrev} Sin datos previos")
+        if away_pick:
+            parts.append(f"{away_team_abbrev} {away_pick}")
+        else:
+            parts.append(f"{away_team_abbrev} Sin datos previos")
+        summary = " / ".join(parts)
+    return {
+        "home": home,
+        "away": away,
+        "conflict_flip": conflict_flip,
+        "summary": summary,
+    }
 
 
 def _read_cached_feed(game_pk: int) -> dict | None:
@@ -1850,8 +2373,9 @@ def performance(days: int = 60):
         except Exception:
             continue
         home_won = bool(r["home_score"] > r["away_score"])
+        h2h_venue_bias = _h2h_venue_regression_bias(c, r, p_home)
         model_side = "HOME" if _pick_home_from_phome(
-            p_home,
+            float(np.clip(p_home + h2h_venue_bias, 0.001, 0.999)),
             r.get("market_p_home", float("nan")),
             r.get("home_team_abbrev"),
             r.get("away_team_abbrev"),
@@ -2014,6 +2538,57 @@ def performance(days: int = 60):
     }
 
 
+def _score_games_in_batch(c, sub: pd.DataFrame) -> pd.DataFrame:
+    """Run the shared models once for the requested game frame."""
+    scored = sub.copy()
+    if scored.empty:
+        scored["_p_home"] = pd.Series(dtype=float)
+        scored["_p_home_value"] = pd.Series(dtype=float)
+        scored["_pred_total"] = pd.Series(dtype=float)
+        return scored
+    feats = c["cls"]["feature_names"]
+    X = scored[feats]
+    market = pd.to_numeric(scored["market_p_home"], errors="coerce")
+    try:
+        p_home = _predict_phome(c, X, market, context_df=scored)
+        p_home_value = _raw_model_phome(c, X)
+        pred_total = c["reg"]["model"].predict(X)
+    except Exception:
+        p_home, p_home_value, pred_total = [], [], []
+        for _, row in scored.iterrows():
+            row_X = pd.DataFrame([row[feats].values], columns=feats)
+            try:
+                p_home.append(float(_predict_phome(
+                    c, row_X,
+                    pd.Series([row.get("market_p_home", float("nan"))]),
+                    context_df=pd.DataFrame([row]),
+                )[0]))
+                p_home_value.append(float(_raw_model_phome(c, row_X)[0]))
+                pred_total.append(float(c["reg"]["model"].predict(row_X)[0]))
+            except Exception as ex:
+                print(f"[predict ERROR for pk={row['game_pk']}]: {type(ex).__name__}: {ex}")
+                p_home.append(float("nan"))
+                p_home_value.append(float("nan"))
+                pred_total.append(float("nan"))
+    scored["_p_home"] = np.asarray(p_home, dtype=float)
+    scored["_p_home_value"] = np.asarray(p_home_value, dtype=float)
+    scored["_pred_total"] = np.asarray(pred_total, dtype=float)
+    scored["_f5_p_home"] = np.nan
+    scored["_f5_pred_total"] = np.nan
+    if c.get("f5_cls") is not None and c.get("f5_reg") is not None:
+        try:
+            f5c, f5r = c["f5_cls"], c["f5_reg"]
+            scored["_f5_p_home"] = f5c["model"].predict_proba(
+                scored[f5c["feature_names"]]
+            )[:, 1]
+            scored["_f5_pred_total"] = f5r["model"].predict(
+                scored[f5r["feature_names"]]
+            )
+        except Exception:
+            pass
+    return scored
+
+
 @app.get("/api/games")
 async def games(start: str | None = None, end: str | None = None, days: int = 7, team: str | None = None):
     c = _load()
@@ -2024,7 +2599,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     team_filter = team.strip().upper() if isinstance(team, str) and team.strip() else None
     # If the window touches today/future, kick off a background refresh so the
     # NEXT request sees fresh odds. We never block the current response on it.
-    if e >= today:
+    if e >= today and team_filter is None:
         await _maybe_refresh_now(blocking=False)
     # Response cache — fast page reloads avoid the predict + live-feed loop.
     cache_key = (s.isoformat(), e.isoformat(), team_filter)
@@ -2050,6 +2625,7 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
     sub["et_date"] = sub["first_pitch_utc"].dt.tz_convert("America/New_York").dt.date
     sub["slot"] = sub.groupby("et_date").cumcount() + 1
     sub["games_in_day"] = sub.groupby("et_date")["game_pk"].transform("size")
+    sub = _score_games_in_batch(c, sub)
     out = []
     feats = c["cls"]["feature_names"]
 
@@ -2069,18 +2645,9 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
         with ThreadPoolExecutor(max_workers=8) as ex:
             list(ex.map(_fetch_live_feed, refresh_pks))
     for _, r in sub.iterrows():
-        X = pd.DataFrame([r[feats].values], columns=feats)
-        try:
-            # Display/accuracy probability (market-heavy blend)
-            p_home = float(_predict_phome(c, X, pd.Series([r.get("market_p_home", float("nan"))]), context_df=pd.DataFrame([r]))[0])
-            # Value/edge probability (model-only, market-free) — for _value_block
-            p_home_value = float(_raw_model_phome(c, X)[0])
-            total = float(c["reg"]["model"].predict(X)[0])
-        except Exception as e:
-            import traceback
-            print(f"[predict ERROR for pk={r['game_pk']}]: {type(e).__name__}: {e}")
-            traceback.print_exc()
-            p_home, p_home_value, total = float("nan"), float("nan"), float("nan")
+        p_home = float(r["_p_home"])
+        p_home_value = float(r["_p_home_value"])
+        total = float(r["_pred_total"])
         # For today's slate AND the day before (in case a late game spilled over),
         # always try to fetch fresh state from StatsAPI; cached file is stale by
         # the time the game starts. The TTL cache inside _fetch_live_feed keeps
@@ -2120,17 +2687,108 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             home_score = None
         # Pick label = team abbreviation, not HOME/AWAY.
         pick_abbrev = None
+        weather_extreme_applied = False
+        home_calibration_applied = False
+        home_band_calib_applied = False
+        interleague_applied = False
+        umpire_market_applied = False
+        circadian_applied = False
+        travel_resilience_applied = False
+        pythag_luck_applied = False
+        babip_persistence_applied = False
+        lob_persistence_applied = False
+        cws_night_applied = False
+        comeback_deficit_applied = False
+        runs_median_applied = False
+        burn_resilience_applied = False
+        starter_workload_applied = False
+        highlev_fatigue_applied = False
+        catcher_battery_applied = False
+        h2h_venue_regression_applied = False
         if np.isfinite(p_home):
-            pick_abbrev = (
-                r["home_team_abbrev"]
-                if _pick_home_from_phome(
-                    p_home,
+            weather_extreme_bias = _weather_extreme_bias(r)
+            home_calibration_bias = _home_team_calibration_bias(r, p_home)
+            home_band_calib_bias = _home_band_calibration_bias(r, p_home)
+            interleague_bias = _interleague_nl_bias(r, p_home)
+            umpire_market_bias = _umpire_market_bias(r)
+            circadian_bias = _circadian_extreme_bias(r, p_home)
+            travel_resilience_bias = _travel_resilience_bias(r)
+            pythag_luck_bias = _pythag_luck_bias(r, p_home)
+            babip_persistence_bias = _babip_persistence_bias(r, p_home)
+            lob_persistence_bias = _lob_persistence_bias(r, p_home)
+            cws_night_bias = _cws_night_bias(r, p_home)
+            comeback_deficit_bias = _comeback_deficit_regression_bias(r, p_home)
+            runs_median_bias = _runs_median_persistence_bias(r, p_home)
+            burn_resilience_bias = _burn_resilience_bias(r, p_home)
+            starter_workload_bias = _starter_workload_regression_bias(r, p_home)
+            highlev_fatigue_bias = _highlev_fatigue_bias(r, p_home)
+            catcher_battery_bias = _catcher_battery_regime_bias(r, p_home)
+            h2h_venue_regression_bias = _h2h_venue_regression_bias(c, r, p_home)
+            total_runtime_bias = (weather_extreme_bias + home_calibration_bias + home_band_calib_bias + interleague_bias
+                                  + umpire_market_bias + circadian_bias + travel_resilience_bias)
+            total_runtime_bias += pythag_luck_bias
+            total_runtime_bias += babip_persistence_bias
+            total_runtime_bias += lob_persistence_bias
+            total_runtime_bias += cws_night_bias
+            total_runtime_bias += comeback_deficit_bias
+            total_runtime_bias += runs_median_bias
+            total_runtime_bias += burn_resilience_bias
+            total_runtime_bias += starter_workload_bias
+            total_runtime_bias += highlev_fatigue_bias
+            total_runtime_bias += catcher_battery_bias
+            total_runtime_bias += h2h_venue_regression_bias
+            p_home_biased = float(np.clip(p_home + total_runtime_bias, 0.001, 0.999)) if total_runtime_bias else p_home
+            pick_home = _pick_home_from_phome(
+                p_home_biased,
+                r.get("market_p_home", float("nan")),
+                r.get("home_team_abbrev"),
+                r.get("away_team_abbrev"),
+            )
+            raw_no_bias = _pick_home_from_phome(
+                p_home,
+                r.get("market_p_home", float("nan")),
+                r.get("home_team_abbrev"),
+                r.get("away_team_abbrev"),
+            )
+            weather_extreme_applied = bool(weather_extreme_bias) and (pick_home != raw_no_bias)
+            home_calibration_applied = bool(home_calibration_bias) and (pick_home != raw_no_bias)
+            home_band_calib_applied = bool(home_band_calib_bias) and (pick_home != raw_no_bias)
+            interleague_applied = bool(interleague_bias) and (pick_home != raw_no_bias)
+            umpire_market_applied = bool(umpire_market_bias) and (pick_home != raw_no_bias)
+            circadian_applied = bool(circadian_bias) and (pick_home != raw_no_bias)
+            travel_resilience_applied = bool(travel_resilience_bias) and (pick_home != raw_no_bias)
+            pythag_luck_applied = bool(pythag_luck_bias) and (pick_home != raw_no_bias)
+            babip_persistence_applied = bool(babip_persistence_bias) and (pick_home != raw_no_bias)
+            lob_persistence_applied = bool(lob_persistence_bias) and (pick_home != raw_no_bias)
+            cws_night_applied = bool(cws_night_bias) and (pick_home != raw_no_bias)
+            comeback_deficit_applied = bool(comeback_deficit_bias) and (pick_home != raw_no_bias)
+            runs_median_applied = bool(runs_median_bias) and (pick_home != raw_no_bias)
+            burn_resilience_applied = bool(burn_resilience_bias) and (pick_home != raw_no_bias)
+            starter_workload_applied = bool(starter_workload_bias) and (pick_home != raw_no_bias)
+            highlev_fatigue_applied = bool(highlev_fatigue_bias) and (pick_home != raw_no_bias)
+            catcher_battery_applied = bool(catcher_battery_bias) and (pick_home != raw_no_bias)
+            if h2h_venue_regression_bias:
+                p_without_h2h_venue = float(np.clip(
+                    p_home_biased - h2h_venue_regression_bias, 0.001, 0.999
+                ))
+                pick_without_h2h_venue = _pick_home_from_phome(
+                    p_without_h2h_venue,
                     r.get("market_p_home", float("nan")),
                     r.get("home_team_abbrev"),
                     r.get("away_team_abbrev"),
                 )
+                h2h_venue_regression_applied = pick_home != pick_without_h2h_venue
+            pick_abbrev = (
+                r["home_team_abbrev"]
+                if pick_home
                 else r["away_team_abbrev"]
             )
+        flip = _flip_pick_block(
+            c["games"],
+            r["game_date"],
+            r["home_team_abbrev"],
+            r["away_team_abbrev"],
+        )
         # Value pick uses the MODEL-ONLY probability so edges aren't shrunk by
         # the display blend. Falls back to display prob if value calc failed.
         p_for_value = p_home_value if np.isfinite(p_home_value) else p_home
@@ -2171,6 +2829,33 @@ async def games(start: str | None = None, end: str | None = None, days: int = 7,
             "fair_home_ml": _to_american(p_home) if np.isfinite(p_home) else None,
             "fair_away_ml": _to_american(1 - p_home) if np.isfinite(p_home) else None,
             "pick_abbrev": pick_abbrev,
+            "pick_original_xgboost": {
+                "side": "HOME" if np.isfinite(p_home) and p_home >= 0.5 else "AWAY" if np.isfinite(p_home) else "NONE",
+                "team_abbrev": pick_abbrev,
+                "p_home": _safe(p_home),
+                "p_away": _safe(1 - p_home) if np.isfinite(p_home) else None,
+            },
+            "pick_invertido": flip,
+            "conflict_flip": bool(flip["conflict_flip"]),
+            "flip_summary": flip["summary"],
+            "weather_extreme_bias": bool(weather_extreme_applied),
+            "home_calibration_bias": bool(home_calibration_applied),
+            "home_band_calib_bias": bool(home_band_calib_applied),
+            "interleague_bias": bool(interleague_applied),
+            "umpire_market_bias": bool(umpire_market_applied),
+            "circadian_bias": bool(circadian_applied),
+            "travel_resilience_bias": bool(travel_resilience_applied),
+            "pythag_luck_bias": bool(pythag_luck_applied),
+            "babip_persistence_bias": bool(babip_persistence_applied),
+            "lob_persistence_bias": bool(lob_persistence_applied),
+            "cws_night_bias": bool(cws_night_applied),
+            "comeback_deficit_bias": bool(comeback_deficit_applied),
+            "runs_median_bias": bool(runs_median_applied),
+            "burn_resilience_bias": bool(burn_resilience_applied),
+            "starter_workload_bias": bool(starter_workload_applied),
+            "highlev_fatigue_bias": bool(highlev_fatigue_applied),
+            "catcher_battery_bias": bool(catcher_battery_applied),
+            "h2h_venue_regression_bias": bool(h2h_venue_regression_applied),
             "pitcher_away": pitcher_away,
             "pitcher_home": pitcher_home,
             **v,
@@ -2322,6 +3007,12 @@ def game_detail(game_pk: int):
 
     away_p = _pitcher_features("away", away_p)
     home_p = _pitcher_features("home", home_p)
+    flip = _flip_pick_block(
+        games,
+        r["game_date"],
+        r["home_team_abbrev"],
+        r["away_team_abbrev"],
+    )
 
     weather = (feed.get("gameData", {}).get("weather") or {}) if feed else {}
     live_score = _live_linescore(feed)
@@ -2356,6 +3047,15 @@ def game_detail(game_pk: int):
             "fair_home_ml": _to_american(p_home) if np.isfinite(p_home) else None,
             "fair_away_ml": _to_american(1 - p_home) if np.isfinite(p_home) else None,
         },
+        "pick_original_xgboost": {
+            "side": "HOME" if np.isfinite(p_home) and p_home >= 0.5 else "AWAY" if np.isfinite(p_home) else "NONE",
+            "team_abbrev": r["home_team_abbrev"] if np.isfinite(p_home) and p_home >= 0.5 else r["away_team_abbrev"] if np.isfinite(p_home) else None,
+            "p_home": _safe(p_home),
+            "p_away": _safe(1 - p_home) if np.isfinite(p_home) else None,
+        },
+        "pick_invertido": flip,
+        "conflict_flip": bool(flip["conflict_flip"]),
+        "flip_summary": flip["summary"],
         "value": _value_block(c, game_pk, p_home,
                                 r["away_team_abbrev"], r["home_team_abbrev"],
                                 slot=detail_slot,
@@ -2641,6 +3341,221 @@ def error_analysis(season: int = 0, days: int = 0):
 
     team_rows.sort(key=lambda r: r["resilience"] if r["resilience"] is not None else -99, reverse=True)
     return {"season": season or pd.Timestamp.now().year, "teams": team_rows}
+
+
+# ─── Apuestas del día — aceleración por tramo del slate ──────────────────────
+_DAILY_PICK_BANDS = [
+    (0.70, 1.01, 77.9),
+    (0.62, 0.70, 65.2),
+    (0.55, 0.62, 56.7),
+    (0.45, 0.55, 54.5),
+    (0.00, 0.45, 53.9),
+]
+_DAILY_ACCEL_WEIGHT = 0.40
+_DAILY_SIGNAL_HISTORY_PATH = PROCESSED / "daily_pick_signal_history.parquet"
+_daily_signal_history_cache: pd.DataFrame | None = None
+_daily_signal_history_cache_mtime_ns: int | None = None
+
+
+def _daily_slate_segment(slot: int, slate_size: int) -> str:
+    relative = slot / max(slate_size, 1)
+    if relative <= (1.0 / 3.0):
+        return "early"
+    if relative <= (2.0 / 3.0):
+        return "middle"
+    return "late"
+
+
+def _load_daily_signal_history() -> pd.DataFrame:
+    global _daily_signal_history_cache, _daily_signal_history_cache_mtime_ns
+    current_mtime_ns = (
+        _DAILY_SIGNAL_HISTORY_PATH.stat().st_mtime_ns
+        if _DAILY_SIGNAL_HISTORY_PATH.exists()
+        else None
+    )
+    if (
+        _daily_signal_history_cache is not None
+        and _daily_signal_history_cache_mtime_ns == current_mtime_ns
+    ):
+        return _daily_signal_history_cache
+    if not _DAILY_SIGNAL_HISTORY_PATH.exists():
+        _daily_signal_history_cache = pd.DataFrame()
+        _daily_signal_history_cache_mtime_ns = None
+        return _daily_signal_history_cache
+    history = pd.read_parquet(_DAILY_SIGNAL_HISTORY_PATH)
+    history["game_date"] = pd.to_datetime(history.game_date, errors="coerce")
+    history["first_pitch_utc"] = pd.to_datetime(
+        history.first_pitch_utc, utc=True, errors="coerce"
+    )
+    history = history.dropna(subset=["game_date", "correct"]).sort_values(
+        ["game_date", "first_pitch_utc", "game_pk"]
+    )
+    history["event_slot"] = history.groupby("game_date").cumcount() + 1
+    history["slate_size"] = history.groupby("game_date").game_pk.transform("size")
+    history["slate_segment"] = [
+        _daily_slate_segment(int(slot), int(size))
+        for slot, size in zip(history.event_slot, history.slate_size)
+    ]
+    _daily_signal_history_cache = history
+    _daily_signal_history_cache_mtime_ns = current_mtime_ns
+    return history
+
+
+def _daily_segment_acceleration(target: str) -> tuple[dict[str, dict], str | None]:
+    history = _load_daily_signal_history()
+    if history.empty:
+        return {}, None
+    target_ts = pd.Timestamp(target)
+    prior = history[history.game_date.lt(target_ts)]
+    if prior.empty:
+        return {}, None
+    daily = (
+        prior.groupby(["slate_segment", "game_date"], as_index=False)
+        .correct.agg(hits="sum", games="count")
+        .sort_values(["slate_segment", "game_date"])
+    )
+    signals: dict[str, dict] = {}
+    for segment in ("early", "middle", "late"):
+        segment_days = daily[daily.slate_segment.eq(segment)].tail(20)
+
+        def _accuracy(frame: pd.DataFrame) -> float:
+            games_n = int(frame.games.sum())
+            return float(frame.hits.sum() / games_n) if games_n else 0.5
+
+        acc20 = _accuracy(segment_days)
+        acc5 = _accuracy(segment_days.tail(5))
+        signals[segment] = {
+            "acc5": acc5,
+            "acc20": acc20,
+            "acceleration": acc5 - acc20,
+            "history_days": int(len(segment_days)),
+        }
+    return signals, prior.game_date.max().date().isoformat()
+
+
+def _daily_picks_n(slate_size: int) -> int:
+    if slate_size >= 10:
+        return 5
+    if slate_size >= 6:
+        return 3
+    return 2
+
+
+@app.get("/api/daily-picks")
+async def daily_picks(date: str | None = None):
+    """Picks diarios rankeados por fuerza de mercado y aceleración del slate."""
+    from datetime import date as _date
+    target = date or _date.today().isoformat()
+    cards = await games(start=target, end=target)
+    slate = [g for g in cards if g.get("pick_abbrev") and g.get("p_home") is not None]
+    n_slate = len(slate)
+    if n_slate == 0:
+        return {"date": target, "slate_size": 0, "n_picks": 0, "picks": [],
+                "selector": "slate-acceleration", "note": "Sin juegos con pick para esta fecha."}
+
+    segment_signals, history_through = _daily_segment_acceleration(target)
+
+    def _sort_time(game: dict) -> tuple[int, int]:
+        value = pd.to_datetime(game.get("first_pitch_utc"), utc=True, errors="coerce")
+        timestamp = int(value.value) if pd.notna(value) else np.iinfo(np.int64).max
+        return timestamp, int(game.get("game_pk") or 0)
+
+    slot_by_game: dict[int, tuple[int, str]] = {}
+    for slot, game in enumerate(sorted(slate, key=_sort_time), 1):
+        slot_by_game[int(game["game_pk"])] = (
+            slot,
+            _daily_slate_segment(slot, n_slate),
+        )
+
+    scored = []
+    for g in slate:
+        p_home = float(g["p_home"])
+        pick_home = g["pick_abbrev"] == g["home_abbrev"]
+        mp = g.get("market_p_home")
+        if mp is not None and np.isfinite(mp):
+            mkt_pick_p = float(mp) if pick_home else 1.0 - float(mp)
+            agree = (float(mp) >= 0.5) == pick_home
+        else:
+            mkt_pick_p = 0.5
+            agree = True
+        conf = abs(p_home - 0.5)
+        event_slot, slate_segment = slot_by_game[int(g["game_pk"])]
+        segment_signal = segment_signals.get(slate_segment, {})
+        acceleration = float(segment_signal.get("acceleration", 0.0))
+        selector_score = mkt_pick_p + _DAILY_ACCEL_WEIGHT * acceleration
+        hist_hit = next((h for lo, hi, h in _DAILY_PICK_BANDS if lo <= mkt_pick_p < hi), 55.0)
+        scored.append({
+            "game_pk": g["game_pk"],
+            "first_pitch_utc": g.get("first_pitch_utc"),
+            "venue": g.get("venue"),
+            "away_abbrev": g["away_abbrev"],
+            "home_abbrev": g["home_abbrev"],
+            "pick_abbrev": g["pick_abbrev"],
+            "pick_is_home": pick_home,
+            "p_home": g.get("p_home"),
+            "p_away": g.get("p_away"),
+            "market_p_home": g.get("market_p_home"),
+            "market_total": g.get("market_total") or g.get("total_close"),
+            "run_line": g.get("run_line"),
+            "market_home_ml": g.get("market_home_ml"),
+            "market_away_ml": g.get("market_away_ml"),
+            "market_home_decimal": g.get("market_home_decimal"),
+            "market_away_decimal": g.get("market_away_decimal"),
+            "proj_k_home": g.get("proj_k_home"),
+            "proj_k_away": g.get("proj_k_away"),
+            "value_team_abbrev": g.get("value_team_abbrev"),
+            "value_decimal": g.get("value_best_decimal") or g.get("value_decimal"),
+            "value_edge_pp": g.get("value_edge_pp"),
+            "value_book": g.get("value_best_book"),
+            "mkt_pick_p": round(mkt_pick_p, 4),
+            "agree_market": bool(agree),
+            "confidence_tier": g.get("confidence_tier"),
+            "tier_hit_rate": g.get("tier_hit_rate"),
+            "hist_hit_band": hist_hit,
+            "event_slot": event_slot,
+            "slate_segment": slate_segment,
+            "segment_acceleration": round(acceleration, 4),
+            "segment_acc_5d": round(float(segment_signal.get("acc5", 0.5)), 4),
+            "segment_acc_20d": round(float(segment_signal.get("acc20", 0.5)), 4),
+            "segment_history_days": int(segment_signal.get("history_days", 0)),
+            "selector_score": round(selector_score, 4),
+            "acceleration_applied": bool(abs(acceleration) > 1e-12),
+            "pitcher_home": g.get("pitcher_home"),
+            "pitcher_away": g.get("pitcher_away"),
+            "is_played": g.get("is_played"),
+            "is_live": g.get("is_live"),
+            "home_score": g.get("home_score"),
+            "away_score": g.get("away_score"),
+            "_score": (selector_score, conf),
+        })
+    scored.sort(key=lambda x: x["_score"], reverse=True)
+    n_picks = _daily_picks_n(n_slate)
+    picks = scored[:n_picks]
+    for i, p in enumerate(picks, 1):
+        p["rank"] = i
+        del p["_score"]
+        # resultado si ya terminó
+        if p.get("is_played") and p.get("home_score") is not None and p.get("away_score") is not None:
+            home_won = float(p["home_score"]) > float(p["away_score"])
+            p["pick_won"] = bool(p["pick_is_home"] == home_won)
+        else:
+            p["pick_won"] = None
+    hits = sum(1 for p in picks if p.get("pick_won") is True)
+    settled = sum(1 for p in picks if p.get("pick_won") is not None)
+    return {
+        "date": target,
+        "slate_size": n_slate,
+        "n_picks": n_picks,
+        "selector": "slate-acceleration",
+        "signal_status": "active" if segment_signals else "fallback-market-strength",
+        "signal_history_through": history_through,
+        "selection_hist": {"acc_2024": 63.66, "acc_2025": 63.46,
+                            "acc_2026": 64.20, "acc_global": 63.71,
+                            "note": "walk-forward multitemporada; aceleración por tramo"},
+        "settled": settled,
+        "hits": hits,
+        "picks": picks,
+    }
 
 
 @app.get("/api/burn")

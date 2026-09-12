@@ -2182,12 +2182,17 @@ function BurstBall() {
 // ─── FLASHCORE BOARD ─────────────────────────────────────────────────────────
 function FlashcoreBoard({ games, onOpen, date }) {
   const slipKey = `strikecast:flash-slip:${date || 'today'}`;
+  const predictionVisibilityKey = 'strikecast:flash-show-predictions';
   const [manualPicks, setManualPicks] = useState(() => {
     try {
       const raw = localStorage.getItem(slipKey);
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
     } catch { return []; }
+  });
+  const [showManualPredictions, setShowManualPredictions] = useState(() => {
+    try { return localStorage.getItem(predictionVisibilityKey) !== 'false'; }
+    catch { return true; }
   });
   useEffect(() => {
     try {
@@ -2199,6 +2204,9 @@ function FlashcoreBoard({ games, onOpen, date }) {
   useEffect(() => {
     try { localStorage.setItem(slipKey, JSON.stringify(manualPicks)); } catch {}
   }, [slipKey, manualPicks]);
+  useEffect(() => {
+    try { localStorage.setItem(predictionVisibilityKey, String(showManualPredictions)); } catch {}
+  }, [showManualPredictions]);
   const sortedGames = useMemo(() => [...games].sort((a, b) => {
     const ta = a.first_pitch_utc ? Date.parse(a.first_pitch_utc) : Number.POSITIVE_INFINITY;
     const tb = b.first_pitch_utc ? Date.parse(b.first_pitch_utc) : Number.POSITIVE_INFINITY;
@@ -2249,13 +2257,15 @@ function FlashcoreBoard({ games, onOpen, date }) {
     }
     return 'pending';
   };
-  const oddStyle = (g, side) => {
+  const oddStyle = (g, side, showPredictions = true) => {
+    if (!showPredictions) return null;
     const status = pickStatus(g, side);
     if (status === 'loss') return { borderColor:'#E63946', background:'rgba(230,57,70,0.16)', color:'#ff6b76' };
     if (status === 'win' || status === 'pending') return { borderColor:'#FFD43B', background:'rgba(255,212,59,0.10)', color:'#fff' };
     return null;
   };
-  const moveMark = (g, side) => {
+  const moveMark = (g, side, showPredictions = true) => {
+    if (!showPredictions) return null;
     if (pickStatus(g, side) === 'loss') return <span style={{ color:'#ff6b76' }} className="mr-1">↓</span>;
     if (predictionSide(g) !== side) return null;
     if (g.value_side === side && g.ev_grade_reason === 'slot_flip') return <span className="text-accent-gold mr-1">↻</span>;
@@ -2263,7 +2273,7 @@ function FlashcoreBoard({ games, onOpen, date }) {
     if (g.value_side === side && g.ev_grade_reason === 'dog_46_48') return <span className="text-accent-green mr-1">↑</span>;
     return <span className="text-accent-green mr-1">↑</span>;
   };
-  const teamLine = (g, side) => {
+  const teamLine = (g, side, showPredictions = true) => {
     const isHome = side === 'HOME';
     const abbr = isHome ? g.home_abbrev : g.away_abbrev;
     const score = isHome ? g.home_score : g.away_score;
@@ -2280,7 +2290,7 @@ function FlashcoreBoard({ games, onOpen, date }) {
         <span className="min-w-0 flex items-baseline gap-2">
           <span className={`truncate text-[13px] ${isWinner ? 'font-extrabold' : 'font-semibold'}`}>{TEAM_NAMES[abbr] || abbr}</span>
           <span className="shrink-0 text-[9px] font-black text-white/25">{abbr}</span>
-          {probability != null && (
+          {showPredictions && probability != null && (
             <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] tabular-nums font-black ${isModelFavorite ? 'bg-accent-blue/10 text-accent-blue' : 'bg-white/[0.035] text-white/35'}`}>
               {(probability * 100).toFixed(1)}%
             </span>
@@ -2290,20 +2300,20 @@ function FlashcoreBoard({ games, onOpen, date }) {
       </div>
     );
   };
-  const oddBox = (g, side) => {
+  const oddBox = (g, side, showPredictions = true) => {
     const dec = side === 'HOME' ? g.market_home_decimal : g.market_away_decimal;
-    const isPick = pickStatus(g, side) !== 'none';
+    const isPick = showPredictions && pickStatus(g, side) !== 'none';
     const isManual = manualMap.get(String(g.game_pk)) === side;
     return (
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); toggleManualPick(g, side); }}
-        title={`Agregar ${side === 'HOME' ? g.home_abbrev : g.away_abbrev} a mi tabla`}
-        style={oddStyle(g, side) || undefined}
+        title={`${isManual ? 'Quitar' : 'Agregar'} ${side === 'HOME' ? g.home_abbrev : g.away_abbrev} ${isManual ? 'de' : 'a'} mi tabla`}
+        style={oddStyle(g, side, showPredictions) || undefined}
         className={`h-[32px] w-full rounded-md border px-2 flex items-center justify-center text-[11px] font-black tabular-nums transition
           ${isPick ? '' : 'border-white/[0.08] bg-ink-2/55 text-white/80'}
           ${isManual ? 'ring-1 ring-accent-green border-accent-green bg-accent-green/15 shadow-[0_0_18px_rgba(81,207,102,0.18)]' : 'hover:border-accent-blue/55 hover:bg-accent-blue/10'}`}>
-        {moveMark(g, side)}{dec != null ? dec.toFixed(2) : '–'}
+        {moveMark(g, side, showPredictions)}{dec != null ? dec.toFixed(2) : '–'}
         <span className="text-[8px] text-white/35 ml-0.5">↗</span>
       </button>
     );
@@ -2321,8 +2331,8 @@ function FlashcoreBoard({ games, onOpen, date }) {
     );
   };
   return (
-    <div className="px-4 md:px-10 pb-32 max-w-[1540px] mx-auto -mt-8">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(820px,1fr)_360px] gap-5 items-start">
+    <div className={`px-4 md:px-10 pb-32 mx-auto -mt-8 ${manualGames.length > 0 ? 'max-w-[1740px]' : 'max-w-[1540px]'}`}>
+      <div className={`grid grid-cols-1 gap-5 items-start ${manualGames.length > 0 ? '2xl:grid-cols-2' : 'xl:grid-cols-[minmax(820px,1fr)_360px]'}`}>
       <div className="overflow-x-auto rounded-xl border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.42)]">
         <div className="min-w-[780px]">
         <div className="h-14 px-5 flex items-center justify-between bg-[linear-gradient(90deg,#0c3150,#0a263d)] border-b border-white/[0.08]">
@@ -2374,16 +2384,30 @@ function FlashcoreBoard({ games, onOpen, date }) {
         })}
         </div>
       </div>
-      <div className="rounded-xl overflow-hidden border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.38)] xl:sticky xl:top-24">
+      <div className={`rounded-xl overflow-x-auto border border-white/[0.09] bg-[#071722]/95 shadow-[0_26px_80px_rgba(0,0,0,0.38)] ${manualGames.length > 0 ? '2xl:sticky 2xl:top-24' : 'xl:sticky xl:top-24'}`}>
+        <div className={manualGames.length > 0 ? 'min-w-[700px]' : ''}>
         <div className="flex items-center justify-between h-14 px-4 bg-[linear-gradient(90deg,#123629,#0a2b24)] border-b border-accent-green/20">
           <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-md bg-accent-green text-ink-0 grid place-items-center font-black">+</span>
+            <span className="w-8 h-8 rounded-md bg-accent-green text-ink-0 grid place-items-center font-black">{manualGames.length > 0 ? '✓' : '+'}</span>
             <div><div className="text-[11px] font-black uppercase tracking-[0.16em]">Mi tabla</div><div className="text-[9px] text-white/35">Selecciones manuales</div></div>
           </div>
-          <button type="button" onClick={clearManualPicks}
-            className="text-[9px] uppercase tracking-wider text-white/35 hover:text-accent-red transition">
-            Limpiar
-          </button>
+          <div className="flex items-center gap-3">
+            {manualGames.length > 0 && <span className="px-2.5 py-1 rounded-full bg-accent-green/10 text-accent-green text-[9px] font-black uppercase tracking-wider">{manualGames.length} {manualGames.length === 1 ? 'juego' : 'juegos'}</span>}
+            {manualGames.length > 0 && (
+              <button type="button" aria-pressed={showManualPredictions}
+                onClick={() => setShowManualPredictions(value => !value)}
+                title={showManualPredictions ? 'Ocultar predicciones del modelo' : 'Mostrar predicciones del modelo'}
+                className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition ${showManualPredictions
+                  ? 'border-accent-blue/40 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20'
+                  : 'border-white/10 bg-white/[0.03] text-white/40 hover:text-white/70'}`}>
+                Predicciones: {showManualPredictions ? 'sí' : 'no'}
+              </button>
+            )}
+            <button type="button" onClick={clearManualPicks}
+              className="text-[9px] uppercase tracking-wider text-white/35 hover:text-accent-red transition">
+              Limpiar
+            </button>
+          </div>
         </div>
         {manualGames.length === 0 ? (
           <div className="px-7 py-12 text-center">
@@ -2393,25 +2417,49 @@ function FlashcoreBoard({ games, onOpen, date }) {
               Selecciona una cuota local o visitante para añadirla al boleto.
             </div>
           </div>
-        ) : manualGames.map(({ game:g, side }) => (
-          <div key={`manual-${g.game_pk}`} onClick={() => onOpen(g)} role="button" tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(g); }}
-            className="grid grid-cols-[24px_1fr_auto] items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-[#071722] hover:bg-[#0a2230] transition text-left cursor-pointer">
-            <button type="button" onClick={(e) => { e.stopPropagation(); toggleManualPick(g, side); }}
-              className="w-6 h-6 rounded border border-white/10 text-[15px] text-white/45 hover:text-accent-red hover:border-accent-red/40 leading-none" title="Quitar">×</button>
-            <div className="min-w-0">
-              <div className="text-[9px] text-white/30 mb-1">{fmtStatus(g)} · {g.away_abbrev} @ {g.home_abbrev}</div>
-              <div className="font-bold text-[12px] truncate">{TEAM_NAMES[side === 'HOME' ? g.home_abbrev : g.away_abbrev]}</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-[106px_1fr_88px_88px] items-center gap-3 h-9 px-4 bg-[#06131d] border-b border-white/[0.06] text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
+              <span>Estado</span>
+              <span>Evento / Prob. modelo</span>
+              <span className="text-center">Local</span>
+              <span className="text-center">Visitante</span>
             </div>
-            {manualPickBadge(g, side)}
-          </div>
-        ))}
+            {manualGames.map(({ game:g, side }) => {
+              const modelSide = showManualPredictions ? predictionSide(g) : null;
+              const modelStatus = modelSide ? pickStatus(g, modelSide) : 'none';
+              const rowTone = modelStatus === 'win' ? 'border-l-accent-green bg-accent-green/[0.025]'
+                : modelStatus === 'loss' ? 'border-l-accent-red bg-accent-red/[0.025]'
+                : g.is_live ? 'border-l-accent-green bg-accent-green/[0.02]'
+                : 'border-l-transparent bg-[#071722]';
+              const selectedAbbr = side === 'HOME' ? g.home_abbrev : g.away_abbrev;
+              return (
+                <div key={`manual-${g.game_pk}`} onClick={() => onOpen(g)} role="button" tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(g); }}
+                  className={`grid grid-cols-[106px_1fr_88px_88px] items-center gap-3 px-4 py-2.5 border-l-[3px] border-b border-b-white/[0.055] ${rowTone} hover:bg-[#0a2230] transition text-left cursor-pointer`}>
+                  <div className="self-stretch flex flex-col justify-center border-r border-white/[0.06] pr-3">
+                    <span className={`text-[10px] font-black tracking-[0.12em] ${g.is_live ? 'text-accent-green' : g.is_played ? 'text-white/55' : 'text-accent-blue'}`}>{fmtStatus(g)}</span>
+                    <span className="text-[9px] text-white/25 mt-1">Juego #{g.slot || '–'}</span>
+                    <span className="text-[8px] text-accent-green font-black mt-1">◆ {selectedAbbr}</span>
+                  </div>
+                  <div className="min-w-0">
+                    {teamLine(g, 'HOME', showManualPredictions)}
+                    {teamLine(g, 'AWAY', showManualPredictions)}
+                  </div>
+                  <div className="flex flex-col gap-2">{oddBox(g, 'HOME', showManualPredictions)}</div>
+                  <div className="flex flex-col gap-2">{oddBox(g, 'AWAY', showManualPredictions)}</div>
+                </div>
+              );
+            })}
+          </>
+        )}
         {manualGames.length > 0 && (
           <div className="px-4 py-4 bg-[#05131b] text-[9px] uppercase tracking-[0.18em] text-white/35 flex justify-between">
-            <span>{manualGames.length} selecciones</span>
+            <span>{manualGames.length} {manualGames.length === 1 ? 'selección' : 'selecciones'}</span>
             <span className="text-accent-green">Boleto activo</span>
           </div>
         )}
+        </div>
       </div>
       </div>
     </div>

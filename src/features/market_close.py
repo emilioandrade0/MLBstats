@@ -55,12 +55,18 @@ def build() -> Path:
     df["total_open_num"]  = pd.to_numeric(df["total_open"],  errors="coerce")
     df["spread_close_num"] = pd.to_numeric(df["spread_close"], errors="coerce")
     df["spread_open_num"]  = pd.to_numeric(df["spread_open"],  errors="coerce")
+    # Pregame fallback for the shadow simulator: ESPN populates close only
+    # after games play. For today/tomorrow's games total_close is NaN even
+    # though total_open exists. Coalesce close -> open so the O/U prediction
+    # can be shown pregame. Historical rows are unaffected (close wins).
+    df["total_pregame_num"] = df["total_close_num"].fillna(df["total_open_num"])
 
     market = df.groupby("espn_event_id").agg(
         market_p_home=("p_h_devig", "mean"),  # mean across DK + ESPN BET (n=1 or 2)
         market_p_home_open=("p_h_open_devig", "mean"),  # promedio opening
         market_over_under=("total_close_num", "mean"),
         market_over_under_open=("total_open_num", "mean"),
+        market_over_under_pregame=("total_pregame_num", "mean"),
         market_spread=("spread_close_num", "mean"),
         market_spread_open=("spread_open_num", "mean"),
         market_n_providers=("p_h_devig", "count"),

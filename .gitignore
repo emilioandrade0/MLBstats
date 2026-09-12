@@ -1,28 +1,83 @@
-# Runtime logs
+# =============================================================================
+# STRIKECAST .gitignore
+# Regla general: solo entra al repo lo que NECESITA el deploy en Docker/Vercel.
+# Todo lo demás (scratch, exploratorio, cache, raw data histórica) se queda local.
+# =============================================================================
+
+# --- Runtime / logs ---
 *.log
 *.err.log
 uvicorn-*.log
 uvicorn-*.err.log
+logs/
+tmp_out.txt
+_*.txt
+_*.log
 
-# Python/cache artifacts
+# --- Python cache ---
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.egg-info/
 
-# Virtual environments
+# --- Virtual envs ---
 .venv/
 venv/
 env/
+.env
+.env.local
+.env.*.local
 
-# Local/raw data
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+
+# --- Herramientas locales / agentes ---
+.agents/
+.codex/
+.claude/
+memory/
+
+# --- Zips y binarios grandes ---
+*.zip
+*.7z
+*.tar.gz
+
+# --- Marcadores diarios de la CLI (archivos de 27 bytes con fecha) ---
+/2023-*
+/2024-*
+/2025-*
+/2026-*
+/log_loss
+
+# --- Frontend alterno (viejo, StatsMLB es el frontend real) ---
+frontend/
+backend/
+vercel/
+
+# --- Carpetas exploratorias / scratch (no deploy) ---
+AUDITREGRESSION/
+STARTFROMTHEEND/
+work/
+outputs/
+analysis/
+tests/
+docs/
+sim/
+notebooks/
+
+# --- Data raw (40 GB de JSONs históricos, se quedan local) ---
 data/raw/
 data/savant/
 backend/data/raw/
 backend/data/savant/
 
-# Heavy processed datasets not needed by runtime Docker image
+# --- Data processed: solo dejamos entrar los parquets que necesita el runtime Docker ---
 data/processed/*
 !data/processed/train.parquet
 !data/processed/games.parquet
@@ -30,16 +85,44 @@ data/processed/*
 !data/processed/odds_close.parquet
 !data/processed/features_market.parquet
 !data/processed/features_pitcher_season.parquet
+!data/processed/daily_pick_signal_history.parquet
+!data/processed/features_circadian.parquet
+!data/processed/features_travel.parquet
+!data/processed/features_luck.parquet
+!data/processed/features_cluster_luck.parquet
+!data/processed/features_comeback.parquet
+!data/processed/features_game_flow.parquet
+!data/processed/features_burn.parquet
+!data/processed/features_starter_workload.parquet
+!data/processed/features_high_leverage.parquet
+!data/processed/features_catcher_control.parquet
+!data/processed/value_picks.parquet
 
-# Runtime model bundle only
+# --- Modelos: solo los que copia el Dockerfile ---
 data/models/*
 !data/models/ensemble.pkl
 !data/models/lgb_cls.pkl
 !data/models/lgb_reg.pkl
 !data/models/f5_cls.pkl
 !data/models/f5_reg.pkl
+!data/models/value_first.pkl
+!data/models/value_win.pkl
 
-# OS/editor
-.DS_Store
-Thumbs.db
-.vscode/
+# --- StatsMLB (Next.js) ---
+StatsMLB/node_modules/
+StatsMLB/.next/
+StatsMLB/out/
+StatsMLB/.vercel/
+StatsMLB/*.log
+
+# --- Scripts locales / misc ---
+CodexUpgrades.md
+PATTERNS_BRAINSTORM.md
+PROMPT_FOR_NEXT_AI.md
+ReglasAMonitorear.md
+check_data.py
+diagnose_publish.bat
+publish.bat
+retrain_v2.bat
+run_pinnacle_scheduler.bat
+update_pinnacle.bat

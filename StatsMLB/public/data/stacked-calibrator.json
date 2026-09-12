@@ -1,0 +1,309 @@
+{
+  "generatedAt": "2026-09-08T21:41:57.4434078-06:00",
+  "method": "empirical-bucket walk-forward, side|conf|scAgree|scMag (fallback side|conf when no SC)",
+  "oosGames": 6162,
+  "oosAccuracy": 0.587309,
+  "minBucketN": 40,
+  "buckets": [
+    {
+      "key": "away|50-55|n|m",
+      "n": 319,
+      "wins": 144,
+      "winRate": 0.4514
+    },
+    {
+      "key": "away|50-55|n|w",
+      "n": 276,
+      "wins": 141,
+      "winRate": 0.5109
+    },
+    {
+      "key": "away|50-55|nosc",
+      "n": 90,
+      "wins": 50,
+      "winRate": 0.5556
+    },
+    {
+      "key": "away|50-55|y|m",
+      "n": 199,
+      "wins": 111,
+      "winRate": 0.5578
+    },
+    {
+      "key": "away|50-55|y|s",
+      "n": 139,
+      "wins": 76,
+      "winRate": 0.5468
+    },
+    {
+      "key": "away|55-60|n|m",
+      "n": 250,
+      "wins": 128,
+      "winRate": 0.512
+    },
+    {
+      "key": "away|55-60|n|w",
+      "n": 171,
+      "wins": 96,
+      "winRate": 0.5614
+    },
+    {
+      "key": "away|55-60|nosc",
+      "n": 78,
+      "wins": 43,
+      "winRate": 0.5513
+    },
+    {
+      "key": "away|55-60|y|m",
+      "n": 161,
+      "wins": 93,
+      "winRate": 0.5776
+    },
+    {
+      "key": "away|55-60|y|s",
+      "n": 147,
+      "wins": 88,
+      "winRate": 0.5986
+    },
+    {
+      "key": "away|60-65|n|m",
+      "n": 131,
+      "wins": 70,
+      "winRate": 0.5344
+    },
+    {
+      "key": "away|60-65|n|w",
+      "n": 71,
+      "wins": 41,
+      "winRate": 0.5775
+    },
+    {
+      "key": "away|60-65|nosc",
+      "n": 41,
+      "wins": 22,
+      "winRate": 0.5366
+    },
+    {
+      "key": "away|60-65|y|m",
+      "n": 107,
+      "wins": 69,
+      "winRate": 0.6449
+    },
+    {
+      "key": "away|60-65|y|s",
+      "n": 114,
+      "wins": 67,
+      "winRate": 0.5877
+    },
+    {
+      "key": "away|65-70|n|m",
+      "n": 84,
+      "wins": 50,
+      "winRate": 0.5952
+    },
+    {
+      "key": "away|65-70|n|w",
+      "n": 41,
+      "wins": 24,
+      "winRate": 0.5854
+    },
+    {
+      "key": "away|65-70|nosc",
+      "n": 36,
+      "wins": 25,
+      "winRate": 0.6944
+    },
+    {
+      "key": "away|65-70|y|m",
+      "n": 82,
+      "wins": 58,
+      "winRate": 0.7073
+    },
+    {
+      "key": "away|65-70|y|s",
+      "n": 111,
+      "wins": 67,
+      "winRate": 0.6036
+    },
+    {
+      "key": "away|70+|n|m",
+      "n": 70,
+      "wins": 42,
+      "winRate": 0.6
+    },
+    {
+      "key": "away|70+|n|w",
+      "n": 22,
+      "wins": 15,
+      "winRate": 0.6818
+    },
+    {
+      "key": "away|70+|nosc",
+      "n": 51,
+      "wins": 32,
+      "winRate": 0.6275
+    },
+    {
+      "key": "away|70+|y|m",
+      "n": 84,
+      "wins": 57,
+      "winRate": 0.6786
+    },
+    {
+      "key": "away|70+|y|s",
+      "n": 107,
+      "wins": 78,
+      "winRate": 0.729
+    },
+    {
+      "key": "home|50-55|n|m",
+      "n": 191,
+      "wins": 112,
+      "winRate": 0.5864
+    },
+    {
+      "key": "home|50-55|n|w",
+      "n": 102,
+      "wins": 56,
+      "winRate": 0.549
+    },
+    {
+      "key": "home|50-55|nosc",
+      "n": 94,
+      "wins": 47,
+      "winRate": 0.5
+    },
+    {
+      "key": "home|50-55|y|m",
+      "n": 375,
+      "wins": 205,
+      "winRate": 0.5467
+    },
+    {
+      "key": "home|50-55|y|s",
+      "n": 352,
+      "wins": 197,
+      "winRate": 0.5597
+    },
+    {
+      "key": "home|55-60|n|m",
+      "n": 140,
+      "wins": 82,
+      "winRate": 0.5857
+    },
+    {
+      "key": "home|55-60|n|w",
+      "n": 61,
+      "wins": 22,
+      "winRate": 0.3607
+    },
+    {
+      "key": "home|55-60|nosc",
+      "n": 136,
+      "wins": 72,
+      "winRate": 0.5294
+    },
+    {
+      "key": "home|55-60|y|m",
+      "n": 314,
+      "wins": 179,
+      "winRate": 0.5701
+    },
+    {
+      "key": "home|55-60|y|s",
+      "n": 366,
+      "wins": 198,
+      "winRate": 0.541
+    },
+    {
+      "key": "home|60-65|n|m",
+      "n": 109,
+      "wins": 70,
+      "winRate": 0.6422
+    },
+    {
+      "key": "home|60-65|n|w",
+      "n": 36,
+      "wins": 20,
+      "winRate": 0.5556
+    },
+    {
+      "key": "home|60-65|nosc",
+      "n": 86,
+      "wins": 50,
+      "winRate": 0.5814
+    },
+    {
+      "key": "home|60-65|y|m",
+      "n": 207,
+      "wins": 121,
+      "winRate": 0.5845
+    },
+    {
+      "key": "home|60-65|y|s",
+      "n": 358,
+      "wins": 236,
+      "winRate": 0.6592
+    },
+    {
+      "key": "home|65-70|n|m",
+      "n": 51,
+      "wins": 28,
+      "winRate": 0.549
+    },
+    {
+      "key": "home|65-70|n|w",
+      "n": 21,
+      "wins": 16,
+      "winRate": 0.7619
+    },
+    {
+      "key": "home|65-70|nosc",
+      "n": 62,
+      "wins": 41,
+      "winRate": 0.6613
+    },
+    {
+      "key": "home|65-70|y|m",
+      "n": 147,
+      "wins": 94,
+      "winRate": 0.6395
+    },
+    {
+      "key": "home|65-70|y|s",
+      "n": 298,
+      "wins": 195,
+      "winRate": 0.6544
+    },
+    {
+      "key": "home|70+|n|m",
+      "n": 46,
+      "wins": 32,
+      "winRate": 0.6957
+    },
+    {
+      "key": "home|70+|n|w",
+      "n": 10,
+      "wins": 6,
+      "winRate": 0.6
+    },
+    {
+      "key": "home|70+|nosc",
+      "n": 60,
+      "wins": 47,
+      "winRate": 0.7833
+    },
+    {
+      "key": "home|70+|y|m",
+      "n": 84,
+      "wins": 56,
+      "winRate": 0.6667
+    },
+    {
+      "key": "home|70+|y|s",
+      "n": 335,
+      "wins": 251,
+      "winRate": 0.7493
+    }
+  ]
+}

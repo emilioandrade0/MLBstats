@@ -3961,12 +3961,15 @@ function DetailPage({ pk, onBack }) {
   useEffect(() => {
     if (!pk) return;
     setDetail(null);
-    fetch(`/api/games/${pk}?t=${Date.now()}`).then(r=>r.json()).then(setDetail);
-    // Light refresh every 30s for live games
-    const t = setInterval(() => {
-      fetch(`/api/games/${pk}?t=${Date.now()}`).then(r=>r.json()).then(setDetail).catch(()=>{});
-    }, 30000);
-    return () => clearInterval(t);
+    const load = () => fetch(`/api/games/${pk}?t=${Date.now()}`)
+      .then(r=>r.json()).then(setDetail).catch(()=>{});
+    load();
+    // Refresco cada 10s para que innings, marcador y win probability se
+    // muevan casi en vivo. Un solo juego = coste mínimo.
+    const t = setInterval(() => { if (!document.hidden) load(); }, 10000);
+    const onVis = () => { if (!document.hidden) load(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVis); };
   }, [pk]);
   return (
     <div className="h-screen overflow-y-auto bg-ink-1">
@@ -5008,16 +5011,23 @@ function App() {
       .catch(() => setLoading(false));
   }, [date, processIncomingGames]);
 
-  // Auto refresh
+  // Auto refresh — 12s cuando hay algún juego EN VIVO para que el marcador se
+  // mueva casi en tiempo real; 45s en slates completamente pregame/final.
+  const anyLive = games.some(g => g.is_live);
   useEffect(() => {
-    const t = setInterval(() => {
+    const intervalMs = anyLive ? 12000 : 45000;
+    const tick = () => {
+      if (document.hidden) return;
       fetch(`/api/games?start=${date}&end=${date}&t=${Date.now()}`)
         .then(r=>r.json())
         .then(d => setGames(processIncomingGames(d)))
         .catch(()=>{});
-    }, 30000);
-    return () => clearInterval(t);
-  }, [date, processIncomingGames]);
+    };
+    const t = setInterval(tick, intervalMs);
+    const onVis = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVis); };
+  }, [date, processIncomingGames, anyLive]);
 
   useEffect(() => {
     if (!['resumen', 'modelo'].includes(activeId) || performanceLoading || performance) return;

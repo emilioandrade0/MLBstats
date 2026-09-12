@@ -63,10 +63,28 @@ def _total(d: dict | None) -> float | None:
         a = t.get("alternateDisplayValue") or t.get("american")
         if isinstance(a, str):
             try:
-                return float(a.replace("+", ""))
+                v = float(a.replace("+", ""))
             except ValueError:
                 return None
+            # Sanity: MLB totals live in ~5-15 runs. Some providers (ESPN BET, older
+            # payloads) put the OVER/UNDER *price* here instead of the line.
+            # Reject anything outside the plausible range.
+            if 3.0 <= v <= 20.0:
+                return v
     return None
+
+
+def _total_from_item(item: dict, side: str) -> float | None:
+    """Preferred close/open total: use item-level overUnder / initialOverUnder
+    (always a numeric line, correct across providers). Fall back to _total()
+    on the nested open/close dict."""
+    if side == "close":
+        v = item.get("overUnder")
+    else:  # open
+        v = item.get("initialOverUnder")
+    if isinstance(v, (int, float)) and 3.0 <= float(v) <= 20.0:
+        return float(v)
+    return _total(item.get(side))
 
 
 def _provider_rows(event_id: str, season: int, payload: dict) -> list[dict]:
@@ -90,8 +108,8 @@ def _provider_rows(event_id: str, season: int, payload: dict) -> list[dict]:
             "away_ml_current": _ml_from_dict(away.get("current")),
             "spread_close": _spread(home.get("close")),
             "spread_open": _spread(home.get("open")),
-            "total_open": _total(item.get("open")),
-            "total_close": _total(item.get("close")),
+            "total_open": _total_from_item(item, "open"),
+            "total_close": _total_from_item(item, "close"),
             "moneyline_winner_home": item.get("moneylineWinner"),  # post-game; keep for sanity but never feature
         })
     return out
