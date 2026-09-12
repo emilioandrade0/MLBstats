@@ -1,0 +1,114 @@
+name: pre-game-safety
+
+# Seguro pre-game: verifica que value_picks.parquet este fresco antes de que
+# empiecen juegos MLB. Corre 3 veces al dia alineado a los slates tipicos:
+#   - 16:30 UTC (10:30 AM CDMX) — antes de juegos de dia (12:35 PM ET)
+#   - 21:30 UTC (3:30 PM CDMX) — antes de slate vespertino (4-5 PM ET)
+#   - 00:30 UTC (6:30 PM CDMX) — antes de prime time + West Coast
+#
+# Que hace en cada corrida:
+#   1. Fetch /api/value del Cloudflare Worker
+#   2. Si updated_at > 90 min -> data stale, disparar actualizar-historico
+#   3. Notificar via Telegram el resultado (OK / stale-refreshed / error)
+
+on:
+  schedule:
+    - cron: '30 16 * * *'
+    - cron: '30 21 * * *'
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: pre-game-safety
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write   # necesario para dispatchear actualizar-historico
+    steps:
+      - name: Verificar frescura de value_picks
+        id: freshness
+        env:
+          STATSMLB_URL: ${{ secrets.STATSMLB_URL }}
+        run: |
+          set -e
+          TODAY=$(date -u +%Y-%m-%d)
+          RESPONSE=$(curl -sS --max-time 30 "$STATSMLB_URL/api/value?date=$TODAY")
+          echo "raw response head:"
+          echo "$RESPONSE" | head -c 400
+          echo ""
+
+          UPDATED_AT=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('updatedAt') or '')")
+          PICKS_COUNT=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('picks') or []))")
+
+          if [ -z "$UPDATED_AT" ]; then
+            echo "status=missing" >> "$GITHUB_OUTPUT"
+            echo "age_min=99999" >> "$GITHUB_OUTPUT"
+            echo "picks_count=$PICKS_COUNT" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Segundos desde epoch
+          UPDATED_TS=$(python3 -c "from datetime import datetime; print(int(datetime.fromisoformat('$UPDATED_AT'.replace('Z','+00:00')).timestamp()))")
+          NOW_TS=$(date -u +%s)
+          AGE_MIN=$(( (NOW_TS - UPDATED_TS) / 60 ))
+
+          echo "updated_at=$UPDATED_AT" >> "$GITHUB_OUTPUT"
+          echo "age_min=$AGE_MIN" >> "$GITHUB_OUTPUT"
+          echo "picks_count=$PICKS_COUNT" >> "$GITHUB_OUTPUT"
+
+          if [ "$AGE_MIN" -gt 90 ]; then
+            echo "status=stale" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=fresh" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Disparar actualizar-historico si data stale
+        if: steps.freshness.outputs.status == 'stale' || steps.freshness.outputs.status == 'missing'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Data stale (${{ steps.freshness.outputs.age_min }} min). Disparando actualizar-historico..."
+          gh workflow run actualizar-historico.yml -r main
+
+      - name: Notificar via Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATUS: ${{ steps.freshness.outputs.status }}
+          AGE_MIN: ${{ steps.freshness.outputs.age_min }}
+          PICKS_COUNT: ${{ steps.freshness.outputs.picks_count }}
+          UPDATED_AT: ${{ steps.freshness.outputs.updated_at }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "Telegram no configurado en secrets, saltando notificacion."
+            exit 0
+          fi
+
+          case "$STATUS" in
+            fresh)
+              EMOJI="✅"
+              TITLE="Data fresca antes de slate MLB"
+              BODY="Value picks actualizados hace ${AGE_MIN} min. ${PICKS_COUNT} juegos hoy."
+              ;;
+            stale)
+              EMOJI="⚠️"
+              TITLE="Data stale — refresh disparado"
+              BODY="Value picks tenian ${AGE_MIN} min de antiguedad. Se dispara actualizar-historico. ${PICKS_COUNT} juegos hoy."
+              ;;
+            missing)
+              EMOJI="❌"
+              TITLE="Endpoint value_picks no respondio"
+              BODY="El Cloudflare Worker no devolvio updated_at. Revisar Railway backend."
+              ;;
+          esac
+
+          TEXT="${EMOJI} StrikeCast · ${TITLE}%0A%0A${BODY}"
+          curl -sS --max-time 15 "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "text=${TEXT}" \
+            -w "\nHTTP %{http_code}\n" || echo "Notificacion Telegram fallo (non-fatal)"
