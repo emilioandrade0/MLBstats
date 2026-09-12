@@ -29,7 +29,9 @@ concurrency:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Primer run "cold" (sin cache) toma ~55 min por los 21 folds walkforward.
+    # Runs subsecuentes usan cache y bajan a ~10 min. Timeout de 90 cubre ambos.
+    timeout-minutes: 90
     permissions:
       contents: write
 

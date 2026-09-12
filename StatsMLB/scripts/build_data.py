@@ -875,6 +875,11 @@ def build_walkforward(feature_rows: pd.DataFrame, coverage_audit: dict, full_reb
     previous_predictions = {} if full_rebuild else load_previous_walkforward_predictions()
     preserved_historical_predictions = 0
     cached_folds_skipped = 0
+    print(
+        f"  Walk-forward cache: {len(previous_predictions):,} juegos con predicciones previas "
+        f"(full_rebuild={full_rebuild})",
+        flush=True,
+    )
     combination_totals = {
         mask: {
             "games": 0,
