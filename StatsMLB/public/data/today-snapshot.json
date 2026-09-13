@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-13T16:11:46.714800+00:00",
+  "retrievedAt": "2026-09-13T19:26:35.732205+00:00",
   "games": [
     {
       "gamePk": 824225,
       "gameDate": "2026-09-13T16:10:00Z",
       "officialDate": "2026-09-13",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Comerica Park",
       "away": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": 0,
+        "score": 1,
         "pitcher": "Gabriel Hughes"
       },
       "home": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 0,
+        "score": 8,
         "pitcher": "Jackson Jobe"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 822682,
       "gameDate": "2026-09-13T17:35:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Nationals Park",
       "away": {
         "team": "LAA",
         "name": "Los Angeles Angels",
-        "score": 0,
+        "score": 2,
         "pitcher": "Grayson Rodriguez"
       },
       "home": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": 0,
+        "score": 2,
         "pitcher": "Riley Cornelio"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 824869,
       "gameDate": "2026-09-13T17:35:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Truist Park",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": 0,
+        "score": 2,
         "pitcher": "Andrew Painter"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": 0,
+        "score": 1,
         "pitcher": "Grant Holmes"
       }
     },
@@ -67,8 +67,8 @@
       "gamePk": 823495,
       "gameDate": "2026-09-13T17:35:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Yankee Stadium",
       "away": {
         "team": "NYM",
@@ -79,7 +79,7 @@
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": 0,
+        "score": 2,
         "pitcher": "Cam Schlittler"
       }
     },
@@ -87,19 +87,19 @@
       "gamePk": 822764,
       "gameDate": "2026-09-13T17:37:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Rogers Centre",
       "away": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": 0,
+        "score": 1,
         "pitcher": "Trevor Rogers"
       },
       "home": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": 0,
+        "score": 4,
         "pitcher": "Dylan Cease"
       }
     },
@@ -107,8 +107,8 @@
       "gamePk": 822928,
       "gameDate": "2026-09-13T17:40:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Tropicana Field",
       "away": {
         "team": "HOU",
@@ -119,7 +119,7 @@
       "home": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": 0,
+        "score": 11,
         "pitcher": "Freddy Peralta"
       }
     },
@@ -127,19 +127,19 @@
       "gamePk": 823815,
       "gameDate": "2026-09-13T17:40:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "loanDepot park",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 3,
         "pitcher": "Emmet Sheehan"
       },
       "home": {
         "team": "MIA",
         "name": "Miami Marlins",
-        "score": null,
+        "score": 0,
         "pitcher": "Eury Pérez"
       }
     },
@@ -147,19 +147,19 @@
       "gamePk": 823658,
       "gameDate": "2026-09-13T18:10:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Target Field",
       "away": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": 0,
+        "score": 4,
         "pitcher": "Tanner Bibee"
       },
       "home": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": 0,
+        "score": 1,
         "pitcher": "Joe Ryan"
       }
     },
@@ -167,8 +167,8 @@
       "gamePk": 823734,
       "gameDate": "2026-09-13T18:10:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "American Family Field",
       "away": {
         "team": "CIN",
@@ -179,7 +179,7 @@
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": 0,
+        "score": 2,
         "pitcher": "Robert Gasser"
       }
     },
@@ -187,13 +187,13 @@
       "gamePk": 823008,
       "gameDate": "2026-09-13T18:15:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Busch Stadium",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": 0,
+        "score": 1,
         "pitcher": "David Sandlin"
       },
       "home": {
@@ -207,13 +207,13 @@
       "gamePk": 824628,
       "gameDate": "2026-09-13T18:20:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Wrigley Field",
       "away": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": 0,
+        "score": 1,
         "pitcher": "Bubba Chandler"
       },
       "home": {
@@ -227,19 +227,19 @@
       "gamePk": 824708,
       "gameDate": "2026-09-13T19:05:00Z",
       "officialDate": "2026-09-13",
-      "status": "Pre-Game",
+      "status": "Delayed Start",
       "abstractState": "Preview",
       "venue": "Fenway Park",
       "away": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": null,
+        "score": 0,
         "pitcher": "Noah Cameron"
       },
       "home": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Payton Tolle"
       }
     },
@@ -247,19 +247,19 @@
       "gamePk": 824952,
       "gameDate": "2026-09-13T20:05:00Z",
       "officialDate": "2026-09-13",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Sutter Health Park",
       "away": {
         "team": "SEA",
         "name": "Seattle Mariners",
-        "score": null,
+        "score": 0,
         "pitcher": "Bryce Miller"
       },
       "home": {
         "team": "ATH",
         "name": "Athletics",
-        "score": null,
+        "score": 0,
         "pitcher": "Jacob Lopez"
       }
     },
@@ -267,19 +267,19 @@
       "gamePk": 825033,
       "gameDate": "2026-09-13T20:10:00Z",
       "officialDate": "2026-09-13",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Chase Field",
       "away": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": null,
+        "score": 0,
         "pitcher": "Cal Quantrill"
       },
       "home": {
         "team": "AZ",
         "name": "Arizona Diamondbacks",
-        "score": null,
+        "score": 0,
         "pitcher": "Eduardo Rodriguez"
       }
     },
