@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-13T00:54:19.698717+00:00",
+  "retrievedAt": "2026-09-13T06:00:57.490715+00:00",
   "games": [
     {
       "gamePk": 824225,
@@ -180,7 +180,7 @@
         "team": "MIL",
         "name": "Milwaukee Brewers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Robert Gasser"
       }
     },
     {
@@ -274,7 +274,7 @@
         "team": "TEX",
         "name": "Texas Rangers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Cal Quantrill"
       },
       "home": {
         "team": "AZ",
