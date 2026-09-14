@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-14T12:46:21.747650+00:00",
+  "retrievedAt": "2026-09-14T18:40:12.537164+00:00",
   "games": [
     {
       "gamePk": 824465,
@@ -27,7 +27,7 @@
       "gamePk": 824386,
       "gameDate": "2026-09-14T22:40:00Z",
       "officialDate": "2026-09-14",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Progressive Field",
       "away": {
