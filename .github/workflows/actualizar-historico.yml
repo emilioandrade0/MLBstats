@@ -139,7 +139,17 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "data: actualizar historico $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push
+            # Retry push up to 3 times: if a concurrent push landed while we
+            # were building, rebase our data commit on top of it. Parquets/JSONs
+            # are always fully regenerated so --strategy-option=ours is safe.
+            for i in 1 2 3; do
+              if git push; then break; fi
+              echo "Push race detected, rebasing on remote (attempt $i)..."
+              git pull --rebase --strategy-option=ours origin main || {
+                git rebase --abort || true
+                exit 1
+              }
+            done
           fi
 
       - name: Install StatsMLB deps
