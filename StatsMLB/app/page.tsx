@@ -2125,6 +2125,18 @@ export default function HomePage() {
   const [playerPerformance, setPlayerPerformance] = useState<PlayerPerformancePayload | null>(null);
   const [historyIndex, setHistoryIndex] = useState<HistoryIndex | null>(null);
   const [historyCache, setHistoryCache] = useState<Record<string, HistorySnapshot>>({});
+  const historyFetchDate = selectedGameDate < mexicoIsoDate() ? selectedGameDate : null;
+  useEffect(() => {
+    if (!historyFetchDate) return;
+    if (historyCache[historyFetchDate]) return;
+    if (historyIndex && !historyIndex.dates.includes(historyFetchDate)) return;
+    const controller = new AbortController();
+    fetch(`/data/history/${historyFetchDate}.json`, { signal: controller.signal, cache: 'no-store' })
+      .then(r => r.ok ? r.json() as Promise<HistorySnapshot> : null)
+      .then(snap => { if (snap) setHistoryCache(prev => ({ ...prev, [historyFetchDate]: snap })); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [historyFetchDate, historyIndex, historyCache]);
 
   const refresh = async () => {
     setLoadError('');
@@ -2326,17 +2338,6 @@ export default function HomePage() {
   const displaySchedule = scheduleArchive[selectedGameDate] ?? (selectedGameDate === tomorrowDate ? tomorrowSchedule : schedule) ?? schedule;
   const selectedDate = displaySchedule.selectedDate ?? selectedGameDate;
   const isHistoricalSlate = selectedDate < todayDate;
-  useEffect(() => {
-    if (!isHistoricalSlate) return;
-    if (historyCache[selectedDate]) return;
-    if (historyIndex && !historyIndex.dates.includes(selectedDate)) return;
-    const controller = new AbortController();
-    fetch(`/data/history/${selectedDate}.json`, { signal: controller.signal, cache: 'no-store' })
-      .then(r => r.ok ? r.json() as Promise<HistorySnapshot> : null)
-      .then(snap => { if (snap) setHistoryCache(prev => ({ ...prev, [selectedDate]: snap })); })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [selectedDate, isHistoricalSlate, historyIndex, historyCache]);
   const historicalSnapshot: HistorySnapshot | undefined = isHistoricalSlate ? historyCache[selectedDate] : undefined;
   const activeMask = activeFactorMask(active);
   const frozenGames = new Map((recentWalkforward[selectedDate]?.games ?? []).map(game => [game.gamePk, game]));
