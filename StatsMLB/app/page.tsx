@@ -1336,7 +1336,7 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
     const awayGames = (estimate.away?.wins ?? 0) + (estimate.away?.losses ?? 0);
     const homePct = homeGames > 0 ? (estimate.home?.wins ?? 0) / homeGames : .5;
     const awayPct = awayGames > 0 ? (estimate.away?.wins ?? 0) / awayGames : .5;
-    if (homePct >= .580 || awayPct >= .580) return null;
+    if (homePct >= .580 && awayPct >= .580) return null;
     if (!game.home.lineup?.confirmed || !game.away.lineup?.confirmed) return null;
     const scoreSide = (players: { playerId: number }[]) => {
       let tilt = 0;
@@ -1428,7 +1428,7 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
     const awayGames = (estimate.away?.wins ?? 0) + (estimate.away?.losses ?? 0);
     const homePct = homeGames > 0 ? (estimate.home?.wins ?? 0) / homeGames : .5;
     const awayPct = awayGames > 0 ? (estimate.away?.wins ?? 0) / awayGames : .5;
-    if (homePct >= .580 || awayPct >= .580) return [];
+    if (homePct >= .580 && awayPct >= .580) return [];
     if (!game.home.lineup?.confirmed || !game.away.lineup?.confirmed) return [];
     const bucket = (players: { playerId: number }[]) => {
       const b = { elite_hot: 0, elite_cold: 0, weak_hot: 0, weak_cold: 0 };
