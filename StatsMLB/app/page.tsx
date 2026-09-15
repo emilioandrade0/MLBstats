@@ -129,6 +129,7 @@ type SweepStageMetrics = {
 type StatsData = {
   generatedAt: string;
   cutoffDate: string;
+  playerNames?: Record<string, string>;
   coverage: { final_regular_games: number; first_final_date: string; last_final_date: string };
   seriesSummary: { eligible_three_game_series: number; swept_three_game_series: number; league_sweep_frequency: number };
   afterSweepSummary: { sweeps_with_next_game: number; next_game_wins: number; next_game_win_rate: number };
@@ -741,9 +742,13 @@ function coachRotationSignals(lineup: ConfirmedLineup | null | undefined, previo
   const overlap = lineup.players.filter(player => previousPlayers.has(player.playerId));
   const orderMoves = overlap.flatMap(player => previous.slots[String(player.playerId)] == null ? [] : [Math.abs(player.battingOrder - previous.slots[String(player.playerId)])]);
   const currentTop4 = new Set(lineup.players.filter(player => player.battingOrder <= 4).map(player => player.playerId));
-  const changes = [...currentPlayers].filter(player => !previousPlayers.has(player)).length;
+  const incomingIds = [...currentPlayers].filter(player => !previousPlayers.has(player));
+  const outgoingIds = [...previousPlayers].filter(player => !currentPlayers.has(player));
+  const changes = incomingIds.length;
   const top4Changed = [...currentTop4].filter(player => !previous.top4.includes(player)).length;
   const prevLoss = Number(previous.win === 0);
+  const incoming = incomingIds.map(id => ({ id, name: lineup.players.find(p => p.playerId === id)?.name, battingOrder: currentSlots[String(id)] }));
+  const outgoing = outgoingIds.map(id => ({ id, name: undefined as string | undefined, battingOrder: previous.slots[String(id)] }));
   return {
     prevLoss,
     changes,
@@ -753,6 +758,8 @@ function coachRotationSignals(lineup: ConfirmedLineup | null | undefined, previo
     lossOrderMove: prevLoss * (orderMoves.length ? orderMoves.reduce((sum, value) => sum + value, 0) / orderMoves.length : 0),
     lossTop4Changed: prevLoss * top4Changed,
     lineupSize: Object.keys(currentSlots).length,
+    incoming,
+    outgoing,
   };
 }
 
@@ -1335,8 +1342,30 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
     <div className="game-comparison-matchup"><div className="game-meta"><span>{gameTime(game.gameDate)} · {game.venue || 'Sede por confirmar'}</span></div><div className="comparison-team"><TeamLogo team={game.away.team} name={game.away.name} className="matchup-logo" /><strong>{game.away.team}</strong><small>{estimate.away ? `${estimate.away.wins}-${estimate.away.losses}` : '-'}</small><b>{pct(awayP)}</b></div><div className="comparison-probability"><i style={{ width: `${homeP * 100}%` }} /></div><div className="comparison-team"><TeamLogo team={game.home.team} name={game.home.name} className="matchup-logo" /><strong>{game.home.team}</strong><small>{estimate.home ? `${estimate.home.wins}-${estimate.home.losses}` : '-'}</small><b>{pct(homeP)}</b></div><div className="comparison-pitchers"><span>{game.away.pitcher || 'Abridor por confirmar'}</span><span>{game.home.pitcher || 'Abridor por confirmar'}</span></div></div>
     <div className="game-comparison-models"><p><span>COMPARACIÓN</span><strong>{agreement}/{present.length} de acuerdo</strong></p><div>{tiles.map(tile => <article key={tile.label} className={tile.pick && tile.pick.code !== favorite.team ? 'model-disagrees' : ''}><span>{tile.label}</span><strong>{tile.pick?.code ?? '—'}</strong><b>{pct(tile.pick?.prob)}</b></article>)}</div><small>{contextNote}</small>{favoriteMarketMove != null && Math.abs(favoriteMarketMove) >= 2 && <small className="market-move-note">Mercado: {favoriteMarketMove > 0 ? `+${favoriteMarketMove.toFixed(1)} pp hacia ${favorite.team}` : `${favoriteMarketMove.toFixed(1)} pp contra ${favorite.team}`} desde la primera captura ({odds?.marketMoveBooks ?? 0} casas).</small>}<div className="game-evidence"><span>EVIDENCIA ENCONTRADA</span>{evidenceEmpty ? <p className="caution"><i />Sin señales históricas con muestra suficiente para este perfil de partido.</p> : topSignals.map(signal => <p key={signal.code} className={signal.direction === 'challenges' ? 'caution' : 'support'}><i />{signal.label}: {pct(signal.winRate)} de aciertos históricos (n={signal.sampleSize.toLocaleString('es-MX')}, {signal.delta >= 0 ? '+' : ''}{(signal.delta * 100).toFixed(1)} pp {signal.delta >= 0 ? 'sobre' : 'bajo'} la base).</p>)}{mixedSignal && <p className="caution"><i />Señal mixta: {supportsCount} factor{supportsCount === 1 ? '' : 'es'} respalda{supportsCount === 1 ? '' : 'n'} y {challengesCount} cuestiona{challengesCount === 1 ? '' : 'n'} el pick.</p>}</div></div>
     <div className="game-comparison-pick"><div><span className="comparison-tier">{tier}</span><b>{strength}</b></div><p><TeamLogo team={favorite.team} name={favorite.name} className="matchup-logo" /><strong>{favorite.team}</strong><small>{pct(favoriteProbability)} estimado</small></p><div className="comparison-best-odds"><span>Mejor momio</span><strong>{bestOdds?.decimal.toFixed(2) ?? '—'}</strong></div>{!historical && <button type="button" onClick={onOpenTelegram}><Send size={15} />{telegramConfigured ? 'Enviar pick' : 'Preparar Telegram'}</button>}</div>
-    {!historical && <div className="game-comparison-lineup"><p><span>CAMBIOS DE LINEUP</span><small>{estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable ? 'Rotación coach, calidad del lineup y carga de 72 h ya aplicadas a la estimación.' : 'Esperando ambas alineaciones confirmadas; se conserva la combinación base.'}</small></p><div className="lineup-table-head"><span>EQUIPO</span><span>TITULARES</span><span>ORDEN AL BATE</span><span>CALIDAD</span><span>CARGA 72 H</span></div>{line(game.away, estimate.awayCoach, estimate.awayRotationQuality, estimate.awayLineupFatigue)}{line(game.home, estimate.homeCoach, estimate.homeRotationQuality, estimate.homeLineupFatigue)}</div>}
+    {!historical && <div className="game-comparison-lineup"><p><span>CAMBIOS DE LINEUP</span><small>{estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable ? 'Rotación coach, calidad del lineup y carga de 72 h ya aplicadas a la estimación.' : 'Esperando ambas alineaciones confirmadas; se conserva la combinación base.'}</small></p><div className="lineup-table-head"><span>EQUIPO</span><span>TITULARES</span><span>ORDEN AL BATE</span><span>CALIDAD</span><span>CARGA 72 H</span></div>{line(game.away, estimate.awayCoach, estimate.awayRotationQuality, estimate.awayLineupFatigue)}{line(game.home, estimate.homeCoach, estimate.homeRotationQuality, estimate.homeLineupFatigue)}<LineupChangesDetails away={{ team: game.away.team, name: game.away.name, coach: estimate.awayCoach }} home={{ team: game.home.team, name: game.home.name, coach: estimate.homeCoach }} playerNames={stats.playerNames} /></div>}
   </div>;
+}
+
+function LineupChangesDetails({ away, home, playerNames }: { away: { team: string; name: string; coach: ReturnType<typeof coachRotationSignals> }; home: { team: string; name: string; coach: ReturnType<typeof coachRotationSignals> }; playerNames?: Record<string, string> }) {
+  const resolveName = (id: number, fallback?: string) => fallback || playerNames?.[String(id)] || `Jugador #${id}`;
+  const section = (side: { team: string; name: string; coach: ReturnType<typeof coachRotationSignals> }) => {
+    const coach = side.coach;
+    if (!coach) return null;
+    const incoming = coach.incoming ?? [];
+    const outgoing = coach.outgoing ?? [];
+    if (incoming.length === 0 && outgoing.length === 0) return null;
+    return <div className="lineup-changes-team" key={side.team}>
+      <h5><TeamLogo team={side.team} name={side.name} className="lineup-changes-logo" /><strong>{side.team}</strong><small>{side.name}</small></h5>
+      {incoming.length > 0 && <div><span className="lineup-changes-label lineup-changes-in">Nuevos ({incoming.length})</span><ul>{incoming.sort((a, b) => (a.battingOrder ?? 99) - (b.battingOrder ?? 99)).map(player => <li key={player.id}><b>{player.battingOrder ?? '—'}</b><span>{resolveName(player.id, player.name)}</span></li>)}</ul></div>}
+      {outgoing.length > 0 && <div><span className="lineup-changes-label lineup-changes-out">Ausentes ({outgoing.length})</span><ul>{outgoing.sort((a, b) => (a.battingOrder ?? 99) - (b.battingOrder ?? 99)).map(player => <li key={player.id}><b>{player.battingOrder ?? '—'}</b><span>{resolveName(player.id, player.name)}</span></li>)}</ul></div>}
+    </div>;
+  };
+  const awaySection = section(away);
+  const homeSection = section(home);
+  if (!awaySection && !homeSection) return null;
+  const totalIn = (away.coach?.incoming?.length ?? 0) + (home.coach?.incoming?.length ?? 0);
+  const totalOut = (away.coach?.outgoing?.length ?? 0) + (home.coach?.outgoing?.length ?? 0);
+  return <details className="lineup-changes-details"><summary><ChevronDown size={14} /><span>Ver ausentes ({totalOut}) y nuevos ({totalIn})</span></summary><div className="lineup-changes-body">{awaySection}{homeSection}</div></details>;
 }
 
 function PairIndicationTable({ signal }: { signal: IndicationPairSignal }) {

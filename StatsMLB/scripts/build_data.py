@@ -2075,6 +2075,20 @@ def main():
     output["rotationQualityAudit"] = finalize_rotation_quality_audit(output["rotationQualityAudit"], walkforward)
     output["lineupFatigueAudit"] = finalize_lineup_fatigue_audit(output["lineupFatigueAudit"], walkforward)
     output["opponentFormAudit"] = finalize_opponent_form_audit(output["opponentFormAudit"], walkforward)
+    try:
+        pb = pd.read_parquet(
+            ROOT / "data" / "processed" / "player_box.parquet",
+            columns=["game_pk", "player_id", "player_name"],
+        ).dropna(subset=["player_id", "player_name"])
+        pb = pb.sort_values("game_pk")
+        pb = pb.drop_duplicates(subset=["player_id"], keep="last")
+        output["playerNames"] = {
+            str(int(row["player_id"])): str(row["player_name"])
+            for _, row in pb.iterrows()
+        }
+    except Exception as exc:  # noqa: BLE001
+        print(f"  playerNames lookup skipped: {exc}", flush=True)
+        output["playerNames"] = {}
     (PUBLIC_DATA / "stats.json").write_text(
         json.dumps(clean(output), ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
     )
