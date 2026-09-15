@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-15T19:38:05.337381+00:00",
+  "retrievedAt": "2026-09-15T20:02:16.903341+00:00",
   "games": [
     {
       "gamePk": 824466,
@@ -127,19 +127,19 @@
       "gamePk": 823574,
       "gameDate": "2026-09-15T23:10:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Citi Field",
       "away": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": null,
+        "score": 0,
         "pitcher": "Shane Baz"
       },
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": null,
+        "score": 0,
         "pitcher": "Sean Manaea"
       }
     },
@@ -147,7 +147,7 @@
       "gamePk": 824627,
       "gameDate": "2026-09-15T23:40:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Wrigley Field",
       "away": {
@@ -167,7 +167,7 @@
       "gamePk": 823654,
       "gameDate": "2026-09-15T23:40:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Target Field",
       "away": {
@@ -193,13 +193,13 @@
       "away": {
         "team": "SF",
         "name": "San Francisco Giants",
-        "score": null,
+        "score": 0,
         "pitcher": "Blade Tidwell"
       },
       "home": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": null,
+        "score": 0,
         "pitcher": "Andre Pallante"
       }
     },
