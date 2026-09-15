@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-15T20:02:16.903341+00:00",
+  "retrievedAt": "2026-09-15T22:11:29.727856+00:00",
   "games": [
     {
       "gamePk": 824466,
@@ -93,13 +93,13 @@
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
+        "score": 0,
         "pitcher": "Cristopher Sánchez"
       },
       "home": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": null,
+        "score": 0,
         "pitcher": "Jackson Kent"
       }
     },
@@ -113,13 +113,13 @@
       "away": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": null,
+        "score": 0,
         "pitcher": "Drew Anderson"
       },
       "home": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": null,
+        "score": 0,
         "pitcher": "Braydon Fisher"
       }
     },
@@ -153,13 +153,13 @@
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Martín Pérez"
       },
       "home": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": null,
+        "score": 0,
         "pitcher": "Kevin Gausman"
       }
     },
@@ -173,13 +173,13 @@
       "away": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Max Fried"
       },
       "home": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": null,
+        "score": 0,
         "pitcher": "Bailey Ober"
       }
     },
@@ -207,19 +207,19 @@
       "gamePk": 822849,
       "gameDate": "2026-09-16T00:05:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Globe Life Field",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Patrick Sandoval"
       },
       "home": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": null,
+        "score": 0,
         "pitcher": "Jacob deGrom"
       }
     },
@@ -227,19 +227,19 @@
       "gamePk": 824143,
       "gameDate": "2026-09-16T00:10:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Daikin Park",
       "away": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": null,
+        "score": 0,
         "pitcher": "Michael Wacha"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": null,
+        "score": 0,
         "pitcher": "Hunter Brown"
       }
     },
@@ -247,7 +247,7 @@
       "gamePk": 824307,
       "gameDate": "2026-09-16T00:40:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Coors Field",
       "away": {
@@ -267,7 +267,7 @@
       "gamePk": 823980,
       "gameDate": "2026-09-16T01:38:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Angel Stadium",
       "away": {
@@ -287,7 +287,7 @@
       "gamePk": 825030,
       "gameDate": "2026-09-16T01:40:00Z",
       "officialDate": "2026-09-15",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Chase Field",
       "away": {
