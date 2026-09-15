@@ -119,6 +119,12 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Build player performance snapshot (L30)
+        working-directory: StatsMLB
+        run: python -u scripts/build_player_performance.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Commit JSON updates
         run: |
           git config user.name  "strikecast-bot"

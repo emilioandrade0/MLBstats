@@ -406,6 +406,35 @@ type CardEvidenceProfile = {
   lower95: number;
 };
 
+type PlayerPerformanceEntry = {
+  kind: 'batter' | 'pitcher';
+  name: string;
+  games: number;
+  label: string;
+  pa?: number;
+  avg?: number | null;
+  ops?: number | null;
+  hr?: number;
+  rbi?: number;
+  runs?: number;
+  sb?: number;
+  kPct?: number | null;
+  bbPct?: number | null;
+  ip?: number | null;
+  era?: number | null;
+  whip?: number | null;
+  k9?: number | null;
+  bb9?: number | null;
+  so?: number;
+};
+
+type PlayerPerformancePayload = {
+  generatedAt: string;
+  windowDays: number;
+  cutoffDate: string;
+  players: Record<string, PlayerPerformanceEntry>;
+};
+
 type CardEvidenceSignal = {
   code: string;
   label: string;
@@ -1091,7 +1120,7 @@ function SourceBadge({ schedule }: { schedule: ScheduleData }) {
   return <span className={`source-badge ${live ? 'source-live' : 'source-fallback'}`}><span className="source-dot" /> {live ? 'CALENDARIO EN VIVO + GUARDADO' : 'RESPALDO GUARDADO'}</span>;
 }
 
-function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, historical = false, frozenPrediction, comparisonMasks, strikecastPick, valuePick, oddsHistory, evidenceProfiles = [], evidenceSignals = [] }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; pickNumber: number; telegramConfigured: boolean; historical?: boolean; frozenPrediction?: FrozenGamePrediction; comparisonMasks?: ComparisonMaskSet | null; strikecastPick?: StrikecastPick; valuePick?: ValuePick; oddsHistory?: OddsHistoryPayload | null; evidenceProfiles?: CardEvidenceProfile[]; evidenceSignals?: CardEvidenceSignal[] }) {
+function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, historical = false, frozenPrediction, comparisonMasks, strikecastPick, valuePick, oddsHistory, evidenceProfiles = [], evidenceSignals = [], playerPerformance = null }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; pickNumber: number; telegramConfigured: boolean; historical?: boolean; frozenPrediction?: FrozenGamePrediction; comparisonMasks?: ComparisonMaskSet | null; strikecastPick?: StrikecastPick; valuePick?: ValuePick; oddsHistory?: OddsHistoryPayload | null; evidenceProfiles?: CardEvidenceProfile[]; evidenceSignals?: CardEvidenceSignal[]; playerPerformance?: PlayerPerformancePayload | null }) {
   const estimate = estimateGame(game, stats, active, odds);
   const homeP = historical ? (frozenPrediction?.homeProbability ?? 0.5) : estimate.homeProbability;
   const awayP = 1 - homeP;
@@ -1103,6 +1132,7 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
   const confidence = gap >= 0.1 ? 'Señal clara' : gap >= 0.05 ? 'Ventaja moderada' : 'Partido cerrado';
   const lineupAvailable = estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable;
   const [modalOpen, setModalOpen] = useState(false);
+  const [performanceOpen, setPerformanceOpen] = useState(false);
   const [selectedSide, setSelectedSide] = useState<'away' | 'home'>(homeP >= 0.5 ? 'home' : 'away');
   const [numberInput, setNumberInput] = useState(String(pickNumber));
   const [sending, setSending] = useState(false);
@@ -1198,7 +1228,7 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
 
   return (
     <article className="game-card game-card-redesigned">
-      <GameComparisonLayout game={game} stats={stats} active={active} odds={odds} estimate={estimate} homeP={homeP} awayP={awayP} favorite={favorite} favoriteProbability={favoriteProbability} historical={historical} comparisonMasks={comparisonMasks} strikecastPick={strikecastPick} valuePick={valuePick} oddsHistory={oddsHistory} evidenceProfiles={evidenceProfiles} evidenceSignals={evidenceSignals} telegramConfigured={telegramConfigured} onOpenTelegram={openTelegram} />
+      <GameComparisonLayout game={game} stats={stats} active={active} odds={odds} estimate={estimate} homeP={homeP} awayP={awayP} favorite={favorite} favoriteProbability={favoriteProbability} historical={historical} comparisonMasks={comparisonMasks} strikecastPick={strikecastPick} valuePick={valuePick} oddsHistory={oddsHistory} evidenceProfiles={evidenceProfiles} evidenceSignals={evidenceSignals} playerPerformance={playerPerformance} telegramConfigured={telegramConfigured} onOpenTelegram={openTelegram} onOpenPerformance={() => setPerformanceOpen(true)} />
       <div className="game-meta"><span>{start} · {game.venue || 'Sede por confirmar'}</span><span className={game.abstractState === 'Live' ? 'status-live' : ''}>{game.status}</span></div>
       <div className="game-matchup">
         <div className="matchup-team"><TeamLogo team={game.away.team} name={game.away.name} className="matchup-logo" /><div><p className="team-code">{game.away.team}</p><p className="team-name">{game.away.name}</p><p className="team-record">{historical ? 'Resultado histórico' : estimate.away ? `${estimate.away.wins}-${estimate.away.losses} · L10 ${estimate.away.last10Wins}-${estimate.away.last10Losses}` : 'Sin registro local'}</p></div></div>
@@ -1261,11 +1291,12 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
           <footer><button type="button" className="telegram-cancel" onClick={() => setModalOpen(false)}>Cancelar</button><button type="button" className="telegram-send" disabled={!telegramConfigured || !canSend || sending || feedback?.kind === 'success'} onClick={() => void sendPick()}><Send size={15} /> {sending ? 'Enviando…' : feedback?.kind === 'success' ? 'Enviado' : 'Enviar a Telegram'}</button></footer>
         </section>
       </div>, document.body)}
+      {performanceOpen && typeof document !== 'undefined' && createPortal(<PlayerPerformanceModal game={game} playerPerformance={playerPerformance} onClose={() => setPerformanceOpen(false)} />, document.body)}
     </article>
   );
 }
 
-function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, awayP, favorite, favoriteProbability, historical, comparisonMasks, strikecastPick, valuePick, oddsHistory, evidenceProfiles, evidenceSignals, telegramConfigured, onOpenTelegram }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; estimate: ReturnType<typeof estimateGame>; homeP: number; awayP: number; favorite: ScheduleGame['home']; favoriteProbability: number; historical: boolean; comparisonMasks?: ComparisonMaskSet | null; strikecastPick?: StrikecastPick; valuePick?: ValuePick; oddsHistory?: OddsHistoryPayload | null; evidenceProfiles: CardEvidenceProfile[]; evidenceSignals: CardEvidenceSignal[]; telegramConfigured: boolean; onOpenTelegram: () => void }) {
+function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, awayP, favorite, favoriteProbability, historical, comparisonMasks, strikecastPick, valuePick, oddsHistory, evidenceProfiles, evidenceSignals, playerPerformance, telegramConfigured, onOpenTelegram, onOpenPerformance }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; estimate: ReturnType<typeof estimateGame>; homeP: number; awayP: number; favorite: ScheduleGame['home']; favoriteProbability: number; historical: boolean; comparisonMasks?: ComparisonMaskSet | null; strikecastPick?: StrikecastPick; valuePick?: ValuePick; oddsHistory?: OddsHistoryPayload | null; evidenceProfiles: CardEvidenceProfile[]; evidenceSignals: CardEvidenceSignal[]; playerPerformance: PlayerPerformancePayload | null; telegramConfigured: boolean; onOpenTelegram: () => void; onOpenPerformance: () => void }) {
   const modelPick = (mask?: number) => {
     if (mask == null) return null;
     const probability = estimateGame(game, stats, maskToActive(mask), odds).homeProbability;
@@ -1339,10 +1370,10 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
   const bestOdds = favorite.team === game.home.team ? odds?.bestHome : odds?.bestAway;
   const line = (team: typeof game.home, coach: typeof estimate.homeCoach, quality: typeof estimate.homeRotationQuality, fatigue: typeof estimate.homeLineupFatigue) => <div className="lineup-table-row" key={team.team}><strong>{team.team}</strong><span>{coach ? `${coach.changes ?? 0} cambio${(coach.changes ?? 0) === 1 ? '' : 's'}` : 'sin datos'}</span><span>{coach ? (coach.top4Changed ? 'cambios en top 4' : 'top 4 intacto') : '-'}</span><span>{quality?.qualityDelta != null ? `${quality.qualityDelta >= 0 ? '+' : ''}${(quality.qualityDelta * 100).toFixed(1)}` : '-'}</span><span>{fatigue?.paLast3Days != null ? `${fatigue.paLast3Days.toFixed(1)} PA/bat` : '-'}</span></div>;
   return <div className="game-comparison-layout">
-    <div className="game-comparison-matchup"><div className="game-meta"><span>{gameTime(game.gameDate)} · {game.venue || 'Sede por confirmar'}</span></div><div className="comparison-team"><TeamLogo team={game.away.team} name={game.away.name} className="matchup-logo" /><strong>{game.away.team}</strong><small>{estimate.away ? `${estimate.away.wins}-${estimate.away.losses}` : '-'}</small><b>{pct(awayP)}</b></div><div className="comparison-probability"><i style={{ width: `${homeP * 100}%` }} /></div><div className="comparison-team"><TeamLogo team={game.home.team} name={game.home.name} className="matchup-logo" /><strong>{game.home.team}</strong><small>{estimate.home ? `${estimate.home.wins}-${estimate.home.losses}` : '-'}</small><b>{pct(homeP)}</b></div><div className="comparison-pitchers"><span>{game.away.pitcher || 'Abridor por confirmar'}</span><span>{game.home.pitcher || 'Abridor por confirmar'}</span></div></div>
+    <div className="game-comparison-matchup"><div className="game-meta"><span>{gameTime(game.gameDate)} · {game.venue || 'Sede por confirmar'}</span></div><div className="comparison-team"><TeamLogo team={game.away.team} name={game.away.name} className="matchup-logo" /><strong>{game.away.team}</strong><small>{estimate.away ? `${estimate.away.wins}-${estimate.away.losses}` : '-'}</small><b>{pct(awayP)}</b></div><div className="comparison-probability"><i style={{ width: `${homeP * 100}%` }} /></div><div className="comparison-team"><TeamLogo team={game.home.team} name={game.home.name} className="matchup-logo" /><strong>{game.home.team}</strong><small>{estimate.home ? `${estimate.home.wins}-${estimate.home.losses}` : '-'}</small><b>{pct(homeP)}</b></div><div className="comparison-pitchers"><span>{game.away.pitcher || 'Abridor por confirmar'}</span><span>{game.home.pitcher || 'Abridor por confirmar'}</span></div>{!historical && <LineupChangesDetails away={{ team: game.away.team, name: game.away.name, coach: estimate.awayCoach }} home={{ team: game.home.team, name: game.home.name, coach: estimate.homeCoach }} playerNames={stats.playerNames} />}</div>
     <div className="game-comparison-models"><p><span>COMPARACIÓN</span><strong>{agreement}/{present.length} de acuerdo</strong></p><div>{tiles.map(tile => <article key={tile.label} className={tile.pick && tile.pick.code !== favorite.team ? 'model-disagrees' : ''}><span>{tile.label}</span><strong>{tile.pick?.code ?? '—'}</strong><b>{pct(tile.pick?.prob)}</b></article>)}</div><small>{contextNote}</small>{favoriteMarketMove != null && Math.abs(favoriteMarketMove) >= 2 && <small className="market-move-note">Mercado: {favoriteMarketMove > 0 ? `+${favoriteMarketMove.toFixed(1)} pp hacia ${favorite.team}` : `${favoriteMarketMove.toFixed(1)} pp contra ${favorite.team}`} desde la primera captura ({odds?.marketMoveBooks ?? 0} casas).</small>}<div className="game-evidence"><span>EVIDENCIA ENCONTRADA</span>{evidenceEmpty ? <p className="caution"><i />Sin señales históricas con muestra suficiente para este perfil de partido.</p> : topSignals.map(signal => <p key={signal.code} className={signal.direction === 'challenges' ? 'caution' : 'support'}><i />{signal.label}: {pct(signal.winRate)} de aciertos históricos (n={signal.sampleSize.toLocaleString('es-MX')}, {signal.delta >= 0 ? '+' : ''}{(signal.delta * 100).toFixed(1)} pp {signal.delta >= 0 ? 'sobre' : 'bajo'} la base).</p>)}{mixedSignal && <p className="caution"><i />Señal mixta: {supportsCount} factor{supportsCount === 1 ? '' : 'es'} respalda{supportsCount === 1 ? '' : 'n'} y {challengesCount} cuestiona{challengesCount === 1 ? '' : 'n'} el pick.</p>}</div></div>
-    <div className="game-comparison-pick"><div><span className="comparison-tier">{tier}</span><b>{strength}</b></div><p><TeamLogo team={favorite.team} name={favorite.name} className="matchup-logo" /><strong>{favorite.team}</strong><small>{pct(favoriteProbability)} estimado</small></p><div className="comparison-best-odds"><span>Mejor momio</span><strong>{bestOdds?.decimal.toFixed(2) ?? '—'}</strong></div>{!historical && <button type="button" onClick={onOpenTelegram}><Send size={15} />{telegramConfigured ? 'Enviar pick' : 'Preparar Telegram'}</button>}</div>
-    {!historical && <div className="game-comparison-lineup"><p><span>CAMBIOS DE LINEUP</span><small>{estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable ? 'Rotación coach, calidad del lineup y carga de 72 h ya aplicadas a la estimación.' : 'Esperando ambas alineaciones confirmadas; se conserva la combinación base.'}</small></p><div className="lineup-table-head"><span>EQUIPO</span><span>TITULARES</span><span>ORDEN AL BATE</span><span>CALIDAD</span><span>CARGA 72 H</span></div>{line(game.away, estimate.awayCoach, estimate.awayRotationQuality, estimate.awayLineupFatigue)}{line(game.home, estimate.homeCoach, estimate.homeRotationQuality, estimate.homeLineupFatigue)}<LineupChangesDetails away={{ team: game.away.team, name: game.away.name, coach: estimate.awayCoach }} home={{ team: game.home.team, name: game.home.name, coach: estimate.homeCoach }} playerNames={stats.playerNames} /></div>}
+    <div className="game-comparison-pick"><div><span className="comparison-tier">{tier}</span><b>{strength}</b></div><p><TeamLogo team={favorite.team} name={favorite.name} className="matchup-logo" /><strong>{favorite.team}</strong><small>{pct(favoriteProbability)} estimado</small></p><div className="comparison-best-odds"><span>Mejor momio</span><strong>{bestOdds?.decimal.toFixed(2) ?? '—'}</strong></div>{!historical && <button type="button" onClick={onOpenTelegram}><Send size={15} />{telegramConfigured ? 'Enviar pick' : 'Preparar Telegram'}</button>}{!historical && <button type="button" className="performance-button" onClick={onOpenPerformance}><Activity size={15} />Rendimiento de jugadores</button>}</div>
+    {!historical && <div className="game-comparison-lineup"><p><span>CAMBIOS DE LINEUP</span><small>{estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable ? 'Rotación coach, calidad del lineup y carga de 72 h ya aplicadas a la estimación.' : 'Esperando ambas alineaciones confirmadas; se conserva la combinación base.'}</small></p><div className="lineup-table-head"><span>EQUIPO</span><span>TITULARES</span><span>ORDEN AL BATE</span><span>CALIDAD</span><span>CARGA 72 H</span></div>{line(game.away, estimate.awayCoach, estimate.awayRotationQuality, estimate.awayLineupFatigue)}{line(game.home, estimate.homeCoach, estimate.homeRotationQuality, estimate.homeLineupFatigue)}</div>}
   </div>;
 }
 
@@ -1366,6 +1397,56 @@ function LineupChangesDetails({ away, home, playerNames }: { away: { team: strin
   const totalIn = (away.coach?.incoming?.length ?? 0) + (home.coach?.incoming?.length ?? 0);
   const totalOut = (away.coach?.outgoing?.length ?? 0) + (home.coach?.outgoing?.length ?? 0);
   return <details className="lineup-changes-details"><summary><ChevronDown size={14} /><span>Ver ausentes ({totalOut}) y nuevos ({totalIn})</span></summary><div className="lineup-changes-body">{awaySection}{homeSection}</div></details>;
+}
+
+function PlayerPerformanceModal({ game, playerPerformance, onClose }: { game: ScheduleGame; playerPerformance: PlayerPerformancePayload | null; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+  const lookup = playerPerformance?.players ?? {};
+  const buildSide = (side: ScheduleGame['home']) => {
+    const lineupPlayers = side.lineup?.confirmed ? side.lineup.players : [];
+    const batters = lineupPlayers.map(player => ({ id: player.playerId, name: player.name, battingOrder: player.battingOrder, entry: lookup[String(player.playerId)] }));
+    const pitcherEntry = Object.values(lookup).find(entry => entry.kind === 'pitcher' && entry.name === side.pitcher);
+    return { team: side.team, name: side.name, pitcher: side.pitcher, pitcherEntry, batters };
+  };
+  const away = buildSide(game.away);
+  const home = buildSide(game.home);
+  const labelClass = (label: string) => {
+    const key = label.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, '-');
+    return `performance-tag performance-tag-${key}`;
+  };
+  const batterRow = (row: { name?: string; battingOrder?: number; entry?: PlayerPerformanceEntry }, index: number) => <div key={`${row.name ?? index}-${index}`} className="performance-row">
+    <div className="performance-slot"><b>{row.battingOrder ?? '—'}</b><span className="performance-name">{row.entry?.name ?? row.name ?? 'Sin nombre'}</span></div>
+    {row.entry ? <>
+      <span className={labelClass(row.entry.label)}>{row.entry.label}</span>
+      <div className="performance-stats"><i>PA</i><b>{row.entry.pa ?? '—'}</b><i>AVG</i><b>{row.entry.avg != null ? row.entry.avg.toFixed(3).replace(/^0/, '') : '—'}</b><i>OPS</i><b>{row.entry.ops != null ? row.entry.ops.toFixed(3).replace(/^0/, '') : '—'}</b><i>HR</i><b>{row.entry.hr ?? '—'}</b><i>K%</i><b>{row.entry.kPct != null ? `${(row.entry.kPct * 100).toFixed(0)}%` : '—'}</b></div>
+    </> : <span className="performance-tag performance-tag-sin-datos">sin datos L30</span>}
+  </div>;
+  const pitcherBlock = (label: string, name: string | null | undefined, entry: PlayerPerformanceEntry | undefined) => name ? <div className="performance-row performance-row-pitcher">
+    <div className="performance-slot"><b>SP</b><span className="performance-name">{name}</span></div>
+    {entry ? <>
+      <span className={labelClass(entry.label)}>{entry.label}</span>
+      <div className="performance-stats"><i>IP</i><b>{entry.ip ?? '—'}</b><i>ERA</i><b>{entry.era != null ? entry.era.toFixed(2) : '—'}</b><i>WHIP</i><b>{entry.whip != null ? entry.whip.toFixed(2) : '—'}</b><i>K/9</i><b>{entry.k9 != null ? entry.k9.toFixed(1) : '—'}</b><i>BB/9</i><b>{entry.bb9 != null ? entry.bb9.toFixed(1) : '—'}</b></div>
+    </> : <span className="performance-tag performance-tag-sin-datos">sin datos L30</span>}
+  </div> : null;
+  const sideBlock = (data: ReturnType<typeof buildSide>) => <section className="performance-team">
+    <header><TeamLogo team={data.team} name={data.name} className="performance-team-logo" /><div><strong>{data.team}</strong><small>{data.name}</small></div></header>
+    {pitcherBlock('Abridor', data.pitcher, data.pitcherEntry)}
+    {data.batters.length ? <>
+      <h5>LINEUP CONFIRMADO</h5>
+      {data.batters.sort((a, b) => (a.battingOrder ?? 99) - (b.battingOrder ?? 99)).map(batterRow)}
+    </> : <p className="performance-waiting">Alineación aún no confirmada. Se mostrará al publicarse.</p>}
+  </section>;
+  return <div className="telegram-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="telegram-modal performance-modal" role="dialog" aria-modal="true" aria-labelledby={`performance-title-${game.gamePk}`}>
+      <header><div><span><Activity size={14} /> Rendimiento L{playerPerformance?.windowDays ?? 30}</span><h3 id={`performance-title-${game.gamePk}`}>Convocados de {game.away.team} vs {game.home.team}</h3></div><button type="button" onClick={onClose} aria-label="Cerrar"><X size={18} /></button></header>
+      <div className="performance-body">{sideBlock(away)}{sideBlock(home)}</div>
+      <footer><small>Ventana: últimos {playerPerformance?.windowDays ?? 30} días · cutoff {playerPerformance?.cutoffDate ?? '—'}. Etiquetas basadas en OPS/K% para bateadores y ERA/WHIP para abridores.</small><button type="button" className="telegram-cancel" onClick={onClose}>Cerrar</button></footer>
+    </section>
+  </div>;
 }
 
 function PairIndicationTable({ signal }: { signal: IndicationPairSignal }) {
@@ -1998,6 +2079,7 @@ export default function HomePage() {
   const [oddsHistory, setOddsHistory] = useState<OddsHistoryPayload | null>(null);
   const [calibratorBuckets, setCalibratorBuckets] = useState<{ key: string; n: number; winRate: number }[] | null>(null);
   const [cardEvidence, setCardEvidence] = useState<CardEvidencePayload | null>(null);
+  const [playerPerformance, setPlayerPerformance] = useState<PlayerPerformancePayload | null>(null);
 
   const refresh = async () => {
     setLoadError('');
@@ -2099,7 +2181,8 @@ export default function HomePage() {
       fetch('/data/odds-predictions-today.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<OddsPredictionsPayload> : null).catch(() => null),
       fetch('/data/odds-history.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<OddsHistoryPayload> : null).catch(() => null),
       fetch('/data/card-evidence.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<CardEvidencePayload> : null).catch(() => null),
-    ]).then(([engine, preds, history, evidence]) => { if (engine) setOddsEngine(engine); if (preds) setOddsPredictions(preds); if (history) setOddsHistory(history); if (evidence) setCardEvidence(evidence); });
+      fetch('/data/player-performance.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<PlayerPerformancePayload> : null).catch(() => null),
+    ]).then(([engine, preds, history, evidence, performance]) => { if (engine) setOddsEngine(engine); if (preds) setOddsPredictions(preds); if (history) setOddsHistory(history); if (evidence) setCardEvidence(evidence); if (performance) setPlayerPerformance(performance); });
     return () => controller.abort();
   }, []);
   useEffect(() => {
@@ -2264,7 +2347,7 @@ export default function HomePage() {
         <div className="market-source-bar"><div><span className={odds?.sourceState === 'REAL DATA' ? 'real' : 'missing'}>{odds?.sourceState === 'REAL DATA' ? 'REAL DATA' : 'SIN DATOS'}</span><strong>Mejores momios disponibles</strong><small>{odds ? `${odds.games.length} juegos · ${odds.selectionRule}` : 'No se pudieron cargar momios'}</small></div><b className={telegramConfigured ? 'connected' : 'pending'}><Send size={13} /> {telegramConfigured ? 'Telegram conectado' : 'Telegram pendiente'}</b></div>
         <div className="factor-toolbar"><span>Factores activos</span>{FACTORS.map((factor) => <button key={factor.key} className={active[factor.key] ? 'factor-active' : ''} title={factor.detail} onClick={() => setActive(current => ({ ...current, [factor.key]: !current[factor.key] }))}>{active[factor.key] && <CheckCircle2 size={14} />}{factor.label}</button>)}</div>
         {isHistoricalSlate && historicalPredictionsLoading && <div className="historical-predictions-loading" role="status"><RefreshCw size={15} className="spin" /><span>Cargando las predicciones congeladas de {slateLabel}…</span></div>}
-        {displaySchedule.games.length ? <div className="games-grid">{displaySchedule.games.map((game, index) => <GameCard key={game.gamePk} game={game} stats={stats} active={active} odds={isHistoricalSlate ? undefined : findCurrentOdds(game, odds)} pickNumber={index + 1} telegramConfigured={telegramConfigured} historical={isHistoricalSlate} frozenPrediction={isHistoricalSlate ? frozenPredictionForMask(frozenGames.get(game.gamePk), activeMask) : undefined} comparisonMasks={comparisonMasks} strikecastPick={strikecastByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} valuePick={valuePicksByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} oddsHistory={oddsHistory} evidenceProfiles={cardEvidence?.profiles ?? []} evidenceSignals={cardEvidence?.signals ?? []} />)}</div> : <div className="empty-state"><CalendarDays size={28} /><h3>No hay juegos disponibles</h3><p>El calendario no devolvió encuentros para {slateLabel}.</p></div>}
+        {displaySchedule.games.length ? <div className="games-grid">{displaySchedule.games.map((game, index) => <GameCard key={game.gamePk} game={game} stats={stats} active={active} odds={isHistoricalSlate ? undefined : findCurrentOdds(game, odds)} pickNumber={index + 1} telegramConfigured={telegramConfigured} historical={isHistoricalSlate} frozenPrediction={isHistoricalSlate ? frozenPredictionForMask(frozenGames.get(game.gamePk), activeMask) : undefined} comparisonMasks={comparisonMasks} strikecastPick={strikecastByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} valuePick={valuePicksByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} oddsHistory={oddsHistory} evidenceProfiles={cardEvidence?.profiles ?? []} evidenceSignals={cardEvidence?.signals ?? []} playerPerformance={playerPerformance} />)}</div> : <div className="empty-state"><CalendarDays size={28} /><h3>No hay juegos disponibles</h3><p>El calendario no devolvió encuentros para {slateLabel}.</p></div>}
       </section>
 
       <ComparisonSection

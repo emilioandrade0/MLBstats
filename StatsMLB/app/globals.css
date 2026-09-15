@@ -877,3 +877,31 @@ body { background: #161826; color: #e9e9ed; }
 .lineup-changes-team li b { color: #9184d9; font-size: 11px; font-weight: 700; text-align: center; }
 .lineup-changes-team li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 620px) { .lineup-changes-body { grid-template-columns: 1fr; } }
+
+.lineup-changes-body { grid-template-columns: 1fr; }
+.game-comparison-pick .performance-button { border-color: #3f424d; color: #cfd3e5; background: transparent; margin-top: 4px; }
+.game-comparison-pick .performance-button:hover { background: #26293a; }
+.performance-modal { max-width: 900px; }
+.performance-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding: 18px 22px; overflow-y: auto; }
+@media (max-width: 700px) { .performance-body { grid-template-columns: 1fr; } }
+.performance-team { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #292b31; border-radius: 8px; background: #1c1e2a; }
+.performance-team header { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; margin-bottom: 4px; }
+.performance-team header strong { display: block; color: #f1f1f5; font-size: 14px; font-weight: 650; }
+.performance-team header small { color: #9397ab; font-size: 11px; }
+.performance-team-logo { width: 30px; height: 30px; }
+.performance-team h5 { margin: 10px 0 4px; color: #9cacdc; font-size: 9px; letter-spacing: .09em; font-weight: 500; }
+.performance-row { display: grid; grid-template-columns: minmax(140px, 1fr) auto; gap: 8px 12px; align-items: center; padding: 8px 10px; border: 1px solid #292b31; border-radius: 6px; background: #202230; }
+.performance-row-pitcher { border-color: #3f3559; background: #241f36; }
+.performance-slot { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 8px; min-width: 0; }
+.performance-slot b { color: #9184d9; font-size: 11px; font-weight: 700; text-align: center; }
+.performance-name { color: #f1f1f5; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.performance-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px 10px; font-variant-numeric: tabular-nums; padding-top: 6px; border-top: 1px solid #292b31; }
+.performance-stats i { color: #7f88aa; font-size: 9px; letter-spacing: .09em; font-style: normal; text-transform: uppercase; }
+.performance-stats b { color: #d2cefd; font-size: 12px; font-weight: 500; }
+.performance-tag { padding: 3px 9px; border-radius: 999px; font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.performance-tag-racha-caliente, .performance-tag-dominante { color: #ffb85c; background: rgba(255, 184, 92, .12); border: 1px solid rgba(255, 184, 92, .35); }
+.performance-tag-solido { color: #b6ecc0; background: rgba(76, 175, 100, .12); border: 1px solid rgba(76, 175, 100, .3); }
+.performance-tag-normal { color: #cfd3e5; background: rgba(207, 211, 229, .08); border: 1px solid rgba(207, 211, 229, .18); }
+.performance-tag-racha-fria, .performance-tag-en-problemas { color: #f4b8b8; background: rgba(220, 80, 80, .12); border: 1px solid rgba(220, 80, 80, .3); }
+.performance-tag-sin-datos { color: #9397ab; background: transparent; border: 1px dashed #3f424d; }
+.performance-waiting { margin: 8px 0 0; color: #9cacdc; font-size: 12px; }
