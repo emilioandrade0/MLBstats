@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-15T01:29:54.994098+00:00",
+  "retrievedAt": "2026-09-15T07:41:36.065925+00:00",
   "games": [
     {
       "gamePk": 824466,
@@ -120,7 +120,7 @@
         "team": "TOR",
         "name": "Toronto Blue Jays",
         "score": null,
-        "pitcher": null
+        "pitcher": "Braydon Fisher"
       }
     },
     {
