@@ -66,7 +66,17 @@ def ip_to_outs(value):
     return whole * 3 + min(frac, 2)
 
 
-def aggregate_batters(frame):
+def talent_tier(ops):
+    if ops is None or (isinstance(ops, float) and np.isnan(ops)):
+        return "regular"
+    if ops >= .800:
+        return "elite"
+    if ops < .680:
+        return "weak"
+    return "regular"
+
+
+def aggregate_batters(frame, season_ops_lookup=None):
     if frame.empty:
         return {}
     agg = frame.groupby(["player_id", "player_name"], dropna=True).agg(
@@ -99,6 +109,9 @@ def aggregate_batters(frame):
         ops = float(row["ops"]) if not np.isnan(row["ops"]) else float("nan")
         k = float(row["kPct"]) if not np.isnan(row["kPct"]) else float("nan")
         avg = float(row["avg"]) if not np.isnan(row["avg"]) else float("nan")
+        season_ops = None
+        if season_ops_lookup is not None:
+            season_ops = season_ops_lookup.get(pid)
         out[pid] = {
             "kind": "batter",
             "name": str(row["player_name"]),
@@ -113,6 +126,8 @@ def aggregate_batters(frame):
             "kPct": None if np.isnan(row["kPct"]) else round(float(row["kPct"]), 3),
             "bbPct": None if np.isnan(row["bbPct"]) else round(float(row["bbPct"]), 3),
             "label": label_batter(ops, k, avg),
+            "seasonOps": None if season_ops is None else round(season_ops, 3),
+            "talentTier": talent_tier(season_ops),
         }
     return out
 
@@ -219,7 +234,21 @@ def main():
         window = all_dates_pb[(all_dates_pb["date"] >= cutoff_start) & (all_dates_pb["date"] <= cutoff_end)]
         batters = window[window["appeared_batting"].fillna(False).astype(bool)]
         pitchers = window[window["appeared_pitching"].fillna(False).astype(bool)]
-        players_out = {**aggregate_batters(batters), **aggregate_pitchers(pitchers)}
+        # season-to-date OPS for talent tier
+        season_frame = all_dates_pb[all_dates_pb["date"] <= cutoff_end]
+        season_batters = season_frame[season_frame["appeared_batting"].fillna(False).astype(bool)]
+        season_agg = season_batters.groupby("player_id", dropna=True).agg(
+            ab=("bat_atBats", "sum"), h=("bat_hits", "sum"), d=("bat_doubles", "sum"),
+            t=("bat_triples", "sum"), hr=("bat_homeRuns", "sum"), bb=("bat_baseOnBalls", "sum"),
+        ).reset_index()
+        season_agg = season_agg[season_agg["ab"] >= 40]
+        tb = season_agg["h"] + season_agg["d"] + 2 * season_agg["t"] + 3 * season_agg["hr"]
+        slg = np.where(season_agg["ab"] > 0, tb / season_agg["ab"], np.nan)
+        obp_den = season_agg["ab"] + season_agg["bb"]
+        obp = np.where(obp_den > 0, (season_agg["h"] + season_agg["bb"]) / obp_den, np.nan)
+        season_ops = obp + slg
+        season_ops_lookup = {str(int(pid)): float(val) for pid, val in zip(season_agg["player_id"], season_ops) if not np.isnan(val)}
+        players_out = {**aggregate_batters(batters, season_ops_lookup), **aggregate_pitchers(pitchers)}
 
         # Team states: last game per team strictly before target_date
         team_states = {}

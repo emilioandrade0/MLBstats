@@ -47,6 +47,43 @@ def label_pitcher(era: float, whip: float, k9: float) -> str:
     return "normal"
 
 
+def compute_season_ops_lookup(pb: pd.DataFrame, games: pd.DataFrame, cutoff_date):
+    """OPS de temporada por jugador hasta ``cutoff_date`` inclusive."""
+    pb_dates = pb.merge(games[["game_pk", "game_date"]], on="game_pk", how="inner")
+    pb_dates = pb_dates[pb_dates["game_date"] <= cutoff_date]
+    if pb_dates.empty:
+        return {}
+    agg = pb_dates.groupby("player_id", dropna=True).agg(
+        ab=("bat_atBats", "sum"),
+        h=("bat_hits", "sum"),
+        d=("bat_doubles", "sum"),
+        t=("bat_triples", "sum"),
+        hr=("bat_homeRuns", "sum"),
+        bb=("bat_baseOnBalls", "sum"),
+    ).reset_index()
+    agg = agg[agg["ab"] >= 40]
+    tb = agg["h"] + agg["d"] + 2 * agg["t"] + 3 * agg["hr"]
+    slg = np.where(agg["ab"] > 0, tb / agg["ab"], np.nan)
+    obp_den = agg["ab"] + agg["bb"]
+    obp = np.where(obp_den > 0, (agg["h"] + agg["bb"]) / obp_den, np.nan)
+    ops = obp + slg
+    out = {}
+    for pid, value in zip(agg["player_id"], ops):
+        if not np.isnan(value):
+            out[str(int(pid))] = float(value)
+    return out
+
+
+def talent_tier_from_ops(ops):
+    if ops is None:
+        return "regular"
+    if ops >= .800:
+        return "elite"
+    if ops < .680:
+        return "weak"
+    return "regular"
+
+
 def main() -> None:
     pb = pd.read_parquet(ROOT / "data" / "processed" / "player_box.parquet")
     games = pd.read_parquet(
@@ -58,6 +95,7 @@ def main() -> None:
     cutoff = latest - pd.Timedelta(days=WINDOW_DAYS)
     active_games = games[games["game_date"] >= cutoff]["game_pk"].astype(int).tolist()
     frame = pb[pb["game_pk"].isin(active_games)].copy()
+    season_ops_lookup = compute_season_ops_lookup(pb, games, latest)
 
     batters = frame[frame["appeared_batting"].fillna(False).astype(bool)].copy()
     bat_agg = batters.groupby(["player_id", "player_name"], dropna=True).agg(
@@ -87,6 +125,7 @@ def main() -> None:
     batters_out = {}
     for _, row in bat_agg[bat_agg["pa"] >= MIN_BAT_PA].iterrows():
         pid = str(int(row["player_id"]))
+        season_ops = season_ops_lookup.get(pid)
         batters_out[pid] = {
             "kind": "batter",
             "name": str(row["player_name"]),
@@ -103,6 +142,8 @@ def main() -> None:
             "label": label_batter(float(row["ops"]) if not np.isnan(row["ops"]) else float("nan"),
                                   float(row["kPct"]) if not np.isnan(row["kPct"]) else float("nan"),
                                   float(row["avg"]) if not np.isnan(row["avg"]) else float("nan")),
+            "seasonOps": None if season_ops is None else round(season_ops, 3),
+            "talentTier": talent_tier_from_ops(season_ops),
         }
 
     pitchers = frame[frame["appeared_pitching"].fillna(False).astype(bool)].copy()

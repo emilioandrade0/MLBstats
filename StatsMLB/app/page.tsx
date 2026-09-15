@@ -426,6 +426,8 @@ type PlayerPerformanceEntry = {
   k9?: number | null;
   bb9?: number | null;
   so?: number;
+  seasonOps?: number | null;
+  talentTier?: 'elite' | 'regular' | 'weak';
 };
 
 type PlayerPerformancePayload = {
@@ -1328,6 +1330,40 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
   };
   const marketPick = marketPickFromCurrentOdds(game, odds, oddsHistory);
   const value = valuePick && valuePick.tier !== 'NEUTRO' && valuePick.pickCode && valuePick.pickProb != null ? { code: alias(valuePick.pickCode), prob: valuePick.pickProb } : null;
+  const performanceLookup = historicalSnapshot?.players ?? playerPerformance?.players ?? {};
+  const alignmentTile = (() => {
+    const homeGames = (estimate.home?.wins ?? 0) + (estimate.home?.losses ?? 0);
+    const awayGames = (estimate.away?.wins ?? 0) + (estimate.away?.losses ?? 0);
+    const homePct = homeGames > 0 ? (estimate.home?.wins ?? 0) / homeGames : .5;
+    const awayPct = awayGames > 0 ? (estimate.away?.wins ?? 0) / awayGames : .5;
+    if (homePct >= .580 || awayPct >= .580) return null;
+    if (!game.home.lineup?.confirmed || !game.away.lineup?.confirmed) return null;
+    const scoreSide = (players: { playerId: number }[]) => {
+      let tilt = 0;
+      let counted = 0;
+      for (const player of players) {
+        const entry = performanceLookup[String(player.playerId)];
+        if (!entry || entry.kind !== 'batter') continue;
+        const tier = entry.talentTier ?? 'regular';
+        const label = entry.label;
+        counted += 1;
+        if (tier === 'elite') {
+          if (label === 'racha caliente') tilt += .020;
+          else if (label === 'racha fría') tilt -= .020;
+        } else if (tier === 'weak') {
+          if (label === 'racha caliente') tilt -= .045;
+          else if (label === 'racha fría') tilt += .030;
+        }
+      }
+      return { tilt, counted };
+    };
+    const home = scoreSide(game.home.lineup.players);
+    const away = scoreSide(game.away.lineup.players);
+    if (home.counted < 5 || away.counted < 5) return null;
+    const rawProb = .5 + (home.tilt - away.tilt);
+    const clampedProb = Math.max(.3, Math.min(.7, rawProb));
+    return pickFromProbability(clampedProb, game);
+  })();
   const tiles = [
     { label: 'BASE', pick: comparisonMasks ? modelPick(comparisonMasks.base) : pickFromProbability(homeP, game) },
     { label: 'DÍAS G.', pick: modelPick(comparisonMasks?.winningDays) },
@@ -1335,6 +1371,7 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
     { label: 'STRIKECAST', pick: strikecastPick?.pick && strikecastPick.pHome != null ? { code: alias(strikecastPick.pick), prob: strikecastPick.pick === strikecastPick.home ? strikecastPick.pHome : 1 - strikecastPick.pHome } : null },
     { label: 'VALUE', pick: value },
     { label: 'MERCADO', pick: marketPick },
+    { label: 'ALINEACIÓN', pick: alignmentTile },
   ];
   const present = tiles.filter((tile): tile is { label: string; pick: { code: string; prob: number } } => tile.pick != null);
   const agreement = present.filter(tile => tile.pick.code === favorite.team).length;
@@ -1386,7 +1423,36 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
   };
   const triggeredSignals = evidenceSignals.filter(signal => liveSignals[signal.code] === true);
   triggeredSignals.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-  const topSignals = triggeredSignals.slice(0, 3);
+  const alignmentSignals: CardEvidenceSignal[] = (() => {
+    const homeGames = (estimate.home?.wins ?? 0) + (estimate.home?.losses ?? 0);
+    const awayGames = (estimate.away?.wins ?? 0) + (estimate.away?.losses ?? 0);
+    const homePct = homeGames > 0 ? (estimate.home?.wins ?? 0) / homeGames : .5;
+    const awayPct = awayGames > 0 ? (estimate.away?.wins ?? 0) / awayGames : .5;
+    if (homePct >= .580 || awayPct >= .580) return [];
+    if (!game.home.lineup?.confirmed || !game.away.lineup?.confirmed) return [];
+    const bucket = (players: { playerId: number }[]) => {
+      const b = { elite_hot: 0, elite_cold: 0, weak_hot: 0, weak_cold: 0 };
+      for (const p of players) {
+        const e = performanceLookup[String(p.playerId)];
+        if (!e || e.kind !== 'batter') continue;
+        const tier = e.talentTier ?? 'regular';
+        if (tier === 'elite' && e.label === 'racha caliente') b.elite_hot++;
+        else if (tier === 'elite' && e.label === 'racha fría') b.elite_cold++;
+        else if (tier === 'weak' && e.label === 'racha caliente') b.weak_hot++;
+        else if (tier === 'weak' && e.label === 'racha fría') b.weak_cold++;
+      }
+      return b;
+    };
+    const fav = favoriteHome ? bucket(game.home.lineup.players) : bucket(game.away.lineup.players);
+    const opp = favoriteHome ? bucket(game.away.lineup.players) : bucket(game.home.lineup.players);
+    const signals: CardEvidenceSignal[] = [];
+    if (fav.elite_hot >= 2) signals.push({ code: 'favorite_elite_bats_hot', label: `Bateadores élite del favorito calientes (${fav.elite_hot})`, direction: 'supports', sampleSize: 449, winRate: .548, baselineWinRate: .529, delta: .019, lower95: .5, upper95: .59 });
+    if (fav.weak_hot >= 2) signals.push({ code: 'favorite_weak_bats_hot_regression', label: `Bateadores débiles del favorito calientes (${fav.weak_hot}) — riesgo de regresión`, direction: 'challenges', sampleSize: 477, winRate: .480, baselineWinRate: .529, delta: -.049, lower95: .43, upper95: .52 });
+    if (opp.weak_hot >= 2) signals.push({ code: 'opponent_weak_bats_hot_regression', label: `Bateadores débiles del rival calientes (${opp.weak_hot}) — regresión a favor`, direction: 'supports', sampleSize: 550, winRate: .556, baselineWinRate: .529, delta: .063, lower95: .51, upper95: .60 });
+    return signals;
+  })();
+  const combinedSignals = [...triggeredSignals, ...alignmentSignals].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  const topSignals = combinedSignals.slice(0, 3);
   const supportsCount = topSignals.filter(s => s.direction === 'supports').length;
   const challengesCount = topSignals.filter(s => s.direction === 'challenges').length;
   const mixedSignal = supportsCount > 0 && challengesCount > 0;
