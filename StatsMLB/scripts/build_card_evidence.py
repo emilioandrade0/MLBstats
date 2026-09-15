@@ -17,7 +17,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "StatsMLB" / "public" / "data" / "card-evidence.json"
 MIN_DISCOVERY = 120
-MIN_VALIDATION = 60
+MIN_VALIDATION = 45
 MIN_DELTA = 0.015
 
 
@@ -55,7 +55,7 @@ def main() -> None:
     validation = frame[frame["game_date"].dt.year.eq(2026)]
     base = float(validation["pick_won"].mean())
     profiles = []
-    for size in (2, 3):
+    for size in (2, 3, 4):
         for combo in itertools.combinations(conditions, size):
             d = discovery.loc[discovery[list(combo)].all(axis=1), "pick_won"]
             v = validation.loc[validation[list(combo)].all(axis=1), "pick_won"]
@@ -69,7 +69,7 @@ def main() -> None:
                 continue
             profiles.append({"conditions": combo, "sampleSize": len(v), "wins": wins, "winRate": rate, "baselineWinRate": base, "delta": delta, "lower95": wilson_lower(wins, len(v))})
     profiles.sort(key=lambda row: (row["delta"], row["sampleSize"], row["lower95"]), reverse=True)
-    payload = {"generatedAt": pd.Timestamp.now("UTC").isoformat(), "method": "Descubrimiento 2024-25; validación walk-forward 2026; perfiles de 2-3 condiciones.", "minimumDiscovery": MIN_DISCOVERY, "minimumValidation": MIN_VALIDATION, "minimumDeltaPoints": MIN_DELTA * 100, "profiles": profiles[:40]}
+    payload = {"generatedAt": pd.Timestamp.now("UTC").isoformat(), "method": "Descubrimiento 2024-25; validación walk-forward 2026; perfiles de 2-4 condiciones.", "minimumDiscovery": MIN_DISCOVERY, "minimumValidation": MIN_VALIDATION, "minimumDeltaPoints": MIN_DELTA * 100, "profiles": profiles[:60]}
     OUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"card evidence: {len(payload['profiles'])} perfiles validados -> {OUT}")
 
