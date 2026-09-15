@@ -881,9 +881,21 @@ body { background: #161826; color: #e9e9ed; }
 .lineup-changes-body { grid-template-columns: 1fr; }
 .game-comparison-pick .performance-button { border-color: #3f424d; color: #cfd3e5; background: transparent; margin-top: 4px; }
 .game-comparison-pick .performance-button:hover { background: #26293a; }
-.performance-modal { max-width: 1240px; width: calc(100vw - 48px); }
-.performance-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; padding: 22px 26px; overflow-y: auto; }
-@media (max-width: 900px) { .performance-body { grid-template-columns: 1fr; } }
+.performance-modal { max-width: 1440px; width: calc(100vw - 48px); }
+.performance-body { display: grid; grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1fr); gap: 22px; padding: 22px 26px; overflow-y: auto; }
+@media (max-width: 1050px) { .performance-body { grid-template-columns: 1fr; } }
+.performance-legend { padding: 16px; border: 1px solid #292b31; border-radius: 10px; background: #1a1c26; align-self: start; position: sticky; top: 0; }
+.performance-legend h5 { margin: 0 0 10px; color: #9184d9; font-size: 10px; letter-spacing: .1em; font-weight: 600; }
+.performance-legend h5 + h5 { margin-top: 16px; }
+.performance-legend dl { margin: 0; display: grid; grid-template-columns: 52px 1fr; gap: 6px 12px; }
+.performance-legend dt { color: #d2cefd; font-weight: 650; font-size: 11px; font-variant-numeric: tabular-nums; }
+.performance-legend dd { margin: 0; color: #b2b6ca; font-size: 11px; line-height: 1.4; }
+.performance-legend dd b { color: #f1f1f5; font-weight: 500; }
+.performance-legend-tags { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.performance-legend-tags li { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 10px; }
+.performance-legend-tags small { color: #9397ab; font-size: 10px; line-height: 1.35; }
+.performance-legend-note { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid #292b31; color: #7f88aa; font-size: 10px; line-height: 1.45; }
+@media (max-width: 1050px) { .performance-legend { position: static; } }
 .performance-team { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid #292b31; border-radius: 10px; background: #1c1e2a; }
 .performance-team header { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; margin-bottom: 4px; }
 .performance-team header strong { display: block; color: #f1f1f5; font-size: 14px; font-weight: 650; }
