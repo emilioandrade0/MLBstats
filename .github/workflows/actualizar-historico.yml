@@ -125,11 +125,18 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Build per-date history snapshots (2026)
+        working-directory: StatsMLB
+        run: python -u scripts/build_history.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Commit JSON updates
         run: |
           git config user.name  "strikecast-bot"
           git config user.email "strikecast-bot@users.noreply.github.com"
           git add StatsMLB/public/data/*.json \
+                  StatsMLB/public/data/history/*.json \
                   data/processed/odds_close.parquet \
                   data/processed/features_market.parquet \
                   data/processed/value_picks.parquet \
