@@ -113,6 +113,12 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Build validated evidence for game cards
+        working-directory: StatsMLB
+        run: python -u scripts/build_card_evidence.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Commit JSON updates
         run: |
           git config user.name  "strikecast-bot"

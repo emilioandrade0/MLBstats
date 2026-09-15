@@ -30,6 +30,12 @@ export type CurrentOddsGame = {
   bestAway: { book: string; american: number; decimal: number } | null;
   bestHome: { book: string; american: number; decimal: number } | null;
   books: { name: string; awayAmerican: number; homeAmerican: number; awayDecimal: number; homeDecimal: number; lastUpdated: string }[];
+  // Positive values mean the observed market moved toward the home team.
+  // It is measured from the first stored quote for the same book, not claimed
+  // to be the sportsbook's official opening line.
+  marketMoveHomePp?: number | null;
+  marketMoveBooks?: number;
+  marketMoveFrom?: string | null;
 };
 
 type D1Env = { DB: D1Database };
@@ -226,15 +232,25 @@ function americanToDecimal(value: number) {
   return value > 0 ? 1 + value / 100 : 1 + 100 / Math.abs(value);
 }
 
+function deVigHomeProbability(homeAmerican: number, awayAmerican: number) {
+  const home = 1 / americanToDecimal(homeAmerican);
+  const away = 1 / americanToDecimal(awayAmerican);
+  return home + away > 0 ? home / (home + away) : null;
+}
+
 export async function readStoredOdds(startDate: string, endDate: string) {
   await ensureDatabase();
   const result = await database.prepare(`SELECT * FROM odds_snapshots
     WHERE official_date BETWEEN ? AND ?
     ORDER BY source_updated_at DESC, captured_at DESC, id DESC`).bind(startDate, endDate).all<D1Row>();
   const latest = new Map<string, D1Row>();
+  const opening = new Map<string, D1Row>();
   for (const row of result.results ?? []) {
     const key = `${row.source_event_id}:${row.sportsbook}`;
     if (!latest.has(key)) latest.set(key, row);
+    // Query is newest → oldest, so the final row seen is the first quote we
+    // captured for this event/book combination.
+    opening.set(key, row);
   }
   const grouped = new Map<string, D1Row[]>();
   for (const row of latest.values()) {
@@ -255,6 +271,16 @@ export async function readStoredOdds(startDate: string, endDate: string) {
     const bestAway = books.reduce<(typeof books)[number] | null>((best, book) => !best || book.awayDecimal > best.awayDecimal ? book : best, null);
     const bestHome = books.reduce<(typeof books)[number] | null>((best, book) => !best || book.homeDecimal > best.homeDecimal ? book : best, null);
     const first = rows[0];
+    const moves = rows.flatMap(row => {
+      const key = `${row.source_event_id}:${row.sportsbook}`;
+      const initial = opening.get(key);
+      if (!initial) return [];
+      const now = deVigHomeProbability(Number(row.home_american), Number(row.away_american));
+      const then = deVigHomeProbability(Number(initial.home_american), Number(initial.away_american));
+      return now == null || then == null ? [] : [now - then];
+    });
+    const marketMoveHomePp = moves.length ? moves.reduce((sum, value) => sum + value, 0) / moves.length * 100 : null;
+    const marketMoveFrom = rows.map(row => opening.get(`${row.source_event_id}:${row.sportsbook}`)?.captured_at).filter((value): value is string => typeof value === 'string').sort()[0] ?? null;
     games.push({
       eventId,
       gamePk: first.game_pk == null ? undefined : Number(first.game_pk),
@@ -266,6 +292,9 @@ export async function readStoredOdds(startDate: string, endDate: string) {
       books,
       bestAway: bestAway ? { book: bestAway.name, american: bestAway.awayAmerican, decimal: bestAway.awayDecimal } : null,
       bestHome: bestHome ? { book: bestHome.name, american: bestHome.homeAmerican, decimal: bestHome.homeDecimal } : null,
+      marketMoveHomePp,
+      marketMoveBooks: moves.length,
+      marketMoveFrom,
     });
   }
   return games.sort((a, b) => a.commenceTime.localeCompare(b.commenceTime));

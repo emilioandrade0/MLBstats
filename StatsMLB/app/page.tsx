@@ -395,6 +395,22 @@ type OddsPredictionsPayload = { generatedAt: string; model: string; note?: strin
 type OddsHistoryEntry = { marketPHome: number; gameDate: string };
 type OddsHistoryPayload = { generatedAt: string; games: Record<string, OddsHistoryEntry> };
 
+type CardEvidenceProfile = {
+  conditions: string[];
+  sampleSize: number;
+  wins: number;
+  winRate: number;
+  baselineWinRate: number;
+  delta: number;
+  lower95: number;
+};
+
+type CardEvidencePayload = {
+  generatedAt: string;
+  minimumValidation: number;
+  profiles: CardEvidenceProfile[];
+};
+
 type BestOdds = { book: string; american: number; decimal: number };
 type CurrentOddsGame = {
   eventId: string;
@@ -405,6 +421,9 @@ type CurrentOddsGame = {
   bestAway: BestOdds | null;
   bestHome: BestOdds | null;
   books?: { name: string; awayDecimal: number | null; homeDecimal: number | null }[];
+  marketMoveHomePp?: number | null;
+  marketMoveBooks?: number;
+  marketMoveFrom?: string | null;
 };
 type OddsData = {
   sourceState: string;
@@ -1050,7 +1069,7 @@ function SourceBadge({ schedule }: { schedule: ScheduleData }) {
   return <span className={`source-badge ${live ? 'source-live' : 'source-fallback'}`}><span className="source-dot" /> {live ? 'CALENDARIO EN VIVO + GUARDADO' : 'RESPALDO GUARDADO'}</span>;
 }
 
-function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, historical = false, frozenPrediction }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; pickNumber: number; telegramConfigured: boolean; historical?: boolean; frozenPrediction?: FrozenGamePrediction }) {
+function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, historical = false, frozenPrediction, comparisonMasks, strikecastPick, valuePick, oddsHistory, evidenceProfiles = [] }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; pickNumber: number; telegramConfigured: boolean; historical?: boolean; frozenPrediction?: FrozenGamePrediction; comparisonMasks?: ComparisonMaskSet | null; strikecastPick?: StrikecastPick; valuePick?: ValuePick; oddsHistory?: OddsHistoryPayload | null; evidenceProfiles?: CardEvidenceProfile[] }) {
   const estimate = estimateGame(game, stats, active, odds);
   const homeP = historical ? (frozenPrediction?.homeProbability ?? 0.5) : estimate.homeProbability;
   const awayP = 1 - homeP;
@@ -1060,6 +1079,7 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
   const played = game.abstractState === 'Final' || game.abstractState === 'Live';
   const gap = Math.abs(homeP - 0.5);
   const confidence = gap >= 0.1 ? 'Señal clara' : gap >= 0.05 ? 'Ventaja moderada' : 'Partido cerrado';
+  const lineupAvailable = estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable;
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSide, setSelectedSide] = useState<'away' | 'home'>(homeP >= 0.5 ? 'home' : 'away');
   const [numberInput, setNumberInput] = useState(String(pickNumber));
@@ -1155,7 +1175,8 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
   };
 
   return (
-    <article className="game-card">
+    <article className="game-card game-card-redesigned">
+      <GameComparisonLayout game={game} stats={stats} active={active} odds={odds} estimate={estimate} homeP={homeP} awayP={awayP} favorite={favorite} favoriteProbability={favoriteProbability} historical={historical} comparisonMasks={comparisonMasks} strikecastPick={strikecastPick} valuePick={valuePick} oddsHistory={oddsHistory} evidenceProfiles={evidenceProfiles} telegramConfigured={telegramConfigured} onOpenTelegram={openTelegram} />
       <div className="game-meta"><span>{start} · {game.venue || 'Sede por confirmar'}</span><span className={game.abstractState === 'Live' ? 'status-live' : ''}>{game.status}</span></div>
       <div className="game-matchup">
         <div className="matchup-team"><TeamLogo team={game.away.team} name={game.away.name} className="matchup-logo" /><div><p className="team-code">{game.away.team}</p><p className="team-name">{game.away.name}</p><p className="team-record">{historical ? 'Resultado histórico' : estimate.away ? `${estimate.away.wins}-${estimate.away.losses} · L10 ${estimate.away.last10Wins}-${estimate.away.last10Losses}` : 'Sin registro local'}</p></div></div>
@@ -1167,13 +1188,21 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
         <div className="probability-head"><div><span className="eyebrow">{historical ? 'Predicción congelada WF' : 'Estimación StatsMLB'}</span><strong className="logo-label"><TeamLogo team={favorite.team} name={favorite.name} className="logo-xs" />{favorite.team} {pct(favoriteProbability)}</strong></div><span className="confidence">{confidence}</span></div>
         <div className="probability-bar" aria-label={`Probabilidad ${game.away.team} ${pct(awayP)}, ${game.home.team} ${pct(homeP)}`}><div className="away-bar" style={{ width: `${awayP * 100}%` }} /><div className="home-bar" style={{ width: `${homeP * 100}%` }} /></div>
         <div className="probability-labels"><span><TeamLogo team={game.away.team} name={game.away.name} className="logo-xxs" />{game.away.team} {pct(awayP)}</span><span><TeamLogo team={game.home.team} name={game.home.name} className="logo-xxs" />{game.home.team} {pct(homeP)}</span></div>
+        {!historical && <div className="game-insight-grid" aria-label="Contexto real del partido">
+          <div><span>FORMA L10</span><strong>{estimate.away ? `${estimate.away.last10Wins}-${estimate.away.last10Losses}` : '-'} · {estimate.home ? `${estimate.home.last10Wins}-${estimate.home.last10Losses}` : '-'}</strong><small>{game.away.team} · {game.home.team}</small></div>
+          <div><span>MERCADO</span><strong>{odds?.bestAway?.decimal.toFixed(2) ?? '-'} · {odds?.bestHome?.decimal.toFixed(2) ?? '-'}</strong><small>{odds ? 'mejor precio disponible' : 'sin momios enlazados'}</small></div>
+          <div><span>SERIE PREVIA</span><strong>{estimate.awayContext.code === 'none' ? 'Sin señal' : estimate.awayContext.label}</strong><small>{game.away.team} · {estimate.homeContext.code === 'none' ? 'sin señal' : estimate.homeContext.label}</small></div>
+          <div><span>LINEUP</span><strong>{lineupAvailable ? 'Con cobertura' : 'Pendiente'}</strong><small>{lineupAvailable ? 'cambios, calidad y carga aplicados' : 'se conserva la combinación base'}</small></div>
+        </div>}
       </>}
       {historical ? <div className="historical-result-row"><div><span>RESULTADO FINAL</span><strong>{game.away.score != null && game.home.score != null ? `${game.away.team} ${game.away.score}–${game.home.score} ${game.home.team}` : 'Marcador pendiente'}</strong></div>{frozenPrediction && <small><ShieldCheck size={13} /> Corte {frozenPrediction.foldMonth} · entrenado hasta {frozenPrediction.trainedThrough}</small>}</div> : <>
         <div className="odds-pick-row"><div><span>MEJOR MOMIO</span>{odds ? <strong className="odds-team-line"><span><TeamLogo team={game.away.team} name={game.away.name} className="logo-xxs" />{game.away.team} {odds.bestAway?.decimal.toFixed(2) ?? '—'}</span><i>·</i><span><TeamLogo team={game.home.team} name={game.home.name} className="logo-xxs" />{game.home.team} {odds.bestHome?.decimal.toFixed(2) ?? '—'}</span></strong> : <strong>Sin momios enlazados</strong>}</div><button type="button" onClick={openTelegram} title={played ? 'El partido ya inició; el pick se enviará de todos modos.' : undefined}><Send size={14} /> {telegramConfigured ? 'Enviar pick' : 'Preparar Telegram'}</button></div>
         <div className="context-row"><span title={estimate.awayContext.label}><TeamLogo team={game.away.team} name={game.away.name} className="logo-xxs" />{game.away.team}: {estimate.awayContext.code === 'none' ? 'sin señal de serie' : estimate.awayContext.label}</span><span title={estimate.homeContext.label}><TeamLogo team={game.home.team} name={game.home.name} className="logo-xxs" />{game.home.team}: {estimate.homeContext.code === 'none' ? 'sin señal de serie' : estimate.homeContext.label}</span></div>
-        {active.coachRotationTest && <div className={`coach-live-signal ${estimate.coachRotationAvailable ? 'available' : 'pending'}`}><span>Rotación coach</span><strong>{estimate.coachRotationAvailable ? `${game.away.team} ${estimate.awayCoach?.changes ?? 0} cambios · ${game.home.team} ${estimate.homeCoach?.changes ?? 0} cambios` : 'Esperando ambas alineaciones confirmadas · se conserva el modelo base'}</strong></div>}
-        {active.rotationQualityTest && <div className={`coach-live-signal quality-live-signal ${estimate.rotationQualityAvailable ? 'available' : 'pending'}`}><span>Calidad rotación</span><strong>{estimate.rotationQualityAvailable ? `${game.away.team} ${qualityDirection(estimate.awayRotationQuality?.qualityDelta)} · ${game.home.team} ${qualityDirection(estimate.homeRotationQuality?.qualityDelta)}` : 'Esperando lineups y valoraciones suficientes · se conserva la combinación disponible'}</strong></div>}
-        {active.lineupFatigueTest && <div className={`coach-live-signal ${estimate.lineupFatigueAvailable ? 'available' : 'pending'}`}><span>Fatiga lineup</span><strong>{estimate.lineupFatigueAvailable ? `${game.away.team} ${fatigueDirection(estimate.awayLineupFatigue?.weightedFatigue)} (${estimate.awayLineupFatigue?.paLast3Days.toFixed(1)} PA/ bateador) · ${game.home.team} ${fatigueDirection(estimate.homeLineupFatigue?.weightedFatigue)} (${estimate.homeLineupFatigue?.paLast3Days.toFixed(1)} PA/ bateador)` : 'Esperando ambos lineups y al menos siete bateadores con historial · se conserva la combinación disponible'}</strong></div>}
+        {(active.coachRotationTest || active.rotationQualityTest || active.lineupFatigueTest) && <div className="lineup-insights"><div className="lineup-insights-head"><span>CAMBIOS DE LINEUP</span><small>{lineupAvailable ? 'La señal disponible ya está incorporada en la estimación.' : 'Esperando ambas alineaciones confirmadas; se conserva la combinación base.'}</small></div>
+          {active.coachRotationTest && <div className={`coach-live-signal ${estimate.coachRotationAvailable ? 'available' : 'pending'}`}><span>Rotación coach</span><strong>{estimate.coachRotationAvailable ? `${game.away.team} ${estimate.awayCoach?.changes ?? 0} cambios · ${game.home.team} ${estimate.homeCoach?.changes ?? 0} cambios` : 'Sin confirmación de ambas alineaciones'}</strong></div>}
+          {active.rotationQualityTest && <div className={`coach-live-signal quality-live-signal ${estimate.rotationQualityAvailable ? 'available' : 'pending'}`}><span>Calidad rotación</span><strong>{estimate.rotationQualityAvailable ? `${game.away.team} ${qualityDirection(estimate.awayRotationQuality?.qualityDelta)} · ${game.home.team} ${qualityDirection(estimate.homeRotationQuality?.qualityDelta)}` : 'Sin valoraciones suficientes de ambos lineups'}</strong></div>}
+          {active.lineupFatigueTest && <div className={`coach-live-signal ${estimate.lineupFatigueAvailable ? 'available' : 'pending'}`}><span>Carga 72 h</span><strong>{estimate.lineupFatigueAvailable ? `${game.away.team} ${fatigueDirection(estimate.awayLineupFatigue?.weightedFatigue)} (${estimate.awayLineupFatigue?.paLast3Days.toFixed(1)} PA/bat) · ${game.home.team} ${fatigueDirection(estimate.homeLineupFatigue?.weightedFatigue)} (${estimate.homeLineupFatigue?.paLast3Days.toFixed(1)} PA/bat)` : 'Sin historial suficiente de ambos lineups'}</strong></div>}
+        </div>}
       </>}
       {modalOpen && typeof document !== 'undefined' && createPortal(<div className="telegram-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalOpen(false); }}>
         <section className="telegram-modal" role="dialog" aria-modal="true" aria-labelledby={`telegram-title-${game.gamePk}`}>
@@ -1212,6 +1241,70 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
       </div>, document.body)}
     </article>
   );
+}
+
+function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, awayP, favorite, favoriteProbability, historical, comparisonMasks, strikecastPick, valuePick, oddsHistory, evidenceProfiles, telegramConfigured, onOpenTelegram }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; estimate: ReturnType<typeof estimateGame>; homeP: number; awayP: number; favorite: ScheduleGame['home']; favoriteProbability: number; historical: boolean; comparisonMasks?: ComparisonMaskSet | null; strikecastPick?: StrikecastPick; valuePick?: ValuePick; oddsHistory?: OddsHistoryPayload | null; evidenceProfiles: CardEvidenceProfile[]; telegramConfigured: boolean; onOpenTelegram: () => void }) {
+  const modelPick = (mask?: number) => {
+    if (mask == null) return null;
+    const probability = estimateGame(game, stats, maskToActive(mask), odds).homeProbability;
+    return pickFromProbability(probability, game);
+  };
+  const marketPick = marketPickFromCurrentOdds(game, odds, oddsHistory);
+  const value = valuePick && valuePick.tier !== 'NEUTRO' && valuePick.pickCode && valuePick.pickProb != null ? { code: alias(valuePick.pickCode), prob: valuePick.pickProb } : null;
+  const tiles = [
+    { label: 'BASE', pick: comparisonMasks ? modelPick(comparisonMasks.base) : pickFromProbability(homeP, game) },
+    { label: 'DÍAS G.', pick: modelPick(comparisonMasks?.winningDays) },
+    { label: 'JORNADA 15', pick: modelPick(comparisonMasks?.fifteenGames) },
+    { label: 'STRIKECAST', pick: strikecastPick?.pick && strikecastPick.pHome != null ? { code: alias(strikecastPick.pick), prob: strikecastPick.pick === strikecastPick.home ? strikecastPick.pHome : 1 - strikecastPick.pHome } : null },
+    { label: 'VALUE', pick: value },
+    { label: 'MERCADO', pick: marketPick },
+  ];
+  const present = tiles.filter((tile): tile is { label: string; pick: { code: string; prob: number } } => tile.pick != null);
+  const agreement = present.filter(tile => tile.pick.code === favorite.team).length;
+  const tier = agreement === present.length && present.length >= 5 && favoriteProbability >= .60 ? 'LOCK' : agreement >= Math.max(4, present.length - 1) ? 'FUERTE' : agreement >= 3 ? 'JUEGA' : 'PASAR';
+  const strength = tier === 'LOCK' ? '●●●' : tier === 'FUERTE' ? '●●○' : tier === 'JUEGA' ? '●○○' : '○○○';
+  const swept = estimate.awayContext.code === 'swept' ? game.away.team : estimate.homeContext.code === 'swept' ? game.home.team : null;
+  const marketAlreadyPaid = marketPick?.code === favorite.team && marketPick.prob >= favoriteProbability + .025;
+  const contextNote = swept
+    ? `${swept} llega barrido 0-3${marketAlreadyPaid ? '; el mercado ya pagó parte del favoritismo.' : '.'}`
+    : marketAlreadyPaid
+      ? `El mercado confirma a ${favorite.team}; parte del favoritismo ya está incorporado en el precio.`
+      : agreement === present.length && present.length >= 5
+        ? `Consenso unánime y ${marketPick ? `mercado ${marketPick.code === favorite.team ? 'alineado' : 'en desacuerdo'}` : 'sin mercado disponible'}.`
+        : `Consenso parcial: ${agreement}/${present.length} modelos favorecen a ${favorite.team}.`;
+  const favoriteHome = favorite.team === game.home.team;
+  const direction = favoriteHome ? 1 : -1;
+  const favoriteMarketMove = odds?.marketMoveHomePp == null ? null : odds.marketMoveHomePp * direction;
+  const liveConditions: Record<string, boolean> = {
+    fav_home: favoriteHome,
+    model_market_agree: Boolean(marketPick && marketPick.code === favorite.team),
+    model_edge_3: Boolean(marketPick && (favoriteProbability - marketPick.prob) >= .03),
+    favorite_form: ((estimate.home?.last10Pct ?? .5) - (estimate.away?.last10Pct ?? .5)) * direction >= .08,
+    favorite_run_diff: ((estimate.home?.runDiffPerGame ?? 0) - (estimate.away?.runDiffPerGame ?? 0)) * direction >= .35,
+    favorite_rest: (estimate.values.days_since_last_game_diff ?? 0) * direction >= 1,
+    market_move_favorite_2: favoriteMarketMove != null && favoriteMarketMove >= 2,
+  };
+  const validatedEvidence = evidenceProfiles.filter(profile => profile.conditions.every(condition => liveConditions[condition] === true)).slice(0, 1);
+  const evidenceSummary = (profile: CardEvidenceProfile) => {
+    const pieces = [
+      profile.conditions.includes('fav_home') ? 'localía' : '',
+      profile.conditions.includes('model_market_agree') ? 'mercado alineado' : '',
+      profile.conditions.includes('model_edge_3') ? 'ventaja de modelo vs mercado' : '',
+      profile.conditions.includes('favorite_form') ? 'forma reciente' : '',
+      profile.conditions.includes('favorite_run_diff') ? 'diferencial de carreras reciente' : '',
+      profile.conditions.includes('favorite_rest') ? 'descanso relativo' : '',
+      profile.conditions.includes('market_move_favorite_2') ? 'movimiento de momio a favor' : '',
+    ].filter(Boolean);
+    return pieces.join(' + ');
+  };
+  const bestOdds = favorite.team === game.home.team ? odds?.bestHome : odds?.bestAway;
+  const line = (team: typeof game.home, coach: typeof estimate.homeCoach, quality: typeof estimate.homeRotationQuality, fatigue: typeof estimate.homeLineupFatigue) => <div className="lineup-table-row" key={team.team}><strong>{team.team}</strong><span>{coach ? `${coach.changes ?? 0} cambio${(coach.changes ?? 0) === 1 ? '' : 's'}` : 'sin datos'}</span><span>{coach ? (coach.top4Changed ? 'cambios en top 4' : 'top 4 intacto') : '-'}</span><span>{quality?.qualityDelta != null ? `${quality.qualityDelta >= 0 ? '+' : ''}${(quality.qualityDelta * 100).toFixed(1)}` : '-'}</span><span>{fatigue?.paLast3Days != null ? `${fatigue.paLast3Days.toFixed(1)} PA/bat` : '-'}</span></div>;
+  return <div className="game-comparison-layout">
+    <div className="game-comparison-matchup"><div className="game-meta"><span>{gameTime(game.gameDate)} · {game.venue || 'Sede por confirmar'}</span></div><div className="comparison-team"><TeamLogo team={game.away.team} name={game.away.name} className="matchup-logo" /><strong>{game.away.team}</strong><small>{estimate.away ? `${estimate.away.wins}-${estimate.away.losses}` : '-'}</small><b>{pct(awayP)}</b></div><div className="comparison-probability"><i style={{ width: `${homeP * 100}%` }} /></div><div className="comparison-team"><TeamLogo team={game.home.team} name={game.home.name} className="matchup-logo" /><strong>{game.home.team}</strong><small>{estimate.home ? `${estimate.home.wins}-${estimate.home.losses}` : '-'}</small><b>{pct(homeP)}</b></div><div className="comparison-pitchers"><span>{game.away.pitcher || 'Abridor por confirmar'}</span><span>{game.home.pitcher || 'Abridor por confirmar'}</span></div></div>
+    <div className="game-comparison-models"><p><span>COMPARACIÓN</span><strong>{agreement}/{present.length} de acuerdo</strong></p><div>{tiles.map(tile => <article key={tile.label} className={tile.pick && tile.pick.code !== favorite.team ? 'model-disagrees' : ''}><span>{tile.label}</span><strong>{tile.pick?.code ?? '—'}</strong><b>{pct(tile.pick?.prob)}</b></article>)}</div><small>{contextNote}</small>{favoriteMarketMove != null && Math.abs(favoriteMarketMove) >= 2 && <small className="market-move-note">Mercado: {favoriteMarketMove > 0 ? `+${favoriteMarketMove.toFixed(1)} pp hacia ${favorite.team}` : `${favoriteMarketMove.toFixed(1)} pp contra ${favorite.team}`} desde la primera captura ({odds?.marketMoveBooks ?? 0} casas).</small>}{validatedEvidence.length > 0 && <div className="game-evidence"><span>EVIDENCIA ENCONTRADA</span>{validatedEvidence.map(profile => <p key={profile.conditions.join('-')} className="support"><i />{evidenceSummary(profile)}: {pct(profile.winRate)} (n={profile.sampleSize}), +{(profile.delta * 100).toFixed(1)} pp sobre la base.</p>)}</div>}</div>
+    <div className="game-comparison-pick"><div><span className="comparison-tier">{tier}</span><b>{strength}</b></div><p><TeamLogo team={favorite.team} name={favorite.name} className="matchup-logo" /><strong>{favorite.team}</strong><small>{pct(favoriteProbability)} estimado</small></p><div className="comparison-best-odds"><span>Mejor momio</span><strong>{bestOdds?.decimal.toFixed(2) ?? '—'}</strong></div>{!historical && <button type="button" onClick={onOpenTelegram}><Send size={15} />{telegramConfigured ? 'Enviar pick' : 'Preparar Telegram'}</button>}</div>
+    {!historical && <div className="game-comparison-lineup"><p><span>CAMBIOS DE LINEUP</span><small>{estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable ? 'Rotación coach, calidad del lineup y carga de 72 h ya aplicadas a la estimación.' : 'Esperando ambas alineaciones confirmadas; se conserva la combinación base.'}</small></p><div className="lineup-table-head"><span>EQUIPO</span><span>TITULARES</span><span>ORDEN AL BATE</span><span>CALIDAD</span><span>CARGA 72 H</span></div>{line(game.away, estimate.awayCoach, estimate.awayRotationQuality, estimate.awayLineupFatigue)}{line(game.home, estimate.homeCoach, estimate.homeRotationQuality, estimate.homeLineupFatigue)}</div>}
+  </div>;
 }
 
 function PairIndicationTable({ signal }: { signal: IndicationPairSignal }) {
@@ -1843,6 +1936,7 @@ export default function HomePage() {
   const [oddsPredictions, setOddsPredictions] = useState<OddsPredictionsPayload | null>(null);
   const [oddsHistory, setOddsHistory] = useState<OddsHistoryPayload | null>(null);
   const [calibratorBuckets, setCalibratorBuckets] = useState<{ key: string; n: number; winRate: number }[] | null>(null);
+  const [cardEvidence, setCardEvidence] = useState<CardEvidencePayload | null>(null);
 
   const refresh = async () => {
     setLoadError('');
@@ -1943,7 +2037,8 @@ export default function HomePage() {
       fetch('/data/odds-walkforward.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<OddsEnginePayload> : null).catch(() => null),
       fetch('/data/odds-predictions-today.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<OddsPredictionsPayload> : null).catch(() => null),
       fetch('/data/odds-history.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<OddsHistoryPayload> : null).catch(() => null),
-    ]).then(([engine, preds, history]) => { if (engine) setOddsEngine(engine); if (preds) setOddsPredictions(preds); if (history) setOddsHistory(history); });
+      fetch('/data/card-evidence.json', { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() as Promise<CardEvidencePayload> : null).catch(() => null),
+    ]).then(([engine, preds, history, evidence]) => { if (engine) setOddsEngine(engine); if (preds) setOddsPredictions(preds); if (history) setOddsHistory(history); if (evidence) setCardEvidence(evidence); });
     return () => controller.abort();
   }, []);
   useEffect(() => {
@@ -2078,7 +2173,23 @@ export default function HomePage() {
     window.setTimeout(() => setCopyFeedback(null), 3500);
   };
   return (
-    <main>
+    <main className="app-shell">
+      <aside className="app-sidebar" aria-label="Navegación principal">
+        <a className="sidebar-brand" href="#inicio"><span className="sidebar-brand-logo" aria-hidden="true" /><strong>STRIKE<span>CAST</span></strong><small>STATSMLB · SERIE & CONTEXTO</small></a>
+        <nav className="sidebar-nav">
+          <a className="sidebar-nav-active" href="#hoy"><Activity size={16} />Picks de hoy</a>
+          <a href="#rendimiento"><CalendarDays size={16} />Calendario WF</a>
+          <a href="#laboratorio"><FlaskConical size={16} />Laboratorio</a>
+          <a href="#auditoria-juego-anterior"><BarChart3 size={16} />Auditorías</a>
+          <a href="#rankings"><Trophy size={16} />Equipos</a>
+        </nav>
+        <div className="sidebar-footer">
+          <div className="sidebar-combination"><span>COMBINACIÓN ACTIVA</span><strong>{FACTORS.filter(factor => active[factor.key]).map(factor => factor.label.replace(' (prueba)', '')).join(' · ') || 'Sin factores activos'}</strong><small>{pct(stats.model.metrics.accuracy)} walk-forward</small></div>
+          <p className={telegramConfigured ? 'sidebar-status connected' : 'sidebar-status'}><i />{telegramConfigured ? 'Telegram conectado' : 'Telegram pendiente'}</p>
+          <small>Histórico cerrado hasta {stats.cutoffDate}. Estimaciones informativas, no garantías.</small>
+        </div>
+      </aside>
+      <div className="app-content">
       <header className="topbar"><a className="brand" href="#inicio"><span className="brand-mark"><Baseball size={20} /></span><span><strong>StatsMLB</strong><small>Serie & contexto</small></span></a><nav><a href="#hoy">Juegos de hoy</a><a href="#comparacion">Comparación</a><a href="#rendimiento">Rendimiento</a><a href="#auditoria-temporada-l10">Forma L10</a><a href="#barridas-walkforward">Barridas WF</a><a href="#rankings">Rankings</a><a href="#escenarios">Escenarios</a></nav><button className="refresh-data-button" onClick={() => void updateDailyData()} disabled={updatingDaily} title="Guardar resultados y cargar hoy, mañana y momios"><RefreshCw size={16} className={updatingDaily ? 'spin' : ''} /><span>{updatingDaily ? 'Actualizando…' : 'Actualizar datos'}</span></button></header>
 
       <section className="hero" id="inicio"><div className="hero-copy"><span className="kicker"><ShieldCheck size={15} /> Histórico local 2023–2026</span><h1>El partido de hoy,<br /><em>puesto en contexto.</em></h1><p>Una lectura explicable de forma, carreras, localía, consenso de mercado y descanso. El resultado es una estimación de victoria, no una garantía.</p><div className="hero-actions"><a className="primary-button" href="#hoy">Ver juegos de hoy <ChevronDown size={17} /></a><SourceBadge schedule={schedule} /></div></div><div className="hero-panel"><div className="hero-panel-head"><span>RADAR HISTÓRICO</span><Activity size={18} /></div><div className="big-stat"><strong>{stats.seriesSummary.swept_three_game_series}</strong><span>barridas detectadas</span></div><div className="hero-grid"><div><strong>{stats.seriesSummary.eligible_three_game_series.toLocaleString('es-MX')}</strong><span>series exactas de 3</span></div><div><strong>{stats.coverage.final_regular_games.toLocaleString('es-MX')}</strong><span>juegos finales</span></div><div><strong>{pct(stats.afterSweepSummary.next_game_win_rate)}</strong><span>ganan tras barrer</span></div><div><strong>{pct(stats.afterSweptSummary.next_game_win_rate)}</strong><span>ganan tras ser barridos</span></div></div><div className="data-cutoff"><CheckCircle2 size={15} /> Resultados cerrados hasta {stats.cutoffDate}</div></div></section>
@@ -2092,7 +2203,7 @@ export default function HomePage() {
         <div className="market-source-bar"><div><span className={odds?.sourceState === 'REAL DATA' ? 'real' : 'missing'}>{odds?.sourceState === 'REAL DATA' ? 'REAL DATA' : 'SIN DATOS'}</span><strong>Mejores momios disponibles</strong><small>{odds ? `${odds.games.length} juegos · ${odds.selectionRule}` : 'No se pudieron cargar momios'}</small></div><b className={telegramConfigured ? 'connected' : 'pending'}><Send size={13} /> {telegramConfigured ? 'Telegram conectado' : 'Telegram pendiente'}</b></div>
         <div className="factor-toolbar"><span>Factores activos</span>{FACTORS.map((factor) => <button key={factor.key} className={active[factor.key] ? 'factor-active' : ''} title={factor.detail} onClick={() => setActive(current => ({ ...current, [factor.key]: !current[factor.key] }))}>{active[factor.key] && <CheckCircle2 size={14} />}{factor.label}</button>)}</div>
         {isHistoricalSlate && historicalPredictionsLoading && <div className="historical-predictions-loading" role="status"><RefreshCw size={15} className="spin" /><span>Cargando las predicciones congeladas de {slateLabel}…</span></div>}
-        {displaySchedule.games.length ? <div className="games-grid">{displaySchedule.games.map((game, index) => <GameCard key={game.gamePk} game={game} stats={stats} active={active} odds={isHistoricalSlate ? undefined : findCurrentOdds(game, odds)} pickNumber={index + 1} telegramConfigured={telegramConfigured} historical={isHistoricalSlate} frozenPrediction={isHistoricalSlate ? frozenPredictionForMask(frozenGames.get(game.gamePk), activeMask) : undefined} />)}</div> : <div className="empty-state"><CalendarDays size={28} /><h3>No hay juegos disponibles</h3><p>El calendario no devolvió encuentros para {slateLabel}.</p></div>}
+        {displaySchedule.games.length ? <div className="games-grid">{displaySchedule.games.map((game, index) => <GameCard key={game.gamePk} game={game} stats={stats} active={active} odds={isHistoricalSlate ? undefined : findCurrentOdds(game, odds)} pickNumber={index + 1} telegramConfigured={telegramConfigured} historical={isHistoricalSlate} frozenPrediction={isHistoricalSlate ? frozenPredictionForMask(frozenGames.get(game.gamePk), activeMask) : undefined} comparisonMasks={comparisonMasks} strikecastPick={strikecastByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} valuePick={valuePicksByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} oddsHistory={oddsHistory} evidenceProfiles={cardEvidence?.profiles ?? []} />)}</div> : <div className="empty-state"><CalendarDays size={28} /><h3>No hay juegos disponibles</h3><p>El calendario no devolvió encuentros para {slateLabel}.</p></div>}
       </section>
 
       <ComparisonSection
@@ -2201,6 +2312,7 @@ export default function HomePage() {
       )}
 
       <footer className="footer"><div className="brand"><span className="brand-mark"><Baseball size={18} /></span><span><strong>StatsMLB</strong><small>Datos antes que intuición</small></span></div><p>Fuente histórica: archivos locales STRIKECAST. Calendario: MLB StatsAPI. Estimaciones informativas, no garantías.</p><a href="#inicio">Volver arriba <TrendingUp size={15} /></a></footer>
+      </div>
     </main>
   );
 }
