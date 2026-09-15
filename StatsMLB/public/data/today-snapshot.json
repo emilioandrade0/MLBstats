@@ -1,206 +1,306 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-14T22:32:47.048250+00:00",
+  "retrievedAt": "2026-09-15T01:29:54.994098+00:00",
   "games": [
     {
-      "gamePk": 824465,
-      "gameDate": "2026-09-14T22:40:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Warmup",
-      "abstractState": "Live",
+      "gamePk": 824466,
+      "gameDate": "2026-09-15T22:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
+      "abstractState": "Preview",
       "venue": "Great American Ball Park",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": 0,
-        "pitcher": "Tarik Skubal"
+        "score": null,
+        "pitcher": "Yoshinobu Yamamoto"
       },
       "home": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": 0,
-        "pitcher": "Nick Lodolo"
+        "score": null,
+        "pitcher": "Rhett Lowder"
       }
     },
     {
-      "gamePk": 824386,
-      "gameDate": "2026-09-14T22:40:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Warmup",
-      "abstractState": "Live",
+      "gamePk": 822925,
+      "gameDate": "2026-09-15T22:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Tropicana Field",
+      "away": {
+        "team": "ATH",
+        "name": "Athletics",
+        "score": null,
+        "pitcher": "Jack Perkins"
+      },
+      "home": {
+        "team": "TB",
+        "name": "Tampa Bay Rays",
+        "score": null,
+        "pitcher": "Griffin Jax"
+      }
+    },
+    {
+      "gamePk": 824384,
+      "gameDate": "2026-09-15T22:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
+      "abstractState": "Preview",
       "venue": "Progressive Field",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": 0,
-        "pitcher": "Sean Newcomb"
+        "score": null,
+        "pitcher": "Davis Martin"
       },
       "home": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": 0,
-        "pitcher": "Gavin Williams"
+        "score": null,
+        "pitcher": "Foster Griffin"
       }
     },
     {
-      "gamePk": 822765,
-      "gameDate": "2026-09-14T23:07:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 823333,
+      "gameDate": "2026-09-15T22:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "PNC Park",
+      "away": {
+        "team": "MIL",
+        "name": "Milwaukee Brewers",
+        "score": null,
+        "pitcher": "Jacob Misiorowski"
+      },
+      "home": {
+        "team": "PIT",
+        "name": "Pittsburgh Pirates",
+        "score": null,
+        "pitcher": "Lake Bachar"
+      }
+    },
+    {
+      "gamePk": 822683,
+      "gameDate": "2026-09-15T22:45:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Nationals Park",
+      "away": {
+        "team": "PHI",
+        "name": "Philadelphia Phillies",
+        "score": null,
+        "pitcher": "Cristopher Sánchez"
+      },
+      "home": {
+        "team": "WSH",
+        "name": "Washington Nationals",
+        "score": null,
+        "pitcher": "Jackson Kent"
+      }
+    },
+    {
+      "gamePk": 822762,
+      "gameDate": "2026-09-15T23:07:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Rogers Centre",
       "away": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 0,
-        "pitcher": "Troy Melton"
+        "score": null,
+        "pitcher": "Drew Anderson"
       },
       "home": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": 0,
-        "pitcher": "José Soriano"
+        "score": null,
+        "pitcher": null
       }
     },
     {
-      "gamePk": 823575,
-      "gameDate": "2026-09-14T23:10:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 823574,
+      "gameDate": "2026-09-15T23:10:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Citi Field",
       "away": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": 0,
-        "pitcher": "Brandon Young"
+        "score": null,
+        "pitcher": "Shane Baz"
       },
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": 0,
-        "pitcher": "Jonah Tong"
+        "score": null,
+        "pitcher": "Sean Manaea"
       }
     },
     {
-      "gamePk": 824629,
-      "gameDate": "2026-09-14T23:40:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 824627,
+      "gameDate": "2026-09-15T23:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Wrigley Field",
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": 0,
-        "pitcher": "Reynaldo López"
+        "score": null,
+        "pitcher": "Martín Pérez"
       },
       "home": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": 0,
-        "pitcher": "David Peterson"
+        "score": null,
+        "pitcher": "Kevin Gausman"
       }
     },
     {
-      "gamePk": 823656,
-      "gameDate": "2026-09-14T23:40:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 823654,
+      "gameDate": "2026-09-15T23:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Target Field",
       "away": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": 0,
-        "pitcher": "Will Warren"
+        "score": null,
+        "pitcher": "Max Fried"
       },
       "home": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": 0,
-        "pitcher": "Dean Kremer"
+        "score": null,
+        "pitcher": "Bailey Ober"
       }
     },
     {
-      "gamePk": 823006,
-      "gameDate": "2026-09-14T23:45:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 823007,
+      "gameDate": "2026-09-15T23:45:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Busch Stadium",
       "away": {
         "team": "SF",
         "name": "San Francisco Giants",
-        "score": 0,
-        "pitcher": "Landen Roupp"
+        "score": null,
+        "pitcher": "Blade Tidwell"
       },
       "home": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": 0,
-        "pitcher": "Quinn Mathews"
+        "score": null,
+        "pitcher": "Andre Pallante"
       }
     },
     {
-      "gamePk": 824308,
-      "gameDate": "2026-09-15T00:40:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 822849,
+      "gameDate": "2026-09-16T00:05:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Globe Life Field",
+      "away": {
+        "team": "BOS",
+        "name": "Boston Red Sox",
+        "score": null,
+        "pitcher": "Patrick Sandoval"
+      },
+      "home": {
+        "team": "TEX",
+        "name": "Texas Rangers",
+        "score": null,
+        "pitcher": null
+      }
+    },
+    {
+      "gamePk": 824143,
+      "gameDate": "2026-09-16T00:10:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Daikin Park",
+      "away": {
+        "team": "KC",
+        "name": "Kansas City Royals",
+        "score": null,
+        "pitcher": "Michael Wacha"
+      },
+      "home": {
+        "team": "HOU",
+        "name": "Houston Astros",
+        "score": null,
+        "pitcher": "Hunter Brown"
+      }
+    },
+    {
+      "gamePk": 824307,
+      "gameDate": "2026-09-16T00:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Coors Field",
       "away": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": 0,
-        "pitcher": "Casey Mize"
+        "score": null,
+        "pitcher": "Walker Buehler"
       },
       "home": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": 0,
-        "pitcher": "Tomoyuki Sugano"
+        "score": null,
+        "pitcher": "Kyle Freeland"
       }
     },
     {
-      "gamePk": 823981,
-      "gameDate": "2026-09-15T01:38:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 823980,
+      "gameDate": "2026-09-16T01:38:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Angel Stadium",
       "away": {
         "team": "SEA",
         "name": "Seattle Mariners",
-        "score": 0,
-        "pitcher": "Kade Anderson"
+        "score": null,
+        "pitcher": "Logan Gilbert"
       },
       "home": {
         "team": "LAA",
         "name": "Los Angeles Angels",
-        "score": 0,
-        "pitcher": "Reid Detmers"
+        "score": null,
+        "pitcher": "Ryan Johnson"
       }
     },
     {
-      "gamePk": 825034,
-      "gameDate": "2026-09-15T01:40:00Z",
-      "officialDate": "2026-09-14",
-      "status": "Pre-Game",
+      "gamePk": 825030,
+      "gameDate": "2026-09-16T01:40:00Z",
+      "officialDate": "2026-09-15",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Chase Field",
       "away": {
         "team": "MIA",
         "name": "Miami Marlins",
         "score": null,
-        "pitcher": "Sandy Alcantara"
+        "pitcher": "Janson Junk"
       },
       "home": {
         "team": "AZ",
         "name": "Arizona Diamondbacks",
         "score": null,
-        "pitcher": "Corbin Burnes"
+        "pitcher": "Michael Soroka"
       }
     }
   ]
