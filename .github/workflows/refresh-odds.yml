@@ -1,18 +1,15 @@
 name: refresh-odds
 
-# Refreshes today's ESPN odds and commits the rebuilt parquets so they survive
-# Railway redeploys. Only covers ODDS — for new train.parquet rows or model
-# retraining, run the pipeline locally and push.
+# Refreshes today's ESPN odds y captura un snapshot con timestamp propio para
+# alimentar el panel Movimiento de linea. Cero costo de API (ESPN es gratis).
 #
-# Cron: every 2 hours during the MLB regular season window (Mar 15 – Nov 1),
-# only between 14:00 and 04:00 UTC (roughly noon ET pregame through end of
-# late-night West Coast games). Outside that window, no traffic on the data
-# anyway — Railway's on-request refresh handles edge cases.
+# Cron: cada hora en la ventana de temporada (Mar-Nov). Antes era cada 2 h,
+# lo subimos a 1 h para que el time-series ESPN tenga granularidad util.
 
 on:
   schedule:
-    - cron: '0 14,16,18,20,22,0,2,4 * 3-11 *'  # every 2h, Mar-Nov
-  workflow_dispatch:                            # manual trigger from UI
+    - cron: '35 * * * 3-11'   # cada hora en el minuto 35, Mar-Nov
+  workflow_dispatch:
 
 # Only one refresh at a time. New triggers cancel stale runs to avoid commit races.
 concurrency:
@@ -53,6 +50,19 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Snapshot ESPN moneylines con timestamp propio
+        # Extrae per-provider moneyLine de los JSONs recien bajados en FASE 1
+        # y los agrega a espn_odds_timeseries.parquet con la hora UTC actual.
+        # Cero costo — Aprovecha lo que ya bajo src.refresh.
+        run: python -u StatsMLB/scripts/snapshot_espn_odds.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
+      - name: Regenerar line-movement JSONs por fecha
+        run: python -u StatsMLB/scripts/build_line_movement.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Show diff summary
         run: |
           git status --short
@@ -60,20 +70,21 @@ jobs:
 
       - name: Commit + push if changed
         run: |
-          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/value_picks.parquet data/raw/odds 2>/dev/null)" ]]; then
+          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/value_picks.parquet data/processed/espn_odds_timeseries.parquet StatsMLB/public/data/line-movement StatsMLB/public/data/line-movement-index.json 2>/dev/null)" ]]; then
             echo "No data changes — skipping commit."
             exit 0
           fi
           git config user.name  "strikecast-bot"
           git config user.email "strikecast-bot@users.noreply.github.com"
-          # Slim commit: only the working parquets ship. Raw JSONs stay in the
-          # runner's tmp filesystem and get discarded when the job ends.
           git add data/processed/odds_close.parquet \
                   data/processed/features_market.parquet \
-                  data/processed/value_picks.parquet
+                  data/processed/value_picks.parquet \
+                  data/processed/espn_odds_timeseries.parquet \
+                  StatsMLB/public/data/line-movement \
+                  StatsMLB/public/data/line-movement-index.json
           # Value model pkls only if they changed (rare — same shape each retrain).
           git add data/models/value_first.pkl data/models/value_win.pkl 2>/dev/null || true
-          git commit -m "data: auto-refresh $(date -u +%Y-%m-%dT%H:%MZ)"
+          git commit -m "data: auto-refresh + espn snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
           # Retry push up to 3 times: if a concurrent commit landed, rebase our
           # parquet commit on top of it. Parquets se regeneran integros cada corrida.
           for i in 1 2 3; do
