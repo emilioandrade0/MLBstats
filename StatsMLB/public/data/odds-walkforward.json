@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T20:49:52.760630+00:00",
+  "generatedAt": "2026-09-16T22:18:32.380341+00:00",
   "source": "STRIKECAST data/processed/odds_close.parquet",
   "providersUsed": [
     "DraftKings",
@@ -26,7 +26,7 @@
         "roll10": {
           "n": 3148,
           "mae_american": 110.49,
-          "mae_decimal": 2.1357,
+          "mae_decimal": 2.1358,
           "direction_accuracy": 0.5908
         },
         "blend": {
@@ -100,27 +100,27 @@
       "models": {
         "naive": {
           "n": 3554,
-          "mae_american": 87.62,
+          "mae_american": 87.67,
           "mae_decimal": 0.2277,
           "direction_accuracy": 0.0
         },
         "roll5": {
           "n": 3554,
-          "mae_american": 101.12,
+          "mae_american": 101.16,
           "mae_decimal": 1.3296,
-          "direction_accuracy": 0.5788
+          "direction_accuracy": 0.5783
         },
         "roll10": {
           "n": 3554,
-          "mae_american": 103.62,
+          "mae_american": 103.67,
           "mae_decimal": 2.8894,
           "direction_accuracy": 0.5794
         },
         "blend": {
           "n": 3554,
-          "mae_american": 89.39,
+          "mae_american": 89.45,
           "mae_decimal": 0.7567,
-          "direction_accuracy": 0.6433
+          "direction_accuracy": 0.6427
         }
       }
     }
@@ -130,7 +130,7 @@
     "models": {
       "naive": {
         "n": 17840,
-        "mae_american": 100.8,
+        "mae_american": 100.81,
         "mae_decimal": 0.2751,
         "direction_accuracy": 0.0
       },
@@ -138,19 +138,19 @@
         "n": 17840,
         "mae_american": 109.42,
         "mae_decimal": 1.145,
-        "direction_accuracy": 0.5851
+        "direction_accuracy": 0.585
       },
       "roll10": {
         "n": 17840,
-        "mae_american": 110.23,
+        "mae_american": 110.24,
         "mae_decimal": 2.6036,
         "direction_accuracy": 0.5794
       },
       "blend": {
         "n": 17840,
-        "mae_american": 99.66,
+        "mae_american": 99.67,
         "mae_decimal": 0.8357,
-        "direction_accuracy": 0.6554
+        "direction_accuracy": 0.6553
       }
     }
   }

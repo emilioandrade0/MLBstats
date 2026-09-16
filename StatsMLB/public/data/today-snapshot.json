@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-16T20:24:20.177603+00:00",
+  "retrievedAt": "2026-09-16T22:09:18.022377+00:00",
   "games": [
     {
       "gamePk": 824382,
@@ -27,7 +27,7 @@
       "gamePk": 823004,
       "gameDate": "2026-09-16T17:15:00Z",
       "officialDate": "2026-09-16",
-      "status": "Game Over",
+      "status": "Final",
       "abstractState": "Final",
       "venue": "Busch Stadium",
       "away": {
@@ -39,7 +39,7 @@
       "home": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": 4,
+        "score": 5,
         "pitcher": "Matthew Liberatore"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 823655,
       "gameDate": "2026-09-16T17:40:00Z",
       "officialDate": "2026-09-16",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Target Field",
       "away": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": 2,
+        "score": 4,
         "pitcher": "Carlos Rodón"
       },
       "home": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": 2,
+        "score": 5,
         "pitcher": "Zebby Matthews"
       }
     },
@@ -67,8 +67,8 @@
       "gamePk": 822763,
       "gameDate": "2026-09-16T19:07:00Z",
       "officialDate": "2026-09-16",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Rogers Centre",
       "away": {
         "team": "DET",
@@ -79,7 +79,7 @@
       "home": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": 1,
+        "score": 5,
         "pitcher": "Max Scherzer"
       }
     },
@@ -173,13 +173,13 @@
       "away": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": null,
+        "score": 0,
         "pitcher": "Chris Bassitt"
       },
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": null,
+        "score": 0,
         "pitcher": "Xzavion Curry"
       }
     },
@@ -193,13 +193,13 @@
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "JR Ritchie"
       },
       "home": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": null,
+        "score": 0,
         "pitcher": "Shota Imanaga"
       }
     },
@@ -213,13 +213,13 @@
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Jake Bennett"
       },
       "home": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": null,
+        "score": 0,
         "pitcher": "MacKenzie Gore"
       }
     },
@@ -247,19 +247,19 @@
       "gamePk": 824306,
       "gameDate": "2026-09-17T00:40:00Z",
       "officialDate": "2026-09-16",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Coors Field",
       "away": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": null,
+        "score": 0,
         "pitcher": "Robbie Ray"
       },
       "home": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": null,
+        "score": 0,
         "pitcher": "Mason Adams"
       }
     },
@@ -267,7 +267,7 @@
       "gamePk": 823979,
       "gameDate": "2026-09-17T01:38:00Z",
       "officialDate": "2026-09-16",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Angel Stadium",
       "away": {
@@ -287,7 +287,7 @@
       "gamePk": 825031,
       "gameDate": "2026-09-17T01:40:00Z",
       "officialDate": "2026-09-16",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Chase Field",
       "away": {
