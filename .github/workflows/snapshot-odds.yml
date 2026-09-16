@@ -10,8 +10,12 @@ name: snapshot-odds
 # Requiere secreto: ODDS_API_KEY
 
 on:
-  schedule:
-    - cron: '15 * * * 3-11'   # cada hora en el minuto 15
+  # Cron horario deshabilitado — The Odds API consume creditos rapido.
+  # Solo se dispara manual desde Actions -> snapshot-odds -> Run workflow,
+  # o desde otro workflow via workflow_call. El panel Movimiento de linea
+  # sigue mostrando los datos ya capturados en data/raw/odds_api.
+  # schedule:
+  #   - cron: '15 * * * 3-11'
   workflow_dispatch:
 
 concurrency:
