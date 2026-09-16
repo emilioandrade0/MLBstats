@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-16T13:29:20.850415+00:00",
+  "retrievedAt": "2026-09-16T18:14:29.538313+00:00",
   "games": [
     {
       "gamePk": 824382,
       "gameDate": "2026-09-16T17:10:00Z",
       "officialDate": "2026-09-16",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Progressive Field",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Anthony Kay"
       },
       "home": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": null,
+        "score": 2,
         "pitcher": "Parker Messick"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 823004,
       "gameDate": "2026-09-16T17:15:00Z",
       "officialDate": "2026-09-16",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Busch Stadium",
       "away": {
         "team": "SF",
         "name": "San Francisco Giants",
-        "score": null,
+        "score": 1,
         "pitcher": "Anthony Molina"
       },
       "home": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": null,
+        "score": 0,
         "pitcher": "Matthew Liberatore"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 823655,
       "gameDate": "2026-09-16T17:40:00Z",
       "officialDate": "2026-09-16",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Target Field",
       "away": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Carlos Rodón"
       },
       "home": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": null,
+        "score": 1,
         "pitcher": "Zebby Matthews"
       }
     },
@@ -67,19 +67,19 @@
       "gamePk": 822763,
       "gameDate": "2026-09-16T19:07:00Z",
       "officialDate": "2026-09-16",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Rogers Centre",
       "away": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": null,
+        "score": 0,
         "pitcher": "Keider Montero"
       },
       "home": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": null,
+        "score": 0,
         "pitcher": "Max Scherzer"
       }
     },
