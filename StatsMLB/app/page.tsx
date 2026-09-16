@@ -1348,11 +1348,13 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
         const label = entry.label;
         counted += 1;
         if (tier === 'elite') {
-          if (label === 'racha caliente') tilt += .020;
-          else if (label === 'racha fría') tilt -= .020;
+          if (label === 'racha caliente') tilt += .030;
+          else if (label === 'sólido') tilt += .012;
+          else if (label === 'racha fría') tilt -= .025;
         } else if (tier === 'weak') {
-          if (label === 'racha caliente') tilt -= .045;
-          else if (label === 'racha fría') tilt += .030;
+          if (label === 'racha caliente') tilt -= .050;
+          else if (label === 'sólido') tilt -= .015;
+          else if (label === 'racha fría') tilt += .035;
         }
       }
       return { tilt, counted };
@@ -1361,7 +1363,7 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
     const away = scoreSide(game.away.lineup.players);
     if (home.counted < 5 || away.counted < 5) return null;
     const rawProb = .5 + (home.tilt - away.tilt);
-    const clampedProb = Math.max(.3, Math.min(.7, rawProb));
+    const clampedProb = Math.max(.25, Math.min(.75, rawProb));
     return pickFromProbability(clampedProb, game);
   })();
   const tiles = [
