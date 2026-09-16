@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-16T01:24:32.406927+00:00",
+  "retrievedAt": "2026-09-16T07:39:26.858191+00:00",
   "games": [
     {
       "gamePk": 824382,
@@ -14,7 +14,7 @@
         "team": "CWS",
         "name": "Chicago White Sox",
         "score": null,
-        "pitcher": null
+        "pitcher": "Anthony Kay"
       },
       "home": {
         "team": "CLE",
@@ -160,7 +160,7 @@
         "team": "WSH",
         "name": "Washington Nationals",
         "score": null,
-        "pitcher": "Cade Cavalli"
+        "pitcher": "Jared Simpson"
       }
     },
     {
