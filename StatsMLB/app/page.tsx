@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import DashboardTabs from './components/DashboardTabs';
 import TeamLogo from './components/TeamLogo';
 import WalkforwardCalendar from './components/WalkforwardCalendar';
 
@@ -1322,6 +1323,43 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
   );
 }
 
+function alignmentPickForGame(game: ScheduleGame, estimate: ReturnType<typeof estimateGame>, performanceLookup: Record<string, PlayerPerformanceEntry>) {
+  const homeGames = (estimate.home?.wins ?? 0) + (estimate.home?.losses ?? 0);
+  const awayGames = (estimate.away?.wins ?? 0) + (estimate.away?.losses ?? 0);
+  const homePct = homeGames > 0 ? (estimate.home?.wins ?? 0) / homeGames : .5;
+  const awayPct = awayGames > 0 ? (estimate.away?.wins ?? 0) / awayGames : .5;
+  if (homePct >= .580 && awayPct >= .580) return null;
+  if (!game.home.lineup?.confirmed || !game.away.lineup?.confirmed) return null;
+  const scoreSide = (players: { playerId: number }[]) => {
+    let tilt = 0;
+    let counted = 0;
+    for (const player of players) {
+      const entry = performanceLookup[String(player.playerId)];
+      if (!entry || entry.kind !== 'batter') continue;
+      const tier = entry.talentTier ?? 'regular';
+      const label = entry.label;
+      counted += 1;
+      if (tier === 'elite') {
+        if (label === 'racha caliente') tilt += .030;
+        else if (label === 'sólido') tilt += .012;
+        else if (label === 'racha fría') tilt -= .025;
+      } else if (tier === 'weak') {
+        if (label === 'racha caliente') tilt -= .050;
+        else if (label === 'sólido') tilt -= .015;
+        else if (label === 'racha fría') tilt += .035;
+      }
+    }
+    return { tilt, counted };
+  };
+  const home = scoreSide(game.home.lineup.players);
+  const away = scoreSide(game.away.lineup.players);
+  if (home.counted < 5 || away.counted < 5) return null;
+  const rawProb = .5 + (home.tilt - away.tilt);
+  const clampedProb = Math.max(.25, Math.min(.75, rawProb));
+  return pickFromProbability(clampedProb, game);
+}
+
+
 function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, awayP, favorite, favoriteProbability, historical, comparisonMasks, strikecastPick, valuePick, oddsHistory, evidenceProfiles, evidenceSignals, playerPerformance, historicalSnapshot, telegramConfigured, onOpenTelegram, onOpenPerformance }: { game: ScheduleGame; stats: StatsData; active: Record<FactorKey, boolean>; odds?: CurrentOddsGame; estimate: ReturnType<typeof estimateGame>; homeP: number; awayP: number; favorite: ScheduleGame['home']; favoriteProbability: number; historical: boolean; comparisonMasks?: ComparisonMaskSet | null; strikecastPick?: StrikecastPick; valuePick?: ValuePick; oddsHistory?: OddsHistoryPayload | null; evidenceProfiles: CardEvidenceProfile[]; evidenceSignals: CardEvidenceSignal[]; playerPerformance: PlayerPerformancePayload | null; historicalSnapshot?: HistorySnapshot; telegramConfigured: boolean; onOpenTelegram: () => void; onOpenPerformance: () => void }) {
   const modelPick = (mask?: number) => {
     if (mask == null) return null;
@@ -1331,41 +1369,7 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
   const marketPick = marketPickFromCurrentOdds(game, odds, oddsHistory);
   const value = valuePick && valuePick.tier !== 'NEUTRO' && valuePick.pickCode && valuePick.pickProb != null ? { code: alias(valuePick.pickCode), prob: valuePick.pickProb } : null;
   const performanceLookup = historicalSnapshot?.players ?? playerPerformance?.players ?? {};
-  const alignmentTile = (() => {
-    const homeGames = (estimate.home?.wins ?? 0) + (estimate.home?.losses ?? 0);
-    const awayGames = (estimate.away?.wins ?? 0) + (estimate.away?.losses ?? 0);
-    const homePct = homeGames > 0 ? (estimate.home?.wins ?? 0) / homeGames : .5;
-    const awayPct = awayGames > 0 ? (estimate.away?.wins ?? 0) / awayGames : .5;
-    if (homePct >= .580 && awayPct >= .580) return null;
-    if (!game.home.lineup?.confirmed || !game.away.lineup?.confirmed) return null;
-    const scoreSide = (players: { playerId: number }[]) => {
-      let tilt = 0;
-      let counted = 0;
-      for (const player of players) {
-        const entry = performanceLookup[String(player.playerId)];
-        if (!entry || entry.kind !== 'batter') continue;
-        const tier = entry.talentTier ?? 'regular';
-        const label = entry.label;
-        counted += 1;
-        if (tier === 'elite') {
-          if (label === 'racha caliente') tilt += .030;
-          else if (label === 'sólido') tilt += .012;
-          else if (label === 'racha fría') tilt -= .025;
-        } else if (tier === 'weak') {
-          if (label === 'racha caliente') tilt -= .050;
-          else if (label === 'sólido') tilt -= .015;
-          else if (label === 'racha fría') tilt += .035;
-        }
-      }
-      return { tilt, counted };
-    };
-    const home = scoreSide(game.home.lineup.players);
-    const away = scoreSide(game.away.lineup.players);
-    if (home.counted < 5 || away.counted < 5) return null;
-    const rawProb = .5 + (home.tilt - away.tilt);
-    const clampedProb = Math.max(.25, Math.min(.75, rawProb));
-    return pickFromProbability(clampedProb, game);
-  })();
+  const alignmentTile = alignmentPickForGame(game, estimate, performanceLookup);
   const tiles = [
     { label: 'BASE', pick: comparisonMasks ? modelPick(comparisonMasks.base) : pickFromProbability(homeP, game) },
     { label: 'DÍAS G.', pick: modelPick(comparisonMasks?.winningDays) },
@@ -1706,7 +1710,7 @@ function pickFromProbability(homeP: number | null, game: ScheduleGame): { code: 
   return homeP >= 0.5 ? { code: homeCode, prob: homeP } : { code: awayCode, prob: 1 - homeP };
 }
 
-function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSchedule, recentWalkforward, comparisonDate, onChangeDate, strikecast, strikecastLoading, strikecastError, valuePicks, valuePicksUpdatedAt, masks, oddsHistory, calibratorBuckets }: {
+function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSchedule, recentWalkforward, comparisonDate, onChangeDate, strikecast, strikecastLoading, strikecastError, valuePicks, valuePicksUpdatedAt, masks, oddsHistory, calibratorBuckets, playerPerformance }: {
   stats: StatsData;
   odds: OddsData | null;
   scheduleArchive: Record<string, ScheduleData>;
@@ -1723,6 +1727,7 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
   masks: ComparisonMaskSet | null;
   oddsHistory: OddsHistoryPayload | null;
   calibratorBuckets: { key: string; n: number; winRate: number }[] | null;
+  playerPerformance: PlayerPerformancePayload | null;
 }) {
   const todayDate = mexicoIsoDate();
   const tomorrowDate = mexicoIsoDate(1);
@@ -1768,11 +1773,16 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
 
     const currentOddsForGame = findCurrentOdds(game, odds);
     const marketPick = marketPickFromCurrentOdds(game, currentOddsForGame, oddsHistory);
+    // Historical dates must not use today's player performance as a pregame pick.
+    const alignmentPick = !isHistorical && playerPerformance
+      ? alignmentPickForGame(game, estimateGame(game, stats, maskToActive(0), currentOddsForGame), playerPerformance.players)
+      : null;
     const allPicks: { code: string }[] = [
       ...configs.map(c => c.pick).filter((p): p is { code: string; prob: number } => Boolean(p)),
       ...(strikecastPick ? [strikecastPick] : []),
       ...(valuePick ? [{ code: valuePick.code }] : []),
       ...(marketPick ? [marketPick] : []),
+      ...(alignmentPick ? [alignmentPick] : []),
     ];
     const tally = new Map<string, number>();
     allPicks.forEach(pick => tally.set(pick.code, (tally.get(pick.code) ?? 0) + 1));
@@ -2026,7 +2036,7 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
       }
     }
 
-    return { game, configs, strikecastPick, valuePick, marketPick, consensus, winnerCode, recommendation };
+    return { game, configs, strikecastPick, valuePick, marketPick, alignmentPick, consensus, winnerCode, recommendation };
   });
 
   return (
@@ -2035,7 +2045,7 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
         <div>
           <span className="eyebrow"><BarChart3 size={14} /> Comparación de modelos</span>
           <h2>StatsMLB vs StrikeCast</h2>
-          <p>Un solo tablero para cotejar el pick del modelo base con los tres atajos de accuracy y con StrikeCast del día.</p>
+          <p>Compara los picks de StatsMLB, StrikeCast, Value Model, mercado y alineación. Alineación usa la misma señal que las tarjetas de la jornada, cuando hay datos suficientes.</p>
         </div>
         <div className="comparison-summary">
           <strong>{games.length}</strong>
@@ -2109,13 +2119,14 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
                 <th>StrikeCast</th>
                 <th title="Value Model: LGBM entrenado en 2023-2025 sobre features de pitcher/lineup/park/weather/elo. Muestra pick solo si edge (p_modelo - p_mercado) >= 5%. VALOR-FUERTE si edge >= 7% y el modelo de primer-anotador coincide en dirección."><span className="col-full">Value Model</span><span className="col-short">VAL</span></th>
                 <th title="Mercado (probabilidad implícita desvigada, media entre casas)">Mercado</th>
+                <th title="Mismo pick de Alineación de la jornada: requiere ambos lineups confirmados y al menos cinco bateadores con datos por equipo. No se calcula para fechas pasadas con datos actuales.">Alineación</th>
                 <th>Consenso</th>
                 <th>Recomendación</th>
                 {isHistorical && <th>Resultado</th>}
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ game, configs, strikecastPick, valuePick, marketPick, consensus, winnerCode, recommendation }) => (
+              {rows.map(({ game, configs, strikecastPick, valuePick, marketPick, alignmentPick, consensus, winnerCode, recommendation }) => (
                 <tr key={game.gamePk}>
                   <td className="mono">{gameTime(game.gameDate)}</td>
                   <td>{alias(game.away.team)}</td>
@@ -2137,6 +2148,9 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
                   </td>
                   <td className={marketPick && winnerCode ? (marketPick.code === winnerCode ? 'pick-hit' : 'pick-miss') : ''}>
                     {marketPick ? <><b>{marketPick.code}</b> <span className="prob">{Math.round(marketPick.prob * 1000) / 10}%</span></> : <span className="prob">—</span>}
+                  </td>
+                  <td className={alignmentPick && winnerCode ? (alignmentPick.code === winnerCode ? 'pick-hit' : 'pick-miss') : ''} title={alignmentPick ? 'Pick de alineación de la jornada' : isHistorical ? 'Sin pick de alineación congelado para esta fecha' : 'Sin señal de alineación elegible o sin datos suficientes'}>
+                    {alignmentPick ? <><b>{alignmentPick.code}</b> <span className="prob">{pct(alignmentPick.prob)}</span></> : <span className="prob">—</span>}
                   </td>
                   <td className={consensus && winnerCode ? (consensus.code === winnerCode ? 'pick-hit' : '') : ''}>
                     {consensus ? <><b>{consensus.code}</b> <span className="prob">{consensus.count}/{consensus.total}{consensus.count === consensus.total ? ' unánime' : ''}</span></> : <span className="prob">—</span>}
@@ -2444,40 +2458,33 @@ export default function HomePage() {
     window.setTimeout(() => setCopyFeedback(null), 3500);
   };
   return (
-    <main className="app-shell">
-      <aside className="app-sidebar" aria-label="Navegación principal">
-        <a className="sidebar-brand" href="#inicio"><span className="sidebar-brand-logo" aria-hidden="true" /><strong>STRIKE<span>CAST</span></strong><small>STATSMLB · SERIE & CONTEXTO</small></a>
-        <nav className="sidebar-nav">
-          <a className="sidebar-nav-active" href="#hoy"><Activity size={16} />Picks de hoy</a>
-          <a href="#rendimiento"><CalendarDays size={16} />Calendario WF</a>
-          <a href="#laboratorio"><FlaskConical size={16} />Laboratorio</a>
-          <a href="#auditoria-juego-anterior"><BarChart3 size={16} />Auditorías</a>
-          <a href="#rankings"><Trophy size={16} />Equipos</a>
-        </nav>
-        <div className="sidebar-footer">
-          <div className="sidebar-combination"><span>COMBINACIÓN ACTIVA</span><strong>{FACTORS.filter(factor => active[factor.key]).map(factor => factor.label.replace(' (prueba)', '')).join(' · ') || 'Sin factores activos'}</strong><small>{pct(stats.model.metrics.accuracy)} walk-forward</small></div>
-          <p className={telegramConfigured ? 'sidebar-status connected' : 'sidebar-status'}><i />{telegramConfigured ? 'Telegram conectado' : 'Telegram pendiente'}</p>
-          <small>Histórico cerrado hasta {stats.cutoffDate}. Estimaciones informativas, no garantías.</small>
-        </div>
-      </aside>
-      <div className="app-content">
-      <header className="topbar"><a className="brand" href="#inicio"><span className="brand-mark"><Baseball size={20} /></span><span><strong>StatsMLB</strong><small>Serie & contexto</small></span></a><nav><a href="#hoy">Juegos de hoy</a><a href="#comparacion">Comparación</a><a href="#rendimiento">Rendimiento</a><a href="#auditoria-temporada-l10">Forma L10</a><a href="#barridas-walkforward">Barridas WF</a><a href="#rankings">Rankings</a><a href="#escenarios">Escenarios</a></nav><button className="refresh-data-button" onClick={() => void updateDailyData()} disabled={updatingDaily} title="Guardar resultados y cargar hoy, mañana y momios"><RefreshCw size={16} className={updatingDaily ? 'spin' : ''} /><span>{updatingDaily ? 'Actualizando…' : 'Actualizar datos'}</span></button></header>
-
-      <section className="hero" id="inicio"><div className="hero-copy"><span className="kicker"><ShieldCheck size={15} /> Histórico local 2023–2026</span><h1>El partido de hoy,<br /><em>puesto en contexto.</em></h1><p>Una lectura explicable de forma, carreras, localía, consenso de mercado y descanso. El resultado es una estimación de victoria, no una garantía.</p><div className="hero-actions"><a className="primary-button" href="#hoy">Ver juegos de hoy <ChevronDown size={17} /></a><SourceBadge schedule={schedule} /></div></div><div className="hero-panel"><div className="hero-panel-head"><span>RADAR HISTÓRICO</span><Activity size={18} /></div><div className="big-stat"><strong>{stats.seriesSummary.swept_three_game_series}</strong><span>barridas detectadas</span></div><div className="hero-grid"><div><strong>{stats.seriesSummary.eligible_three_game_series.toLocaleString('es-MX')}</strong><span>series exactas de 3</span></div><div><strong>{stats.coverage.final_regular_games.toLocaleString('es-MX')}</strong><span>juegos finales</span></div><div><strong>{pct(stats.afterSweepSummary.next_game_win_rate)}</strong><span>ganan tras barrer</span></div><div><strong>{pct(stats.afterSweptSummary.next_game_win_rate)}</strong><span>ganan tras ser barridos</span></div></div><div className="data-cutoff"><CheckCircle2 size={15} /> Resultados cerrados hasta {stats.cutoffDate}</div></div></section>
+    <DashboardTabs
+      cutoff={stats.cutoffDate}
+      combination={FACTORS.filter(factor => active[factor.key]).map(factor => factor.label.replace(' (prueba)', '')).join(' · ')}
+      telegramConfigured={telegramConfigured}
+      updating={updatingDaily}
+      onRefresh={() => void updateDailyData()}
+      source={<SourceBadge schedule={schedule} />}
+      feedback={refreshProgress ? <div className={`refresh-progress ${refreshProgress.kind}`} role="status"><div className="refresh-progress-head"><strong>{refreshProgress.stage}</strong><span>{refreshProgress.percent}%</span></div><div className="refresh-progress-track" role="progressbar" aria-label="Progreso de actualización" aria-valuemin={0} aria-valuemax={100} aria-valuenow={refreshProgress.percent}><i style={{ width: `${refreshProgress.percent}%` }} /></div><small>{refreshFeedback?.text ?? refreshProgress.message}</small></div> : null}
+      metrics={[
+        { label: 'Juegos analizados', value: stats.coverage.final_regular_games.toLocaleString('es-MX'), detail: 'Histórico de temporada regular' },
+        { label: 'Series de tres juegos', value: stats.seriesSummary.eligible_three_game_series.toLocaleString('es-MX'), detail: `${stats.seriesSummary.swept_three_game_series.toLocaleString('es-MX')} barridas detectadas` },
+        { label: 'Victoria tras barrer', value: pct(stats.afterSweepSummary.next_game_win_rate), detail: 'En el siguiente partido' },
+        { label: 'Rebote tras ser barridos', value: pct(stats.afterSweptSummary.next_game_win_rate), detail: 'Victoria en el siguiente partido' },
+      ]}
+    >
 
       <section className="section" id="hoy">
         <div className="section-heading split-heading"><div><span className="eyebrow"><CalendarDays size={14} /> {slateLabel}</span><h2>{slateTitle}</h2><p>{displaySchedule.games.length} encuentros · horarios de Ciudad de México{isHistoricalSlate ? ' · predicciones congeladas antes de jugar' : ''}</p></div><div className="model-proof"><CircleGauge size={22} /><div><strong>{pct(stats.model.metrics.accuracy)}</strong><span>acierto en prueba 2026 · {stats.model.metrics.holdoutGames.toLocaleString('es-MX')} juegos fuera de muestra</span></div></div></div>
         <div className="daily-controls"><div className="date-slate-tabs" role="tablist" aria-label="Seleccionar fecha de juegos">{dateChoices.map(date => { const payload = scheduleArchive[date] ?? (date === todayDate ? schedule : date === tomorrowDate ? tomorrowSchedule : undefined); const label = date === todayDate ? 'Hoy' : date === tomorrowDate ? 'Mañana' : shortDate(date); return <button type="button" role="tab" aria-selected={selectedDate === date} className={selectedDate === date ? 'selected' : ''} key={date} onClick={() => setSelectedGameDate(date)}><span>{label}</span><b>{payload?.games.length ?? 0}</b></button>; })}</div><button className="daily-refresh-button" onClick={() => void updateDailyData()} disabled={updatingDaily}><RefreshCw size={15} className={updatingDaily ? 'spin' : ''} />{updatingDaily ? 'Consultando fuentes…' : 'Actualizar resultados, juegos y momios'}</button><button className="daily-copy-button" onClick={() => void copyPicksList()} disabled={!displaySchedule.games.length} title="Copiar la lista de picks del día"><ClipboardList size={15} />Copiar picks</button></div>
         {copyFeedback && <div className={`refresh-feedback ${copyFeedback.kind === 'success' ? 'success' : 'error'}`}><ClipboardList size={15} /><span>{copyFeedback.text}</span></div>}
-        {refreshProgress && <div className={`refresh-progress ${refreshProgress.kind}`} role="status" aria-live="polite"><div className="refresh-progress-head"><strong>{refreshProgress.stage}</strong><span>{refreshProgress.percent}%</span></div><div className="refresh-progress-track" role="progressbar" aria-label="Progreso de actualización" aria-valuemin={0} aria-valuemax={100} aria-valuenow={refreshProgress.percent}><i style={{ width: `${refreshProgress.percent}%` }} /></div><small>{refreshProgress.message}</small></div>}
-        {refreshFeedback && <div className={`refresh-feedback ${refreshFeedback.kind}`}><CheckCircle2 size={15} /><span>{refreshFeedback.text}</span></div>}
         <div className="market-source-bar"><div><span className={odds?.sourceState === 'REAL DATA' ? 'real' : 'missing'}>{odds?.sourceState === 'REAL DATA' ? 'REAL DATA' : 'SIN DATOS'}</span><strong>Mejores momios disponibles</strong><small>{odds ? `${odds.games.length} juegos · ${odds.selectionRule}` : 'No se pudieron cargar momios'}</small></div><b className={telegramConfigured ? 'connected' : 'pending'}><Send size={13} /> {telegramConfigured ? 'Telegram conectado' : 'Telegram pendiente'}</b></div>
-        <div className="factor-toolbar"><span>Factores activos</span>{FACTORS.map((factor) => <button key={factor.key} className={active[factor.key] ? 'factor-active' : ''} title={factor.detail} onClick={() => setActive(current => ({ ...current, [factor.key]: !current[factor.key] }))}>{active[factor.key] && <CheckCircle2 size={14} />}{factor.label}</button>)}</div>
+        <div className="factor-toolbar"><span>Factores activos</span>{FACTORS.map((factor) => <button key={factor.key} type="button" aria-pressed={active[factor.key]} className={active[factor.key] ? 'factor-active' : ''} title={factor.detail} onClick={() => setActive(current => ({ ...current, [factor.key]: !current[factor.key] }))}>{active[factor.key] && <CheckCircle2 size={14} />}{factor.label}</button>)}</div>
         {isHistoricalSlate && historicalPredictionsLoading && <div className="historical-predictions-loading" role="status"><RefreshCw size={15} className="spin" /><span>Cargando las predicciones congeladas de {slateLabel}…</span></div>}
         {displaySchedule.games.length ? <div className="games-grid">{displaySchedule.games.map((game, index) => <GameCard key={game.gamePk} game={game} stats={stats} active={active} odds={isHistoricalSlate ? undefined : findCurrentOdds(game, odds)} pickNumber={index + 1} telegramConfigured={telegramConfigured} historical={isHistoricalSlate} frozenPrediction={isHistoricalSlate ? frozenPredictionForMask(frozenGames.get(game.gamePk), activeMask) : undefined} comparisonMasks={comparisonMasks} strikecastPick={strikecastByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} valuePick={valuePicksByDate[selectedDate]?.find(pick => pick.gamePk === game.gamePk)} oddsHistory={oddsHistory} evidenceProfiles={cardEvidence?.profiles ?? []} evidenceSignals={cardEvidence?.signals ?? []} playerPerformance={playerPerformance} historicalSnapshot={historicalSnapshot} />)}</div> : <div className="empty-state"><CalendarDays size={28} /><h3>No hay juegos disponibles</h3><p>El calendario no devolvió encuentros para {slateLabel}.</p></div>}
       </section>
 
-      <ComparisonSection
+      <div data-section="comparacion"><ComparisonSection
         stats={stats}
         odds={odds}
         scheduleArchive={scheduleArchive}
@@ -2494,17 +2501,22 @@ export default function HomePage() {
         masks={comparisonMasks}
         oddsHistory={oddsHistory}
         calibratorBuckets={calibratorBuckets}
+        playerPerformance={playerPerformance}
       />
 
-      <WalkforwardCalendar
+      </div>
+
+      <div data-section="rendimiento"><WalkforwardCalendar
         active={active}
         onToggle={(key) => setActive(current => ({ ...current, [key]: !current[key] }))}
         onSetActive={(keys) => setActive({ localia: keys.includes('localia'), strength: keys.includes('strength'), recent: keys.includes('recent'), runDiff: keys.includes('runDiff'), series: keys.includes('series'), marketSchedule: keys.includes('marketSchedule'), bestPlayersTest: keys.includes('bestPlayersTest'), coachRotationTest: keys.includes('coachRotationTest'), rotationQualityTest: keys.includes('rotationQualityTest'), lineupFatigueTest: keys.includes('lineupFatigueTest'), opponentFormTest: keys.includes('opponentFormTest') })}
       />
 
-      {seasonL10Audit && <SeasonL10AuditSection audit={seasonL10Audit} />}
+      </div>
 
-      <SeriesSweepAuditSection stats={stats} schedule={schedule} previousGames={previousGames} active={active} odds={odds} />
+      {seasonL10Audit && <div data-section="auditoria-temporada-l10"><SeasonL10AuditSection audit={seasonL10Audit} /></div>}
+
+      <div data-section="barridas-walkforward"><SeriesSweepAuditSection stats={stats} schedule={schedule} previousGames={previousGames} active={active} odds={odds} /></div>
 
       <section className="section audit-section" id="auditoria-juego-anterior"><div className="section-heading split-heading"><div><span className="eyebrow"><FlaskConical size={14} /> Auditoría juego anterior</span><h2>LOB, hits y jonrones</h2><p>Se probaron señales del partido inmediatamente anterior, separando si el equipo ganó o perdió. Cada cifra es walk-forward mensual.</p></div><div className="audit-baseline"><strong>{pct(stats.previousGameAudit.baseline.accuracy, 2)}</strong><span>base Mercado + descanso</span><small>{stats.previousGameAudit.baseline.correct}/{stats.previousGameAudit.games} aciertos</small></div></div><div className="audit-candidate-grid">{stats.previousGameAudit.candidates.map(candidate => <article key={candidate.name}><div><span>{candidate.status}</span><b className={candidate.deltaPoints > 0 ? 'positive' : 'negative'}>{candidate.deltaPoints > 0 ? '+' : ''}{candidate.deltaPoints.toFixed(2)} pts</b></div><h3>{candidate.name}</h3><strong>{pct(candidate.accuracy, 2)}</strong><small>2026: {pct(candidate.accuracy2026, 2)} · {candidate.correct}/{stats.previousGameAudit.games}</small><p>{candidate.reason}</p></article>)}</div><div className="audit-descriptive"><div><span>ESCENARIO DEL JUEGO PREVIO</span><b>Siguiente partido</b><b>2026</b><b>Muestra</b></div>{stats.previousGameAudit.descriptive.map(row => <div key={row.label}><strong>{row.label}</strong><b>{pct(row.nextWinRate)}</b><b>{pct(row.nextWinRate2026)}</b><span>{row.games.toLocaleString('es-MX')}</span></div>)}</div><p className="audit-conclusion"><ShieldCheck size={16} /> Conclusión: ninguna señal de LOB/hits/HR se activó en el modelo principal. La diferencia cruda de hits fue prometedora, pero no mejoró 2026 y su intervalo de incertidumbre todavía incluye cero.</p></section>
 
@@ -2582,8 +2594,6 @@ export default function HomePage() {
         </section>
       )}
 
-      <footer className="footer"><div className="brand"><span className="brand-mark"><Baseball size={18} /></span><span><strong>StatsMLB</strong><small>Datos antes que intuición</small></span></div><p>Fuente histórica: archivos locales STRIKECAST. Calendario: MLB StatsAPI. Estimaciones informativas, no garantías.</p><a href="#inicio">Volver arriba <TrendingUp size={15} /></a></footer>
-      </div>
-    </main>
+    </DashboardTabs>
   );
 }

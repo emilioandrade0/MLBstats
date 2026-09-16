@@ -4,6 +4,9 @@ Dashboard en español para consultar los juegos de hoy y estudiar cómo responde
 
 ## Qué incluye
 
+- Interfaz organizada en siete pestañas: Jornada, Comparador, Rendimiento, Auditorías, Equipos y series, Momios y Método.
+- Subpestañas para las ocho auditorías, rankings/escenarios/barridas y calendario/combinaciones. Los filtros y el modelo activo se conservan al cambiar de vista.
+- Navegación por teclado con flechas, Inicio y Fin, enlaces directos a las secciones e historial del navegador. Tablas desplazables y diseño adaptable a móvil.
 - Calendario del día desde MLB StatsAPI, con respaldo local claramente etiquetado.
 - Rankings de equipos que barren, equipos vulnerables, respuesta tras barrer y rebote tras ser barridos.
 - Escenarios donde se enfrentan dos equipos que barrieron, dos que fueron barridos y un barrido 0-3 contra un perdedor 1-2.

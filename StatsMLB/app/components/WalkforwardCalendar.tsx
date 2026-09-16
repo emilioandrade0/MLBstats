@@ -3,6 +3,7 @@
 import { CalendarRange, Check, ChevronLeft, ChevronRight, RotateCcw, ShieldCheck, Target, Trophy, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import TeamLogo from './TeamLogo';
+import { moveFocus } from './DashboardTabs';
 
 export type FactorKey = 'localia' | 'strength' | 'recent' | 'runDiff' | 'series' | 'marketSchedule' | 'bestPlayersTest' | 'coachRotationTest' | 'rotationQualityTest' | 'lineupFatigueTest' | 'opponentFormTest';
 
@@ -162,6 +163,9 @@ function probabilityForMask(game: WalkforwardGame, mask: number, data: Walkforwa
 }
 
 export default function WalkforwardCalendar({ active, onToggle, onSetActive }: WalkforwardCalendarProps) {
+  const [view, setView] = useState('calendar');
+  const [loadError, setLoadError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [data, setData] = useState<WalkforwardData | null>(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -170,7 +174,7 @@ export default function WalkforwardCalendar({ active, onToggle, onSetActive }: W
   useEffect(() => {
     const controller = new AbortController();
     fetch('/data/walkforward.json', { signal: controller.signal, cache: 'no-store' })
-      .then(response => response.json() as Promise<WalkforwardData>)
+      .then(response => { if (!response.ok) throw new Error(`Walk-forward: ${response.status}`); return response.json() as Promise<WalkforwardData>; })
       .then(async (manifest) => {
         const parts = await Promise.all((manifest.dayFiles ?? []).map(async filename => {
           const response = await fetch(`/data/${filename}`, { signal: controller.signal, cache: 'no-store' });
@@ -189,9 +193,10 @@ export default function WalkforwardCalendar({ active, onToggle, onSetActive }: W
       .catch(error => {
         if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('No se pudo cargar el walk-forward', error);
+        setLoadError(true);
       });
     return () => controller.abort();
-  }, []);
+  }, [attempt]);
 
   const activeMask = FACTOR_KEYS.reduce((mask, key, index) => mask + (active[key] ? (1 << index) : 0), 0);
   const combinations = useMemo<CombinationStat[]>(() => {
@@ -319,7 +324,7 @@ export default function WalkforwardCalendar({ active, onToggle, onSetActive }: W
   };
 
   if (!data) {
-    return <div className="wf-loading"><CalendarRange size={24} /><span>Calculando calendario walk-forward…</span></div>;
+    return <div className="wf-loading" role="status"><CalendarRange size={24} /><span>{loadError ? 'No se pudo cargar el histórico de rendimiento.' : 'Calculando calendario walk-forward…'}</span>{loadError && <button className="dashboard-refresh" onClick={() => { setLoadError(false); setAttempt(value => value + 1); }}>Reintentar</button>}</div>;
   }
 
   return (
@@ -354,8 +359,12 @@ export default function WalkforwardCalendar({ active, onToggle, onSetActive }: W
         <article><span>CORTES MENSUALES</span><strong>{data.summary.folds}</strong><small>{data.methodology.firstPredictionDate} a {data.methodology.lastPredictionDate}</small></article>
       </div>
 
+      <div className="dashboard-subtabs" role="tablist" aria-label="Vistas de rendimiento" onKeyDown={moveFocus}>{[['calendar', 'Calendario y resultados'], ['combinations', 'Combinaciones de factores']].map(([key, label]) => <button key={key} type="button" id={`wf-tab-${key}`} role="tab" aria-controls={`wf-panel-${key}`} aria-selected={view === key} tabIndex={view === key ? 0 : -1} onClick={() => setView(key)}>{label}</button>)}</div>
+      <div id="wf-panel-combinations" role="tabpanel" aria-labelledby="wf-tab-combinations" hidden={view !== 'combinations'} tabIndex={0}>
       <CombinationLab combinations={combinations} bestWinningDays={bestWinningDays} bestFifteenGameDays={bestFifteenGameDays} activeMask={activeMask} baseline={data.summary.homeBaselineAccuracy} onApply={onSetActive} />
+      </div>
 
+      <div id="wf-panel-calendar" role="tabpanel" aria-labelledby="wf-tab-calendar" hidden={view !== 'calendar'} tabIndex={0}>
       <div className="wf-workspace">
         <div className="wf-calendar-panel">
           <div className="calendar-toolbar">
@@ -408,6 +417,7 @@ export default function WalkforwardCalendar({ active, onToggle, onSetActive }: W
         <DynamicStatsCard title="POR TEMPORADA" subtitle="Con factores activos" rows={seasons.map(season => ({ label: String(season.season), ...season }))} />
         <DynamicStatsCard title="POR CONFIANZA" subtitle="¿El porcentaje se sostiene?" rows={confidenceBands} />
       </div>
+      </div>
       </section>
     </>
   );
@@ -457,7 +467,7 @@ function QuickCombinationDock({ combinations, bestWinningDays, bestFifteenGameDa
 }
 
 function CombinationLab({ combinations, bestWinningDays, bestFifteenGameDays, activeMask, baseline, onApply }: { combinations: CombinationStat[]; bestWinningDays?: CombinationStat; bestFifteenGameDays?: CombinationStat; activeMask: number; baseline: number; onApply: (keys: FactorKey[]) => void }) {
-  return <section className="combo-lab" id="laboratorio" aria-labelledby="combo-title">
+  return <section className="combo-lab" id="combinaciones" aria-labelledby="combo-title">
     <div className="combo-head"><div><span><Trophy size={14} /> Comparador completo</span><h3 id="combo-title">Las {combinations.length} combinaciones de factores</h3><p>Ordenadas por accuracy walk-forward y reentrenadas por separado. Toca “Aplicar” para llevar esa combinación al calendario y a los juegos de hoy.</p></div><strong>{combinations.length}/{combinations.length}</strong></div>
     {bestWinningDays && <button type="button" className={`combo-day-winner ${bestWinningDays.mask === activeMask ? 'selected' : ''}`} onClick={() => onApply(bestWinningDays.keys)}><span><CalendarRange size={15} /> Campeona en días ganadores</span><h4>{bestWinningDays.label}</h4><strong>{bestWinningDays.winningDays}<small> de {bestWinningDays.days} días</small></strong><b>{pct2(bestWinningDays.accuracy)} accuracy</b><em>{bestWinningDays.mask === activeMask ? <><Check size={13} /> Combinación activa</> : 'Aplicar combinación'}</em></button>}
     {bestFifteenGameDays && <button type="button" className={`combo-day-winner combo-fifteen-winner ${bestFifteenGameDays.mask === activeMask ? 'selected' : ''}`} onClick={() => onApply(bestFifteenGameDays.keys)}><span><Target size={15} /> Mayor accuracy en jornadas de 15 juegos</span><h4>{bestFifteenGameDays.label}</h4><strong>{pct2(bestFifteenGameDays.fifteenGameAccuracy)}<small> · {bestFifteenGameDays.fifteenGameCorrect}/{bestFifteenGameDays.fifteenGameGames} aciertos</small></strong><b>{bestFifteenGameDays.fifteenGameWinningDays} de {bestFifteenGameDays.fifteenGameDays} días ganadores</b><em>{bestFifteenGameDays.mask === activeMask ? <><Check size={13} /> Combinación activa</> : 'Aplicar combinación'}</em></button>}
