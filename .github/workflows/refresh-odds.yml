@@ -8,7 +8,7 @@ name: refresh-odds
 
 on:
   schedule:
-    - cron: '35 * * * 3-11'   # cada hora en el minuto 35, Mar-Nov
+    - cron: '35 * * 3-11 *'   # cada hora en el minuto 35, Mar-Nov
   workflow_dispatch:
 
 # Only one refresh at a time. New triggers cancel stale runs to avoid commit races.
