@@ -50,11 +50,11 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
-      - name: Snapshot ESPN moneylines con timestamp propio
-        # Extrae per-provider moneyLine de los JSONs recien bajados en FASE 1
-        # y los agrega a espn_odds_timeseries.parquet con la hora UTC actual.
-        # Cero costo — Aprovecha lo que ya bajo src.refresh.
-        run: python -u StatsMLB/scripts/snapshot_espn_odds.py
+      - name: Snapshot ESPN moneylines en vivo (pickcenter)
+        # Query directo al endpoint summary de ESPN. Devuelve pickcenter con
+        # moneyline actualizado. Independiente de src.refresh — funciona incluso
+        # si event_odds endpoint sigue devolviendo count:0.
+        run: python -u StatsMLB/scripts/snapshot_espn_live.py
         env:
           PYTHONUNBUFFERED: '1'
 
