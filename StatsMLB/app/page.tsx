@@ -2208,6 +2208,12 @@ function LineMovementPanel({ comparisonDate, payload, index }: { comparisonDate:
   const bookLabel: Record<string, string> = {
     pinnacle: 'Pinnacle', draftkings: 'DraftKings', fanduel: 'FanDuel',
     betmgm: 'BetMGM', caesars: 'Caesars', williamhill_us: 'William Hill',
+    espn_bet: 'ESPN BET', bet365: 'Bet365',
+  };
+  const toDecimal = (american: number): string => {
+    if (!Number.isFinite(american) || american === 0) return '—';
+    const dec = american > 0 ? american / 100 + 1 : 100 / -american + 1;
+    return dec.toFixed(2);
   };
   const sparkline = (series: LineMovementSnapshot[], width = 140, height = 32) => {
     const points = series.map(s => s[3]).filter((v): v is number => v != null);
@@ -2228,7 +2234,6 @@ function LineMovementPanel({ comparisonDate, payload, index }: { comparisonDate:
         <div>
           <span className="eyebrow">💹 Movimiento de línea</span>
           <h3>Cómo se movieron los momios · {comparisonDate}</h3>
-          <p>Cada snapshot lo captura el workflow horario de The Odds API. Los libros mostrados son Pinnacle, DraftKings, FanDuel, BetMGM, Caesars y William Hill.</p>
         </div>
         <div className="line-movement-meta">
           <strong>{games.length}</strong>
@@ -2277,9 +2282,9 @@ function LineMovementPanel({ comparisonDate, payload, index }: { comparisonDate:
                   {bookCards.map(({ book, first, last, bookShift }) => (
                     <div key={book} className="lm-book-row">
                       <b>{bookLabel[book] ?? book}</b>
-                      <span>{first[1] > 0 ? '+' : ''}{first[1]} / {first[2] > 0 ? '+' : ''}{first[2]}</span>
+                      <span>{toDecimal(first[1])} / {toDecimal(first[2])}</span>
                       <i>→</i>
-                      <span>{last[1] > 0 ? '+' : ''}{last[1]} / {last[2] > 0 ? '+' : ''}{last[2]}</span>
+                      <span>{toDecimal(last[1])} / {toDecimal(last[2])}</span>
                       {bookShift != null && <em className={bookShift > 0 ? 'lm-up' : bookShift < 0 ? 'lm-down' : ''}>{bookShift > 0 ? '+' : ''}{bookShift.toFixed(1)}pp</em>}
                     </div>
                   ))}
