@@ -1710,7 +1710,7 @@ function pickFromProbability(homeP: number | null, game: ScheduleGame): { code: 
   return homeP >= 0.5 ? { code: homeCode, prob: homeP } : { code: awayCode, prob: 1 - homeP };
 }
 
-function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSchedule, recentWalkforward, comparisonDate, onChangeDate, strikecast, strikecastLoading, strikecastError, valuePicks, valuePicksUpdatedAt, masks, oddsHistory, calibratorBuckets, playerPerformance }: {
+function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSchedule, recentWalkforward, comparisonDate, onChangeDate, strikecast, strikecastLoading, strikecastError, valuePicks, valuePicksUpdatedAt, masks, oddsHistory, calibratorBuckets, playerPerformance, historyCache }: {
   stats: StatsData;
   odds: OddsData | null;
   scheduleArchive: Record<string, ScheduleData>;
@@ -1728,6 +1728,7 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
   oddsHistory: OddsHistoryPayload | null;
   calibratorBuckets: { key: string; n: number; winRate: number }[] | null;
   playerPerformance: PlayerPerformancePayload | null;
+  historyCache: Record<string, HistorySnapshot>;
 }) {
   const todayDate = mexicoIsoDate();
   const tomorrowDate = mexicoIsoDate(1);
@@ -1773,9 +1774,10 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
 
     const currentOddsForGame = findCurrentOdds(game, odds);
     const marketPick = marketPickFromCurrentOdds(game, currentOddsForGame, oddsHistory);
-    // Historical dates must not use today's player performance as a pregame pick.
-    const alignmentPick = !isHistorical && playerPerformance
-      ? alignmentPickForGame(game, estimateGame(game, stats, maskToActive(0), currentOddsForGame), playerPerformance.players)
+    const historicalSnap = isHistorical ? historyCache[comparisonDate] : undefined;
+    const alignmentLookup = isHistorical ? historicalSnap?.players : playerPerformance?.players;
+    const alignmentPick = alignmentLookup
+      ? alignmentPickForGame(game, estimateGame(game, stats, maskToActive(0), currentOddsForGame), alignmentLookup)
       : null;
     const allPicks: { code: string }[] = [
       ...configs.map(c => c.pick).filter((p): p is { code: string; prob: number } => Boolean(p)),
@@ -2207,18 +2209,26 @@ export default function HomePage() {
   const [playerPerformance, setPlayerPerformance] = useState<PlayerPerformancePayload | null>(null);
   const [historyIndex, setHistoryIndex] = useState<HistoryIndex | null>(null);
   const [historyCache, setHistoryCache] = useState<Record<string, HistorySnapshot>>({});
-  const historyFetchDate = selectedGameDate < mexicoIsoDate() ? selectedGameDate : null;
+  const todayForHistory = mexicoIsoDate();
+  const historyFetchDates = Array.from(new Set([
+    selectedGameDate < todayForHistory ? selectedGameDate : null,
+    comparisonDate < todayForHistory ? comparisonDate : null,
+  ].filter((d): d is string => Boolean(d))));
+  const historyFetchKey = historyFetchDates.join(',');
   useEffect(() => {
-    if (!historyFetchDate) return;
-    if (historyCache[historyFetchDate]) return;
-    if (historyIndex && !historyIndex.dates.includes(historyFetchDate)) return;
+    if (!historyFetchDates.length) return;
     const controller = new AbortController();
-    fetch(`/data/history/${historyFetchDate}.json`, { signal: controller.signal, cache: 'no-store' })
-      .then(r => r.ok ? r.json() as Promise<HistorySnapshot> : null)
-      .then(snap => { if (snap) setHistoryCache(prev => ({ ...prev, [historyFetchDate]: snap })); })
-      .catch(() => {});
+    for (const date of historyFetchDates) {
+      if (historyCache[date]) continue;
+      if (historyIndex && !historyIndex.dates.includes(date)) continue;
+      fetch(`/data/history/${date}.json`, { signal: controller.signal, cache: 'no-store' })
+        .then(r => r.ok ? r.json() as Promise<HistorySnapshot> : null)
+        .then(snap => { if (snap) setHistoryCache(prev => ({ ...prev, [date]: snap })); })
+        .catch(() => {});
+    }
     return () => controller.abort();
-  }, [historyFetchDate, historyIndex, historyCache]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyFetchKey, historyIndex]);
 
   const refresh = async () => {
     setLoadError('');
@@ -2502,6 +2512,7 @@ export default function HomePage() {
         oddsHistory={oddsHistory}
         calibratorBuckets={calibratorBuckets}
         playerPerformance={playerPerformance}
+        historyCache={historyCache}
       />
 
       </div>
