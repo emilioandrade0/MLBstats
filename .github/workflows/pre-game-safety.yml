@@ -78,5 +78,5 @@ jobs:
         run: |
           echo "Data status='${{ steps.freshness.outputs.status }}' age=${{ steps.freshness.outputs.age_min }} min."
           echo "Disparando actualizar-historico via workflow_dispatch..."
-          gh workflow run actualizar-historico.yml -r main
+          gh workflow run actualizar-historico.yml -r main --repo ${{ github.repository }}
           echo "Dispatch enviado. Revisa Actions -> actualizar-historico para el nuevo run."
