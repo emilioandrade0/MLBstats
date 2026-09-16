@@ -131,6 +131,14 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Rebuild odds-history + odds-walkforward JSONs
+        # Cubre juegos recientes (13-16 sept) que el walkforward mensual aun no
+        # cierra. Sin esto, el Comparador muestra MERCADO='—' en fechas pasadas.
+        working-directory: StatsMLB
+        run: python -u scripts/odds_walkforward.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Commit JSON updates
         run: |
           git config user.name  "strikecast-bot"
