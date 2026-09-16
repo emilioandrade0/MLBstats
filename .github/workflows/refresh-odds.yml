@@ -74,7 +74,16 @@ jobs:
           # Value model pkls only if they changed (rare — same shape each retrain).
           git add data/models/value_first.pkl data/models/value_win.pkl 2>/dev/null || true
           git commit -m "data: auto-refresh $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push
+          # Retry push up to 3 times: if a concurrent commit landed, rebase our
+          # parquet commit on top of it. Parquets se regeneran integros cada corrida.
+          for i in 1 2 3; do
+            if git push; then break; fi
+            echo "Push race detected, rebasing on remote (attempt $i)..."
+            git pull --rebase --strategy-option=ours origin main || {
+              git rebase --abort || true
+              exit 1
+            }
+          done
 
       - name: Trigger Cloudflare D1 refresh
         # Poblado del D1 con schedules + odds del dia. Independiente del
