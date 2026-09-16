@@ -106,6 +106,7 @@ data/processed/*
 !data/processed/features_park.parquet
 !data/processed/value_target_first_scorer.parquet
 !data/processed/walkforward_preds.parquet
+!data/processed/espn_odds_timeseries.parquet
 !data/processed/team_box.parquet
 !data/processed/player_box.parquet
 !data/processed/pinnacle_value.parquet

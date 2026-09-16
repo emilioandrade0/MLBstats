@@ -361,6 +361,17 @@ def main() -> None:
     # ── FASE 3: odds_close (necesita normalize) ───────────────────────────────
     run_group("FASE 3/6 · Odds close (odds_v2)", [("src.normalize.odds_v2", [])], W)
 
+    # ── FASE 3.5: snapshot ESPN moneylines con timestamp propio ────────────────
+    # Los JSONs de data/raw/odds/{year}/*.json se sobreescriben cada corrida con
+    # los valores moneyLine actuales de ESPN. Este step los guarda en un parquet
+    # con la hora UTC del capture para construir la serie de movimiento gratis.
+    espn_snapshot = ROOT / "StatsMLB" / "scripts" / "snapshot_espn_odds.py"
+    if espn_snapshot.is_file():
+        run_script_step(
+            "FASE 3.5/6 · Snapshot ESPN moneylines (linea horaria gratis)",
+            "StatsMLB/scripts/snapshot_espn_odds.py",
+        )
+
     # ── FASE 4a: features base (todas independientes) ─────────────────────────
     features_base = [
         ("src.features.market_close",    []),

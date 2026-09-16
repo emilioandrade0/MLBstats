@@ -22,10 +22,26 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = ROOT / "data" / "raw" / "odds_api"
+ESPN_TS_PARQUET = ROOT / "data" / "processed" / "espn_odds_timeseries.parquet"
 OUT_DIR = ROOT / "StatsMLB" / "public" / "data" / "line-movement"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-TRACKED_BOOKS = ["pinnacle", "draftkings", "fanduel", "betmgm", "caesars", "williamhill_us"]
+TRACKED_BOOKS = ["pinnacle", "draftkings", "fanduel", "betmgm", "caesars", "williamhill_us",
+                 "espn_bet", "bet365", "caesars_sportsbook"]
+
+# ESPN provider name → normalized book key (matches TRACKED_BOOKS keys where possible)
+ESPN_BOOK_MAP = {
+    "ESPN BET": "espn_bet",
+    "DraftKings": "draftkings",
+    "FanDuel": "fanduel",
+    "BetMGM": "betmgm",
+    "Caesars": "caesars",
+    "Caesars Sportsbook": "caesars",
+    "William Hill": "williamhill_us",
+    "William Hill (New Jersey)": "williamhill_us",
+    "Bet365": "bet365",
+    "Pinnacle": "pinnacle",
+}
 
 
 def american_to_implied(price):
@@ -62,6 +78,44 @@ def build_team_lookup(games: pd.DataFrame) -> dict:
     return lookup
 
 
+def _ingest_espn_timeseries(aggregate, meta, games: pd.DataFrame) -> int:
+    if not ESPN_TS_PARQUET.exists():
+        return 0
+    ts_df = pd.read_parquet(ESPN_TS_PARQUET)
+    try:
+        xref = pd.read_parquet(
+            ROOT / "data" / "processed" / "games_xref.parquet",
+            columns=["espn_event_id", "game_pk", "_merge"],
+        )
+        xref = xref[xref["_merge"] == "both"][["espn_event_id", "game_pk"]].dropna()
+        xref["game_pk"] = xref["game_pk"].astype(int)
+        xref["espn_event_id"] = xref["espn_event_id"].astype(str)
+    except Exception:
+        return 0
+    merged = ts_df.merge(xref, on="espn_event_id", how="inner")
+    game_meta = games.set_index("game_pk")[["game_date", "home_team_abbrev", "away_team_abbrev"]].to_dict("index")
+    added = 0
+    for _, r in merged.iterrows():
+        gpk = int(r["game_pk"])
+        info = game_meta.get(gpk)
+        if not info:
+            continue
+        game_date = info["game_date"].strftime("%Y-%m-%d")
+        book = ESPN_BOOK_MAP.get(str(r["provider_name"]))
+        if not book:
+            continue
+        meta[game_date][gpk] = {
+            "commence": info["game_date"].isoformat() + "T00:00:00Z" if hasattr(info["game_date"], "isoformat") else "",
+            "home": info["home_team_abbrev"],
+            "away": info["away_team_abbrev"],
+        }
+        aggregate[game_date][gpk][book].append(
+            (str(r["snapshot_ts"]), int(r["home_ml"]), int(r["away_ml"]))
+        )
+        added += 1
+    return added
+
+
 def main() -> None:
     games = pd.read_parquet(
         ROOT / "data" / "processed" / "games.parquet",
@@ -74,6 +128,10 @@ def main() -> None:
     # Aggregate: date -> game_pk -> book -> list of (timestamp, home_ml, away_ml)
     aggregate = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     meta = defaultdict(dict)  # date -> game_pk -> {commence, home, away}
+
+    espn_added = _ingest_espn_timeseries(aggregate, meta, games)
+    if espn_added:
+        print(f"[build_line_movement] +{espn_added:,} snapshots ESPN (gratis)")
 
     files = sorted(RAW_DIR.glob("*.json"))
     for path in files:
