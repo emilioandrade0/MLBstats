@@ -1,0 +1,75 @@
+name: snapshot-odds
+
+# Snapshot horario de The Odds API — momios h2h de Pinnacle + libros US.
+# Persiste el payload crudo en data/raw/odds_api/{ISO_TS}.json y regenera
+# data/line-movement/*.json para el tab Movimiento en el Comparador.
+#
+# Corre solo en ventana MLB (Mar-Nov) para no gastar creditos fuera de
+# temporada.
+#
+# Requiere secreto: ODDS_API_KEY
+
+on:
+  schedule:
+    - cron: '15 * * * 3-11'   # cada hora en el minuto 15
+  workflow_dispatch:
+
+concurrency:
+  group: snapshot-odds
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Pull odds snapshot
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PYTHONUNBUFFERED: '1'
+        run: python -m src.ingest_odds_api
+
+      - name: Rebuild line-movement JSONs
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: python -u StatsMLB/scripts/build_line_movement.py
+
+      - name: Commit + push
+        run: |
+          if [[ -z "$(git status --porcelain data/raw/odds_api StatsMLB/public/data/line-movement StatsMLB/public/data/line-movement-index.json 2>/dev/null)" ]]; then
+            echo "No snapshot changes — skipping."
+            exit 0
+          fi
+          git config user.name  "strikecast-bot"
+          git config user.email "strikecast-bot@users.noreply.github.com"
+          git add data/raw/odds_api \
+                  StatsMLB/public/data/line-movement \
+                  StatsMLB/public/data/line-movement-index.json 2>/dev/null || true
+          git commit -m "odds: snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          # Retry si otro workflow pushea en el intervalo
+          for i in 1 2 3; do
+            if git push; then break; fi
+            echo "Push race (attempt $i), rebasing..."
+            git pull --rebase --strategy-option=ours origin main || {
+              git rebase --abort || true
+              exit 1
+            }
+          done

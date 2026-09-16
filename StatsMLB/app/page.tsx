@@ -462,6 +462,32 @@ type HistoryIndex = {
   windowDays: number;
 };
 
+type LineMovementSnapshot = [string, number, number, number | null];
+
+type LineMovementGame = {
+  away: string;
+  home: string;
+  commence: string;
+  opened: string;
+  latest: string;
+  homeImpliedOpen: number;
+  homeImpliedLatest: number;
+  shiftPp: number;
+  snapshots: number;
+  books: Record<string, LineMovementSnapshot[]>;
+};
+
+type LineMovementPayload = {
+  date: string;
+  generatedAt: string;
+  games: Record<string, LineMovementGame>;
+};
+
+type LineMovementIndex = {
+  dates: string[];
+  trackedBooks: string[];
+};
+
 type CardEvidenceSignal = {
   code: string;
   label: string;
@@ -1710,7 +1736,7 @@ function pickFromProbability(homeP: number | null, game: ScheduleGame): { code: 
   return homeP >= 0.5 ? { code: homeCode, prob: homeP } : { code: awayCode, prob: 1 - homeP };
 }
 
-function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSchedule, recentWalkforward, comparisonDate, onChangeDate, strikecast, strikecastLoading, strikecastError, valuePicks, valuePicksUpdatedAt, masks, oddsHistory, calibratorBuckets, playerPerformance, historyCache }: {
+function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSchedule, recentWalkforward, comparisonDate, onChangeDate, strikecast, strikecastLoading, strikecastError, valuePicks, valuePicksUpdatedAt, masks, oddsHistory, calibratorBuckets, playerPerformance, historyCache, lineMovement, lineMovementIndex }: {
   stats: StatsData;
   odds: OddsData | null;
   scheduleArchive: Record<string, ScheduleData>;
@@ -1729,6 +1755,8 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
   calibratorBuckets: { key: string; n: number; winRate: number }[] | null;
   playerPerformance: PlayerPerformancePayload | null;
   historyCache: Record<string, HistorySnapshot>;
+  lineMovement: LineMovementPayload | null;
+  lineMovementIndex: LineMovementIndex | null;
 }) {
   const todayDate = mexicoIsoDate();
   const tomorrowDate = mexicoIsoDate(1);
@@ -2170,7 +2198,99 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
           </table>
         </div>
       )}
+      <LineMovementPanel comparisonDate={comparisonDate} payload={lineMovement} index={lineMovementIndex} />
     </section>
+  );
+}
+
+function LineMovementPanel({ comparisonDate, payload, index }: { comparisonDate: string; payload: LineMovementPayload | null; index: LineMovementIndex | null }) {
+  const games = payload?.games ? Object.entries(payload.games) : [];
+  const bookLabel: Record<string, string> = {
+    pinnacle: 'Pinnacle', draftkings: 'DraftKings', fanduel: 'FanDuel',
+    betmgm: 'BetMGM', caesars: 'Caesars', williamhill_us: 'William Hill',
+  };
+  const sparkline = (series: LineMovementSnapshot[], width = 140, height = 32) => {
+    const points = series.map(s => s[3]).filter((v): v is number => v != null);
+    if (points.length < 2) return null;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const range = max - min || .001;
+    const path = points.map((v, i) => {
+      const x = (i / (points.length - 1)) * width;
+      const y = height - ((v - min) / range) * height;
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return <svg width={width} height={height} className="lm-spark"><path d={path} /></svg>;
+  };
+  return (
+    <div className="line-movement-panel">
+      <header>
+        <div>
+          <span className="eyebrow">💹 Movimiento de línea</span>
+          <h3>Cómo se movieron los momios · {comparisonDate}</h3>
+          <p>Cada snapshot lo captura el workflow horario de The Odds API. Los libros mostrados son Pinnacle, DraftKings, FanDuel, BetMGM, Caesars y William Hill.</p>
+        </div>
+        <div className="line-movement-meta">
+          <strong>{games.length}</strong>
+          <small>juegos con datos</small>
+        </div>
+      </header>
+      {games.length === 0 ? (
+        <div className="line-movement-empty">
+          <p>{payload === null ? 'Aún no hay snapshots capturados para esta fecha.' : 'No hay datos de mercado para esta fecha en particular.'}</p>
+          {index && <small>Fechas disponibles: {index.dates.length} · última: {index.dates[index.dates.length - 1] ?? '—'}</small>}
+        </div>
+      ) : (
+        <div className="line-movement-grid">
+          {games.map(([gamePk, g]) => {
+            const shift = g.shiftPp;
+            const shiftClass = Math.abs(shift) < .5 ? 'lm-shift-flat' : shift > 0 ? 'lm-shift-up' : 'lm-shift-down';
+            const primaryBook = g.books['pinnacle'] ?? g.books['draftkings'] ?? Object.values(g.books)[0] ?? [];
+            const bookCards = Object.entries(g.books)
+              .filter(([, series]) => series.length > 0)
+              .map(([bk, series]) => {
+                const first = series[0];
+                const last = series[series.length - 1];
+                const firstImpl = first[3];
+                const lastImpl = last[3];
+                const bookShift = firstImpl != null && lastImpl != null ? (lastImpl - firstImpl) * 100 : null;
+                return { book: bk, first, last, bookShift };
+              });
+            return (
+              <article key={gamePk} className="line-movement-card">
+                <header>
+                  <div className="lm-teams">
+                    <span>{g.away}</span><i>@</i><span>{g.home}</span>
+                  </div>
+                  <div className={`lm-shift ${shiftClass}`}>
+                    <b>{shift > 0 ? '+' : ''}{shift.toFixed(1)} pp</b>
+                    <small>{Math.abs(shift) < .5 ? 'sin movimiento' : shift > 0 ? `hacia ${g.home}` : `hacia ${g.away}`}</small>
+                  </div>
+                </header>
+                <div className="lm-summary">
+                  <div><span>Apertura</span><strong>{(g.homeImpliedOpen * 100).toFixed(1)}%</strong><small>{g.opened.slice(5, 16).replace('T', ' ')}</small></div>
+                  <div className="lm-arrow">{shift > 0 ? '→' : shift < 0 ? '←' : '·'}</div>
+                  <div><span>Actual</span><strong>{(g.homeImpliedLatest * 100).toFixed(1)}%</strong><small>{g.latest.slice(5, 16).replace('T', ' ')}</small></div>
+                </div>
+                {sparkline(primaryBook)}
+                <div className="lm-books">
+                  {bookCards.map(({ book, first, last, bookShift }) => (
+                    <div key={book} className="lm-book-row">
+                      <b>{bookLabel[book] ?? book}</b>
+                      <span>{first[1] > 0 ? '+' : ''}{first[1]} / {first[2] > 0 ? '+' : ''}{first[2]}</span>
+                      <i>→</i>
+                      <span>{last[1] > 0 ? '+' : ''}{last[1]} / {last[2] > 0 ? '+' : ''}{last[2]}</span>
+                      {bookShift != null && <em className={bookShift > 0 ? 'lm-up' : bookShift < 0 ? 'lm-down' : ''}>{bookShift > 0 ? '+' : ''}{bookShift.toFixed(1)}pp</em>}
+                    </div>
+                  ))}
+                </div>
+                <footer><small>{g.snapshots} snapshots · abre {g.opened.slice(0, 10)}, cierre {g.commence.slice(11, 16)} UTC</small></footer>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -2209,6 +2329,25 @@ export default function HomePage() {
   const [playerPerformance, setPlayerPerformance] = useState<PlayerPerformancePayload | null>(null);
   const [historyIndex, setHistoryIndex] = useState<HistoryIndex | null>(null);
   const [historyCache, setHistoryCache] = useState<Record<string, HistorySnapshot>>({});
+  const [lineMovementIndex, setLineMovementIndex] = useState<LineMovementIndex | null>(null);
+  const [lineMovementCache, setLineMovementCache] = useState<Record<string, LineMovementPayload>>({});
+  useEffect(() => {
+    if (lineMovementCache[comparisonDate]) return;
+    const controller = new AbortController();
+    fetch(`/data/line-movement/${comparisonDate}.json`, { signal: controller.signal, cache: 'no-store' })
+      .then(r => r.ok ? r.json() as Promise<LineMovementPayload> : null)
+      .then(payload => { if (payload) setLineMovementCache(prev => ({ ...prev, [comparisonDate]: payload })); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [comparisonDate, lineMovementCache]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/data/line-movement-index.json`, { signal: controller.signal, cache: 'no-store' })
+      .then(r => r.ok ? r.json() as Promise<LineMovementIndex> : null)
+      .then(idx => { if (idx) setLineMovementIndex(idx); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   const todayForHistory = mexicoIsoDate();
   const historyFetchDates = Array.from(new Set([
     selectedGameDate < todayForHistory ? selectedGameDate : null,
@@ -2513,6 +2652,8 @@ export default function HomePage() {
         calibratorBuckets={calibratorBuckets}
         playerPerformance={playerPerformance}
         historyCache={historyCache}
+        lineMovement={lineMovementCache[comparisonDate] ?? null}
+        lineMovementIndex={lineMovementIndex}
       />
 
       </div>
