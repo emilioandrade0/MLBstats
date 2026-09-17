@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-17T18:35:12.852682+00:00",
+  "retrievedAt": "2026-09-17T22:09:28.208762+00:00",
   "games": [
     {
       "gamePk": 823334,
       "gameDate": "2026-09-17T16:35:00Z",
       "officialDate": "2026-09-17",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "PNC Park",
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": 1,
+        "score": 4,
         "pitcher": "Kyle Harrison"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": 5,
+        "score": 7,
         "pitcher": "Wilber Dotel"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 824464,
       "gameDate": "2026-09-17T16:40:00Z",
       "officialDate": "2026-09-17",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Great American Ball Park",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": 7,
+        "score": 8,
         "pitcher": "Justin Wrobleski"
       },
       "home": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": 1,
+        "score": 2,
         "pitcher": "Brady Singer"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 822924,
       "gameDate": "2026-09-17T17:10:00Z",
       "officialDate": "2026-09-17",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Tropicana Field",
       "away": {
         "team": "ATH",
         "name": "Athletics",
-        "score": 0,
+        "score": 1,
         "pitcher": "Jeffrey Springs"
       },
       "home": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": 2,
+        "score": 10,
         "pitcher": "Drew Rasmussen"
       }
     },
@@ -67,19 +67,19 @@
       "gamePk": 824305,
       "gameDate": "2026-09-17T19:10:00Z",
       "officialDate": "2026-09-17",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "Game Over",
+      "abstractState": "Final",
       "venue": "Coors Field",
       "away": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": 0,
+        "score": 9,
         "pitcher": "Michael King"
       },
       "home": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": 0,
+        "score": 2,
         "pitcher": "Tanner Gordon"
       }
     },
@@ -87,39 +87,39 @@
       "gamePk": 824141,
       "gameDate": "2026-09-17T23:15:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Daikin Park",
       "away": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": null,
+        "score": 0,
         "pitcher": "Seth Lugo"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": null,
-        "pitcher": null
+        "score": 0,
+        "pitcher": "Miguel Ullola"
       }
     },
     {
       "gamePk": 823573,
       "gameDate": "2026-09-17T23:15:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Citi Field",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
+        "score": 0,
         "pitcher": "Aaron Nola"
       },
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": null,
+        "score": 0,
         "pitcher": "Nolan McLean"
       }
     },
@@ -127,19 +127,19 @@
       "gamePk": 824548,
       "gameDate": "2026-09-17T23:40:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Rate Field",
       "away": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": null,
+        "score": 0,
         "pitcher": "Framber Valdez"
       },
       "home": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Erick Fedde"
       }
     },
@@ -147,19 +147,19 @@
       "gamePk": 822845,
       "gameDate": "2026-09-18T00:05:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Globe Life Field",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Sonny Gray"
       },
       "home": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": null,
+        "score": 0,
         "pitcher": "Tyler Alexander"
       }
     },
@@ -167,7 +167,7 @@
       "gamePk": 823978,
       "gameDate": "2026-09-18T01:38:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Angel Stadium",
       "away": {
