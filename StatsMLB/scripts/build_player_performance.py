@@ -10,6 +10,7 @@ without recent action is omitted so we never invent numbers.
 from __future__ import annotations
 
 import json
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -50,7 +51,7 @@ def label_pitcher(era: float, whip: float, k9: float) -> str:
 def compute_season_ops_lookup(pb: pd.DataFrame, games: pd.DataFrame, cutoff_date):
     """OPS de temporada por jugador hasta ``cutoff_date`` inclusive."""
     pb_dates = pb.merge(games[["game_pk", "game_date"]], on="game_pk", how="inner")
-    pb_dates = pb_dates[pb_dates["game_date"] <= cutoff_date]
+    pb_dates = pb_dates[(pb_dates["game_date"] <= cutoff_date) & (pb_dates["game_date"].dt.year == cutoff_date.year)]
     if pb_dates.empty:
         return {}
     agg = pb_dates.groupby("player_id", dropna=True).agg(
@@ -85,14 +86,20 @@ def talent_tier_from_ops(ops):
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--as-of', default=str(pd.Timestamp.now('America/Mexico_City').date()), help='Pregame date; excludes this date and future games')
+    as_of = pd.Timestamp(parser.parse_args().as_of)
     pb = pd.read_parquet(ROOT / "data" / "processed" / "player_box.parquet")
     games = pd.read_parquet(
         ROOT / "data" / "processed" / "games.parquet",
-        columns=["game_pk", "game_date"],
+        columns=["game_pk", "game_date", "home_score", "away_score"],
     )
     games["game_date"] = pd.to_datetime(games["game_date"])
+    games = games[(games["game_date"] < as_of) & games["home_score"].notna() & games["away_score"].notna() & (games["home_score"] != games["away_score"])]
+    if games.empty:
+        raise ValueError('No completed games before the requested date; previous snapshot preserved')
     latest = games["game_date"].max()
-    cutoff = latest - pd.Timedelta(days=WINDOW_DAYS)
+    cutoff = latest - pd.Timedelta(days=WINDOW_DAYS - 1)
     active_games = games[games["game_date"] >= cutoff]["game_pk"].astype(int).tolist()
     frame = pb[pb["game_pk"].isin(active_games)].copy()
     season_ops_lookup = compute_season_ops_lookup(pb, games, latest)

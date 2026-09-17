@@ -1,0 +1,21 @@
+.lineup-research { color: #dfebf7; }
+.lineup-research h2 { margin: 12px 0; }
+.lineup-research h3 { margin: 32px 0 12px; }
+.lineup-research p { color: #adc1d4; line-height: 1.7; }
+.lineup-research-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin: 24px 0; }
+.lineup-research-summary article { display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid #344d63; border-radius: 9px; background: #172b3d; }
+.lineup-research-summary strong { font-size: 28px; color: #83dfcc; }
+.lineup-research-summary :is(small,span) { color: #b3c8dc; font-size: 12px; }
+.lineup-research-note { margin: 20px 0; padding: 18px; background: #2b3037; border-left: 3px solid #dbb67a; color: #e1d4bf; line-height: 1.65; }
+.lineup-research-scroll { overflow-x: auto; margin: 18px 0; border: 1px solid #34495c; border-radius: 8px; }
+.lineup-research table { width: 100%; border-collapse: collapse; min-width: 660px; font-size: 13px; }
+.lineup-research th, .lineup-research td { text-align: left; padding: 13px 16px; border-bottom: 1px solid #2d4357; font-variant-numeric: tabular-nums; }
+.lineup-research th { color: #bcd6e7; background: #192c3e; }
+.lineup-research :is(th,td):first-child { min-width: 210px; width: 250px; }
+.lineup-research td small { display: block; color: #9bb5cb; margin-top: 5px; }
+.lineup-research caption { text-align: left; padding: 14px; color: #a8c0d2; }
+.lineup-research-filters { display: flex; flex-wrap: wrap; gap: 18px; align-items: end; }
+.lineup-research-filters label { display: flex; flex-direction: column; gap: 8px; color: #b5cadd; }
+.lineup-research-filters :is(input,select) { background: #172d40; border: 1px solid #48627a; border-radius: 6px; padding: 10px; color: #e0ebf6; max-width: 100%; }
+.lineup-research-filters input { width: 310px; }
+@media(max-width:800px) { .lineup-research-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }.lineup-research-summary article { padding: 14px; }.lineup-research-filters label { width: 100%; } }

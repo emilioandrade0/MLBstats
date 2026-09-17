@@ -25,6 +25,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DashboardTabs from './components/DashboardTabs';
 import PredictionAudit from './components/PredictionAudit';
+import LineupSignalAudit from './components/LineupSignalAudit';
 import TeamLogo from './components/TeamLogo';
 import WalkforwardCalendar from './components/WalkforwardCalendar';
 
@@ -2711,6 +2712,7 @@ export default function HomePage() {
 
       </div>
 
+      <div data-section="auditoria-rachas-lineup"><LineupSignalAudit /></div>
       <div data-section="auditoria-motores"><PredictionAudit active={active} /></div>
       {seasonL10Audit && <div data-section="auditoria-temporada-l10"><SeasonL10AuditSection audit={seasonL10Audit} /></div>}
 

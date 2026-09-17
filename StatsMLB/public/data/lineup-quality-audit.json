@@ -1,0 +1,3377 @@
+{
+  "asOf": "2026-09-16",
+  "gamesWithQuality": 2132,
+  "hypotheses": [
+    {
+      "name": "Mayor calidad + OPS L30 superior",
+      "discovery": {
+        "games": 288,
+        "lowerWins": 155,
+        "lowerWinRate": 0.53819444,
+        "lowerCI95": [
+          0.48049136,
+          0.594892
+        ],
+        "chooseLowerVsBase": {
+          "games": 288,
+          "deltaPoints": -1.04166667,
+          "netCorrect": -3,
+          "rescued": 101,
+          "lost": 104,
+          "deltaCI95Points": [
+            -11.55480004,
+            9.12557724
+          ],
+          "before": {
+            "games": 288,
+            "correct": 158,
+            "accuracy": 0.54861111,
+            "accuracyCI95": [
+              0.49087368,
+              0.60506878
+            ],
+            "brier": 0.25021776,
+            "logLoss": 0.69370751,
+            "ece": 0.07115343,
+            "days": 92,
+            "winningDays": 42,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 122,
+                "accuracy": 0.58196721,
+                "confidence": 0.52532659
+              },
+              {
+                "label": "55–60%",
+                "games": 105,
+                "accuracy": 0.4952381,
+                "confidence": 0.57486979
+              },
+              {
+                "label": "60–65%",
+                "games": 34,
+                "accuracy": 0.52941176,
+                "confidence": 0.62304688
+              },
+              {
+                "label": "65–70%",
+                "games": 14,
+                "accuracy": 0.64285714,
+                "confidence": 0.67299107
+              },
+              {
+                "label": "70–100%",
+                "games": 13,
+                "accuracy": 0.61538462,
+                "confidence": 0.73963341
+              }
+            ]
+          },
+          "after": {
+            "games": 288,
+            "correct": 155,
+            "accuracy": 0.53819444,
+            "accuracyCI95": [
+              0.48049136,
+              0.594892
+            ],
+            "brier": 0.29340278,
+            "logLoss": 0.79502733,
+            "ece": 0.21180556,
+            "days": 92,
+            "winningDays": 40,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 288,
+                "accuracy": 0.53819444,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.45446777,
+        "expectedGames": 288,
+        "excessLowerPoints": 8.3726671,
+        "excessCI95": [
+          0.01900645,
+          0.14082588
+        ],
+        "pExcess": 0.00603788,
+        "betterRuns": 4.36111111,
+        "lowerRuns": 4.39236111
+      },
+      "validation": {
+        "games": 196,
+        "lowerWins": 117,
+        "lowerWinRate": 0.59693878,
+        "lowerCI95": [
+          0.52704122,
+          0.66310938
+        ],
+        "chooseLowerVsBase": {
+          "games": 196,
+          "deltaPoints": 0.51020408,
+          "netCorrect": 1,
+          "rescued": 60,
+          "lost": 59,
+          "deltaCI95Points": [
+            -11.22592883,
+            12.08803987
+          ],
+          "before": {
+            "games": 196,
+            "correct": 116,
+            "accuracy": 0.59183673,
+            "accuracyCI95": [
+              0.52190394,
+              0.65823874
+            ],
+            "brier": 0.24512054,
+            "logLoss": 0.68326641,
+            "ece": 0.07957988,
+            "days": 66,
+            "winningDays": 37,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 122,
+                "accuracy": 0.59836066,
+                "confidence": 0.52491035
+              },
+              {
+                "label": "55–60%",
+                "games": 52,
+                "accuracy": 0.51923077,
+                "confidence": 0.56888522
+              },
+              {
+                "label": "60–65%",
+                "games": 16,
+                "accuracy": 0.8125,
+                "confidence": 0.62036133
+              },
+              {
+                "label": "65–70%",
+                "games": 6,
+                "accuracy": 0.5,
+                "confidence": 0.66341146
+              }
+            ]
+          },
+          "after": {
+            "games": 196,
+            "correct": 117,
+            "accuracy": 0.59693878,
+            "accuracyCI95": [
+              0.52704122,
+              0.66310938
+            ],
+            "brier": 0.26403061,
+            "logLoss": 0.73049009,
+            "ece": 0.15306122,
+            "days": 66,
+            "winningDays": 39,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 196,
+                "accuracy": 0.59693878,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.4839764,
+        "expectedGames": 196,
+        "excessLowerPoints": 11.29623724,
+        "excessCI95": [
+          0.03975618,
+          0.18164455
+        ],
+        "pExcess": 0.00149894,
+        "betterRuns": 3.97959184,
+        "lowerRuns": 4.74489796,
+        "qExcess": 0.01049257
+      }
+    },
+    {
+      "name": "Mayor calidad + al menos 2 calientes adicionales",
+      "discovery": {
+        "games": 163,
+        "lowerWins": 90,
+        "lowerWinRate": 0.55214724,
+        "lowerCI95": [
+          0.47548007,
+          0.62641298
+        ],
+        "chooseLowerVsBase": {
+          "games": 163,
+          "deltaPoints": 0.0,
+          "netCorrect": 0,
+          "rescued": 62,
+          "lost": 62,
+          "deltaCI95Points": [
+            -12.00201342,
+            11.4143416
+          ],
+          "before": {
+            "games": 163,
+            "correct": 90,
+            "accuracy": 0.55214724,
+            "accuracyCI95": [
+              0.47548007,
+              0.62641298
+            ],
+            "brier": 0.25323194,
+            "logLoss": 0.69984452,
+            "ece": 0.10207774,
+            "days": 76,
+            "winningDays": 31,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 69,
+                "accuracy": 0.60869565,
+                "confidence": 0.52448483
+              },
+              {
+                "label": "55–60%",
+                "games": 54,
+                "accuracy": 0.51851852,
+                "confidence": 0.5760272
+              },
+              {
+                "label": "60–65%",
+                "games": 22,
+                "accuracy": 0.36363636,
+                "confidence": 0.62269176
+              },
+              {
+                "label": "65–70%",
+                "games": 8,
+                "accuracy": 0.75,
+                "confidence": 0.67382812
+              },
+              {
+                "label": "70–100%",
+                "games": 10,
+                "accuracy": 0.6,
+                "confidence": 0.74140625
+              }
+            ]
+          },
+          "after": {
+            "games": 163,
+            "correct": 90,
+            "accuracy": 0.55214724,
+            "accuracyCI95": [
+              0.47548007,
+              0.62641298
+            ],
+            "brier": 0.28642638,
+            "logLoss": 0.77969862,
+            "ece": 0.19785276,
+            "days": 76,
+            "winningDays": 33,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 163,
+                "accuracy": 0.55214724,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.44355109,
+        "expectedGames": 163,
+        "excessLowerPoints": 10.85961465,
+        "excessCI95": [
+          0.03660541,
+          0.17657883
+        ],
+        "pExcess": 0.00242898,
+        "betterRuns": 4.28834356,
+        "lowerRuns": 4.37423313
+      },
+      "validation": {
+        "games": 124,
+        "lowerWins": 74,
+        "lowerWinRate": 0.59677419,
+        "lowerCI95": [
+          0.50878117,
+          0.67895115
+        ],
+        "chooseLowerVsBase": {
+          "games": 123,
+          "deltaPoints": 3.25203252,
+          "netCorrect": 4,
+          "rescued": 39,
+          "lost": 35,
+          "deltaCI95Points": [
+            -11.76604278,
+            16.8033871
+          ],
+          "before": {
+            "games": 123,
+            "correct": 70,
+            "accuracy": 0.56910569,
+            "accuracyCI95": [
+              0.48080719,
+              0.65321824
+            ],
+            "brier": 0.24686125,
+            "logLoss": 0.68680788,
+            "ece": 0.04663681,
+            "days": 55,
+            "winningDays": 28,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 70,
+                "accuracy": 0.55714286,
+                "confidence": 0.52382812
+              },
+              {
+                "label": "55–60%",
+                "games": 36,
+                "accuracy": 0.55555556,
+                "confidence": 0.57096354
+              },
+              {
+                "label": "60–65%",
+                "games": 12,
+                "accuracy": 0.75,
+                "confidence": 0.6233724
+              },
+              {
+                "label": "65–70%",
+                "games": 5,
+                "accuracy": 0.4,
+                "confidence": 0.66601562
+              }
+            ]
+          },
+          "after": {
+            "games": 123,
+            "correct": 74,
+            "accuracy": 0.60162602,
+            "accuracyCI95": [
+              0.51329363,
+              0.68380259
+            ],
+            "brier": 0.26168699,
+            "logLoss": 0.72534063,
+            "ece": 0.14837398,
+            "days": 55,
+            "winningDays": 27,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 123,
+                "accuracy": 0.60162602,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.48655043,
+        "expectedGames": 123,
+        "excessLowerPoints": 11.50755843,
+        "excessCI95": [
+          0.0371628,
+          0.19076991
+        ],
+        "pExcess": 0.00391209,
+        "betterRuns": 3.61290323,
+        "lowerRuns": 4.41935484,
+        "qExcess": 0.0136923
+      }
+    },
+    {
+      "name": "Mayor calidad + al menos 2 positivos adicionales",
+      "discovery": {
+        "games": 218,
+        "lowerWins": 129,
+        "lowerWinRate": 0.59174312,
+        "lowerCI95": [
+          0.52545522,
+          0.65485362
+        ],
+        "chooseLowerVsBase": {
+          "games": 218,
+          "deltaPoints": 6.42201835,
+          "netCorrect": 14,
+          "rescued": 85,
+          "lost": 71,
+          "deltaCI95Points": [
+            -4.24578601,
+            17.1320109
+          ],
+          "before": {
+            "games": 218,
+            "correct": 115,
+            "accuracy": 0.52752294,
+            "accuracyCI95": [
+              0.46134758,
+              0.59274507
+            ],
+            "brier": 0.25242254,
+            "logLoss": 0.6988288,
+            "ece": 0.04409762,
+            "days": 87,
+            "winningDays": 44,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 92,
+                "accuracy": 0.52173913,
+                "confidence": 0.52755605
+              },
+              {
+                "label": "55–60%",
+                "games": 78,
+                "accuracy": 0.51282051,
+                "confidence": 0.57331731
+              },
+              {
+                "label": "60–65%",
+                "games": 28,
+                "accuracy": 0.53571429,
+                "confidence": 0.62276786
+              },
+              {
+                "label": "65–70%",
+                "games": 12,
+                "accuracy": 0.58333333,
+                "confidence": 0.67675781
+              },
+              {
+                "label": "70–100%",
+                "games": 8,
+                "accuracy": 0.625,
+                "confidence": 0.72509766
+              }
+            ]
+          },
+          "after": {
+            "games": 218,
+            "correct": 129,
+            "accuracy": 0.59174312,
+            "accuracyCI95": [
+              0.52545522,
+              0.65485362
+            ],
+            "brier": 0.26662844,
+            "logLoss": 0.7361981,
+            "ece": 0.15825688,
+            "days": 87,
+            "winningDays": 43,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 218,
+                "accuracy": 0.59174312,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.45590238,
+        "expectedGames": 218,
+        "excessLowerPoints": 13.58407397,
+        "excessCI95": [
+          0.07507579,
+          0.19711324
+        ],
+        "pExcess": 1.323e-05,
+        "betterRuns": 4.35321101,
+        "lowerRuns": 4.64678899
+      },
+      "validation": {
+        "games": 170,
+        "lowerWins": 99,
+        "lowerWinRate": 0.58235294,
+        "lowerCI95": [
+          0.50719816,
+          0.653868
+        ],
+        "chooseLowerVsBase": {
+          "games": 170,
+          "deltaPoints": 0.0,
+          "netCorrect": 0,
+          "rescued": 47,
+          "lost": 47,
+          "deltaCI95Points": [
+            -14.46769764,
+            13.4502924
+          ],
+          "before": {
+            "games": 170,
+            "correct": 99,
+            "accuracy": 0.58235294,
+            "accuracyCI95": [
+              0.50719816,
+              0.653868
+            ],
+            "brier": 0.24842462,
+            "logLoss": 0.69002354,
+            "ece": 0.09942555,
+            "days": 65,
+            "winningDays": 33,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 107,
+                "accuracy": 0.61682243,
+                "confidence": 0.5232002
+              },
+              {
+                "label": "55–60%",
+                "games": 48,
+                "accuracy": 0.47916667,
+                "confidence": 0.56884766
+              },
+              {
+                "label": "60–65%",
+                "games": 12,
+                "accuracy": 0.75,
+                "confidence": 0.61783854
+              },
+              {
+                "label": "65–70%",
+                "games": 3,
+                "accuracy": 0.33333333,
+                "confidence": 0.66471354
+              }
+            ]
+          },
+          "after": {
+            "games": 170,
+            "correct": 99,
+            "accuracy": 0.58235294,
+            "accuracyCI95": [
+              0.50719816,
+              0.653868
+            ],
+            "brier": 0.27132353,
+            "logLoss": 0.74651426,
+            "ece": 0.16764706,
+            "days": 65,
+            "winningDays": 32,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 170,
+                "accuracy": 0.58235294,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.4902114,
+        "expectedGames": 170,
+        "excessLowerPoints": 9.21415441,
+        "excessCI95": [
+          0.00056724,
+          0.17577854
+        ],
+        "pExcess": 0.03509231,
+        "betterRuns": 3.80588235,
+        "lowerRuns": 4.68235294,
+        "qExcess": 0.04912924
+      }
+    },
+    {
+      "name": "Mayor calidad + mejor balance calientes menos fríos",
+      "discovery": {
+        "games": 290,
+        "lowerWins": 159,
+        "lowerWinRate": 0.54827586,
+        "lowerCI95": [
+          0.49073815,
+          0.60455128
+        ],
+        "chooseLowerVsBase": {
+          "games": 290,
+          "deltaPoints": -1.03448276,
+          "netCorrect": -3,
+          "rescued": 103,
+          "lost": 106,
+          "deltaCI95Points": [
+            -10.84029066,
+            9.2360938
+          ],
+          "before": {
+            "games": 290,
+            "correct": 162,
+            "accuracy": 0.55862069,
+            "accuracyCI95": [
+              0.50107324,
+              0.61463536
+            ],
+            "brier": 0.24738099,
+            "logLoss": 0.68780843,
+            "ece": 0.06539601,
+            "days": 90,
+            "winningDays": 43,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 125,
+                "accuracy": 0.576,
+                "confidence": 0.52514063
+              },
+              {
+                "label": "55–60%",
+                "games": 96,
+                "accuracy": 0.5,
+                "confidence": 0.57556152
+              },
+              {
+                "label": "60–65%",
+                "games": 44,
+                "accuracy": 0.54545455,
+                "confidence": 0.62189276
+              },
+              {
+                "label": "65–70%",
+                "games": 16,
+                "accuracy": 0.75,
+                "confidence": 0.67016602
+              },
+              {
+                "label": "70–100%",
+                "games": 9,
+                "accuracy": 0.66666667,
+                "confidence": 0.74587674
+              }
+            ]
+          },
+          "after": {
+            "games": 290,
+            "correct": 159,
+            "accuracy": 0.54827586,
+            "accuracyCI95": [
+              0.49073815,
+              0.60455128
+            ],
+            "brier": 0.28836207,
+            "logLoss": 0.78395176,
+            "ece": 0.20172414,
+            "days": 90,
+            "winningDays": 40,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 290,
+                "accuracy": 0.54827586,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.45297683,
+        "expectedGames": 290,
+        "excessLowerPoints": 9.52990302,
+        "excessCI95": [
+          0.03879464,
+          0.15223835
+        ],
+        "pExcess": 0.00102255,
+        "betterRuns": 4.34482759,
+        "lowerRuns": 4.42068966
+      },
+      "validation": {
+        "games": 204,
+        "lowerWins": 117,
+        "lowerWinRate": 0.57352941,
+        "lowerCI95": [
+          0.50491901,
+          0.63942168
+        ],
+        "chooseLowerVsBase": {
+          "games": 203,
+          "deltaPoints": -1.97044335,
+          "netCorrect": -4,
+          "rescued": 58,
+          "lost": 62,
+          "deltaCI95Points": [
+            -13.19870814,
+            9.09200175
+          ],
+          "before": {
+            "games": 203,
+            "correct": 121,
+            "accuracy": 0.59605911,
+            "accuracyCI95": [
+              0.5273798,
+              0.66117028
+            ],
+            "brier": 0.24379732,
+            "logLoss": 0.68054594,
+            "ece": 0.07420913,
+            "days": 67,
+            "winningDays": 38,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 127,
+                "accuracy": 0.5984252,
+                "confidence": 0.52443713
+              },
+              {
+                "label": "55–60%",
+                "games": 55,
+                "accuracy": 0.52727273,
+                "confidence": 0.56850142
+              },
+              {
+                "label": "60–65%",
+                "games": 16,
+                "accuracy": 0.8125,
+                "confidence": 0.62036133
+              },
+              {
+                "label": "65–70%",
+                "games": 5,
+                "accuracy": 0.6,
+                "confidence": 0.66523438
+              }
+            ]
+          },
+          "after": {
+            "games": 203,
+            "correct": 117,
+            "accuracy": 0.57635468,
+            "accuracyCI95": [
+              0.50758007,
+              0.64229307
+            ],
+            "brier": 0.27432266,
+            "logLoss": 0.75310403,
+            "ece": 0.17364532,
+            "days": 67,
+            "winningDays": 38,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 203,
+                "accuracy": 0.57635468,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.4861357,
+        "expectedGames": 203,
+        "excessLowerPoints": 9.02189809,
+        "excessCI95": [
+          0.01874032,
+          0.15740033
+        ],
+        "pExcess": 0.00855792,
+        "betterRuns": 4.02941176,
+        "lowerRuns": 4.70098039,
+        "qExcess": 0.02396218
+      }
+    },
+    {
+      "name": "Calidad y forma: diferencias grandes",
+      "discovery": {
+        "games": 70,
+        "lowerWins": 37,
+        "lowerWinRate": 0.52857143,
+        "lowerCI95": [
+          0.41321684,
+          0.64095317
+        ],
+        "chooseLowerVsBase": {
+          "games": 70,
+          "deltaPoints": -5.71428571,
+          "netCorrect": -4,
+          "rescued": 26,
+          "lost": 30,
+          "deltaCI95Points": [
+            -25.35263822,
+            13.88888889
+          ],
+          "before": {
+            "games": 70,
+            "correct": 41,
+            "accuracy": 0.58571429,
+            "accuracyCI95": [
+              0.46881,
+              0.69370002
+            ],
+            "brier": 0.24311992,
+            "logLoss": 0.6776011,
+            "ece": 0.09023438,
+            "days": 53,
+            "winningDays": 28,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 22,
+                "accuracy": 0.63636364,
+                "confidence": 0.52840909
+              },
+              {
+                "label": "55–60%",
+                "games": 26,
+                "accuracy": 0.5,
+                "confidence": 0.57632212
+              },
+              {
+                "label": "60–65%",
+                "games": 11,
+                "accuracy": 0.54545455,
+                "confidence": 0.62091619
+              },
+              {
+                "label": "65–70%",
+                "games": 5,
+                "accuracy": 0.8,
+                "confidence": 0.67304688
+              },
+              {
+                "label": "70–100%",
+                "games": 6,
+                "accuracy": 0.66666667,
+                "confidence": 0.74869792
+              }
+            ]
+          },
+          "after": {
+            "games": 70,
+            "correct": 37,
+            "accuracy": 0.52857143,
+            "accuracyCI95": [
+              0.41321684,
+              0.64095317
+            ],
+            "brier": 0.29821429,
+            "logLoss": 0.80559929,
+            "ece": 0.22142857,
+            "days": 53,
+            "winningDays": 25,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 70,
+                "accuracy": 0.52857143,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.425,
+        "expectedGames": 70,
+        "excessLowerPoints": 10.35714286,
+        "excessCI95": [
+          -0.01778527,
+          0.2140004
+        ],
+        "pExcess": 0.09036432,
+        "betterRuns": 4.52857143,
+        "lowerRuns": 4.3
+      },
+      "validation": {
+        "games": 30,
+        "lowerWins": 20,
+        "lowerWinRate": 0.66666667,
+        "lowerCI95": [
+          0.48779726,
+          0.80769704
+        ],
+        "chooseLowerVsBase": {
+          "games": 30,
+          "deltaPoints": 3.33333333,
+          "netCorrect": 1,
+          "rescued": 10,
+          "lost": 9,
+          "deltaCI95Points": [
+            -25.0,
+            32.14285714
+          ],
+          "before": {
+            "games": 30,
+            "correct": 19,
+            "accuracy": 0.63333333,
+            "accuracyCI95": [
+              0.45513246,
+              0.78126298
+            ],
+            "brier": 0.24888687,
+            "logLoss": 0.69123352,
+            "ece": 0.16236979,
+            "days": 25,
+            "winningDays": 15,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 22,
+                "accuracy": 0.68181818,
+                "confidence": 0.52556818
+              },
+              {
+                "label": "55–60%",
+                "games": 6,
+                "accuracy": 0.5,
+                "confidence": 0.56835938
+              },
+              {
+                "label": "60–65%",
+                "games": 1,
+                "accuracy": 1.0,
+                "confidence": 0.64257812
+              },
+              {
+                "label": "65–70%",
+                "games": 1,
+                "accuracy": 0.0,
+                "confidence": 0.66601562
+              }
+            ]
+          },
+          "after": {
+            "games": 30,
+            "correct": 20,
+            "accuracy": 0.66666667,
+            "accuracyCI95": [
+              0.48779726,
+              0.80769704
+            ],
+            "brier": 0.22916667,
+            "logLoss": 0.65388617,
+            "ece": 0.08333333,
+            "days": 25,
+            "winningDays": 15,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 30,
+                "accuracy": 0.66666667,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.47643229,
+        "expectedGames": 30,
+        "excessLowerPoints": 19.0234375,
+        "excessCI95": [
+          0.02203232,
+          0.33903002
+        ],
+        "pExcess": 0.02369461,
+        "betterRuns": 3.56666667,
+        "lowerRuns": 4.96666667,
+        "qExcess": 0.04146557
+      }
+    },
+    {
+      "name": "Calidad de años anteriores + OPS L30 superior",
+      "discovery": {
+        "games": 175,
+        "lowerWins": 91,
+        "lowerWinRate": 0.52,
+        "lowerCI95": [
+          0.44634671,
+          0.59279407
+        ],
+        "chooseLowerVsBase": {
+          "games": 175,
+          "deltaPoints": -1.14285714,
+          "netCorrect": -2,
+          "rescued": 75,
+          "lost": 77,
+          "deltaCI95Points": [
+            -14.70633345,
+            12.57151411
+          ],
+          "before": {
+            "games": 175,
+            "correct": 93,
+            "accuracy": 0.53142857,
+            "accuracyCI95": [
+              0.4576142,
+              0.60389275
+            ],
+            "brier": 0.25496894,
+            "logLoss": 0.70347974,
+            "ece": 0.11887277,
+            "days": 80,
+            "winningDays": 34,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 54,
+                "accuracy": 0.62962963,
+                "confidence": 0.52582465
+              },
+              {
+                "label": "55–60%",
+                "games": 69,
+                "accuracy": 0.42028986,
+                "confidence": 0.57600204
+              },
+              {
+                "label": "60–65%",
+                "games": 27,
+                "accuracy": 0.55555556,
+                "confidence": 0.62160012
+              },
+              {
+                "label": "65–70%",
+                "games": 13,
+                "accuracy": 0.61538462,
+                "confidence": 0.67412861
+              },
+              {
+                "label": "70–100%",
+                "games": 12,
+                "accuracy": 0.58333333,
+                "confidence": 0.7421875
+              }
+            ]
+          },
+          "after": {
+            "games": 175,
+            "correct": 91,
+            "accuracy": 0.52,
+            "accuracyCI95": [
+              0.44634671,
+              0.59279407
+            ],
+            "brier": 0.3025,
+            "logLoss": 0.81501597,
+            "ece": 0.23,
+            "days": 80,
+            "winningDays": 37,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 175,
+                "accuracy": 0.52,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.42297991,
+        "expectedGames": 175,
+        "excessLowerPoints": 9.70200893,
+        "excessCI95": [
+          0.02653752,
+          0.17148962
+        ],
+        "pExcess": 0.00954567,
+        "betterRuns": 4.50857143,
+        "lowerRuns": 4.30857143
+      },
+      "validation": {
+        "games": 99,
+        "lowerWins": 54,
+        "lowerWinRate": 0.54545455,
+        "lowerCI95": [
+          0.44750518,
+          0.64000804
+        ],
+        "chooseLowerVsBase": {
+          "games": 99,
+          "deltaPoints": -6.06060606,
+          "netCorrect": -6,
+          "rescued": 34,
+          "lost": 40,
+          "deltaCI95Points": [
+            -23.63636364,
+            10.47744361
+          ],
+          "before": {
+            "games": 99,
+            "correct": 60,
+            "accuracy": 0.60606061,
+            "accuracyCI95": [
+              0.50757821,
+              0.69661931
+            ],
+            "brier": 0.2423812,
+            "logLoss": 0.67768839,
+            "ece": 0.05959991,
+            "days": 53,
+            "winningDays": 29,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 61,
+                "accuracy": 0.60655738,
+                "confidence": 0.52468622
+              },
+              {
+                "label": "55–60%",
+                "games": 30,
+                "accuracy": 0.56666667,
+                "confidence": 0.56757813
+              },
+              {
+                "label": "60–65%",
+                "games": 5,
+                "accuracy": 0.8,
+                "confidence": 0.62695312
+              },
+              {
+                "label": "65–70%",
+                "games": 3,
+                "accuracy": 0.66666667,
+                "confidence": 0.67122396
+              }
+            ]
+          },
+          "after": {
+            "games": 99,
+            "correct": 54,
+            "accuracy": 0.54545455,
+            "accuracyCI95": [
+              0.44750518,
+              0.64000804
+            ],
+            "brier": 0.28977273,
+            "logLoss": 0.78705129,
+            "ece": 0.20454545,
+            "days": 53,
+            "winningDays": 24,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 99,
+                "accuracy": 0.54545455,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.46727036,
+        "expectedGames": 99,
+        "excessLowerPoints": 7.81841856,
+        "excessCI95": [
+          -0.02158665,
+          0.16984493
+        ],
+        "pExcess": 0.13117089,
+        "betterRuns": 4.16161616,
+        "lowerRuns": 4.49494949,
+        "qExcess": 0.1530327
+      }
+    },
+    {
+      "name": "Superior local",
+      "discovery": {
+        "games": 142,
+        "lowerWins": 73,
+        "lowerWinRate": 0.51408451,
+        "lowerCI95": [
+          0.43259545,
+          0.59483156
+        ],
+        "chooseLowerVsBase": {
+          "games": 142,
+          "deltaPoints": 0.70422535,
+          "netCorrect": 1,
+          "rescued": 61,
+          "lost": 60,
+          "deltaCI95Points": [
+            -14.37945633,
+            15.38602941
+          ],
+          "before": {
+            "games": 142,
+            "correct": 72,
+            "accuracy": 0.50704225,
+            "accuracyCI95": [
+              0.42571518,
+              0.58799833
+            ],
+            "brier": 0.25291395,
+            "logLoss": 0.69907332,
+            "ece": 0.07795995,
+            "days": 76,
+            "winningDays": 32,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 50,
+                "accuracy": 0.5,
+                "confidence": 0.52835937
+              },
+              {
+                "label": "55–60%",
+                "games": 53,
+                "accuracy": 0.43396226,
+                "confidence": 0.57668779
+              },
+              {
+                "label": "60–65%",
+                "games": 18,
+                "accuracy": 0.61111111,
+                "confidence": 0.62304688
+              },
+              {
+                "label": "65–70%",
+                "games": 11,
+                "accuracy": 0.63636364,
+                "confidence": 0.6731179
+              },
+              {
+                "label": "70–100%",
+                "games": 10,
+                "accuracy": 0.6,
+                "confidence": 0.746875
+              }
+            ]
+          },
+          "after": {
+            "games": 142,
+            "correct": 73,
+            "accuracy": 0.51408451,
+            "accuracyCI95": [
+              0.43259545,
+              0.59483156
+            ],
+            "brier": 0.30545775,
+            "logLoss": 0.8215148,
+            "ece": 0.23591549,
+            "days": 76,
+            "winningDays": 34,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 142,
+                "accuracy": 0.51408451,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.42822953,
+        "expectedGames": 142,
+        "excessLowerPoints": 8.58549736,
+        "excessCI95": [
+          0.00467113,
+          0.16591403
+        ],
+        "pExcess": 0.03732868,
+        "betterRuns": 4.32394366,
+        "lowerRuns": 4.5
+      },
+      "validation": {
+        "games": 106,
+        "lowerWins": 61,
+        "lowerWinRate": 0.5754717,
+        "lowerCI95": [
+          0.48035915,
+          0.66530515
+        ],
+        "chooseLowerVsBase": {
+          "games": 106,
+          "deltaPoints": 4.71698113,
+          "netCorrect": 5,
+          "rescued": 45,
+          "lost": 40,
+          "deltaCI95Points": [
+            -13.68524252,
+            23.81061599
+          ],
+          "before": {
+            "games": 106,
+            "correct": 56,
+            "accuracy": 0.52830189,
+            "accuracyCI95": [
+              0.43395004,
+              0.62067407
+            ],
+            "brier": 0.24930047,
+            "logLoss": 0.69157211,
+            "ece": 0.0559773,
+            "days": 58,
+            "winningDays": 24,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 62,
+                "accuracy": 0.51612903,
+                "confidence": 0.52954889
+              },
+              {
+                "label": "55–60%",
+                "games": 32,
+                "accuracy": 0.46875,
+                "confidence": 0.56530762
+              },
+              {
+                "label": "60–65%",
+                "games": 7,
+                "accuracy": 0.85714286,
+                "confidence": 0.61467634
+              },
+              {
+                "label": "65–70%",
+                "games": 5,
+                "accuracy": 0.6,
+                "confidence": 0.66289062
+              }
+            ]
+          },
+          "after": {
+            "games": 106,
+            "correct": 61,
+            "accuracy": 0.5754717,
+            "accuracyCI95": [
+              0.48035915,
+              0.66530515
+            ],
+            "brier": 0.27476415,
+            "logLoss": 0.75407408,
+            "ece": 0.1745283,
+            "days": 58,
+            "winningDays": 33,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 106,
+                "accuracy": 0.5754717,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.46097435,
+        "expectedGames": 106,
+        "excessLowerPoints": 11.44973467,
+        "excessCI95": [
+          0.01782689,
+          0.21636737
+        ],
+        "pExcess": 0.02094142,
+        "betterRuns": 4.0754717,
+        "lowerRuns": 4.71698113,
+        "qExcess": 0.04146557
+      }
+    },
+    {
+      "name": "Superior visitante",
+      "discovery": {
+        "games": 146,
+        "lowerWins": 82,
+        "lowerWinRate": 0.56164384,
+        "lowerCI95": [
+          0.48059953,
+          0.63952732
+        ],
+        "chooseLowerVsBase": {
+          "games": 146,
+          "deltaPoints": -2.73972603,
+          "netCorrect": -4,
+          "rescued": 40,
+          "lost": 44,
+          "deltaCI95Points": [
+            -16.29705215,
+            10.7181677
+          ],
+          "before": {
+            "games": 146,
+            "correct": 86,
+            "accuracy": 0.5890411,
+            "accuracyCI95": [
+              0.50794596,
+              0.66557061
+            ],
+            "brier": 0.24759543,
+            "logLoss": 0.68848871,
+            "ece": 0.08395762,
+            "days": 73,
+            "winningDays": 35,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 72,
+                "accuracy": 0.63888889,
+                "confidence": 0.52322049
+              },
+              {
+                "label": "55–60%",
+                "games": 52,
+                "accuracy": 0.55769231,
+                "confidence": 0.57301683
+              },
+              {
+                "label": "60–65%",
+                "games": 16,
+                "accuracy": 0.4375,
+                "confidence": 0.62304688
+              },
+              {
+                "label": "65–70%",
+                "games": 3,
+                "accuracy": 0.66666667,
+                "confidence": 0.67252604
+              },
+              {
+                "label": "70–100%",
+                "games": 3,
+                "accuracy": 0.66666667,
+                "confidence": 0.71549479
+              }
+            ]
+          },
+          "after": {
+            "games": 146,
+            "correct": 82,
+            "accuracy": 0.56164384,
+            "accuracyCI95": [
+              0.48059953,
+              0.63952732
+            ],
+            "brier": 0.28167808,
+            "logLoss": 0.76926554,
+            "ece": 0.18835616,
+            "days": 73,
+            "winningDays": 36,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 146,
+                "accuracy": 0.56164384,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.47998716,
+        "expectedGames": 146,
+        "excessLowerPoints": 8.16566781,
+        "excessCI95": [
+          -0.0072116,
+          0.16751918
+        ],
+        "pExcess": 0.0666692,
+        "betterRuns": 4.39726027,
+        "lowerRuns": 4.28767123
+      },
+      "validation": {
+        "games": 90,
+        "lowerWins": 56,
+        "lowerWinRate": 0.62222222,
+        "lowerCI95": [
+          0.51899573,
+          0.71544188
+        ],
+        "chooseLowerVsBase": {
+          "games": 90,
+          "deltaPoints": -4.44444444,
+          "netCorrect": -4,
+          "rescued": 15,
+          "lost": 19,
+          "deltaCI95Points": [
+            -15.19207103,
+            6.33114249
+          ],
+          "before": {
+            "games": 90,
+            "correct": 60,
+            "accuracy": 0.66666667,
+            "accuracyCI95": [
+              0.56422124,
+              0.7554664
+            ],
+            "brier": 0.2401975,
+            "logLoss": 0.67348413,
+            "ece": 0.13715278,
+            "days": 51,
+            "winningDays": 34,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 60,
+                "accuracy": 0.68333333,
+                "confidence": 0.52011719
+              },
+              {
+                "label": "55–60%",
+                "games": 20,
+                "accuracy": 0.6,
+                "confidence": 0.57460937
+              },
+              {
+                "label": "60–65%",
+                "games": 9,
+                "accuracy": 0.77777778,
+                "confidence": 0.62478299
+              },
+              {
+                "label": "65–70%",
+                "games": 1,
+                "accuracy": 0.0,
+                "confidence": 0.66601562
+              }
+            ]
+          },
+          "after": {
+            "games": 90,
+            "correct": 56,
+            "accuracy": 0.62222222,
+            "accuracyCI95": [
+              0.51899573,
+              0.71544188
+            ],
+            "brier": 0.25138889,
+            "logLoss": 0.70271338,
+            "ece": 0.12777778,
+            "days": 51,
+            "winningDays": 30,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 90,
+                "accuracy": 0.62222222,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.51106771,
+        "expectedGames": 90,
+        "excessLowerPoints": 11.11545139,
+        "excessCI95": [
+          0.01832967,
+          0.20616218
+        ],
+        "pExcess": 0.02029169,
+        "betterRuns": 3.86666667,
+        "lowerRuns": 4.77777778,
+        "qExcess": 0.04146557
+      }
+    },
+    {
+      "name": "Inferior con pitcher dominante",
+      "discovery": {
+        "games": 71,
+        "lowerWins": 42,
+        "lowerWinRate": 0.5915493,
+        "lowerCI95": [
+          0.47538571,
+          0.69831448
+        ],
+        "chooseLowerVsBase": {
+          "games": 71,
+          "deltaPoints": 4.22535211,
+          "netCorrect": 3,
+          "rescued": 25,
+          "lost": 22,
+          "deltaCI95Points": [
+            -14.08953722,
+            22.22222222
+          ],
+          "before": {
+            "games": 71,
+            "correct": 39,
+            "accuracy": 0.54929577,
+            "accuracyCI95": [
+              0.4340086,
+              0.65952227
+            ],
+            "brier": 0.25467558,
+            "logLoss": 0.70441139,
+            "ece": 0.10632152,
+            "days": 53,
+            "winningDays": 25,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 34,
+                "accuracy": 0.61764706,
+                "confidence": 0.52642463
+              },
+              {
+                "label": "55–60%",
+                "games": 22,
+                "accuracy": 0.45454545,
+                "confidence": 0.57510653
+              },
+              {
+                "label": "60–65%",
+                "games": 9,
+                "accuracy": 0.55555556,
+                "confidence": 0.6234809
+              },
+              {
+                "label": "65–70%",
+                "games": 4,
+                "accuracy": 0.5,
+                "confidence": 0.66796875
+              },
+              {
+                "label": "70–100%",
+                "games": 2,
+                "accuracy": 0.5,
+                "confidence": 0.75585938
+              }
+            ]
+          },
+          "after": {
+            "games": 71,
+            "correct": 42,
+            "accuracy": 0.5915493,
+            "accuracyCI95": [
+              0.47538571,
+              0.69831448
+            ],
+            "brier": 0.26672535,
+            "logLoss": 0.73641104,
+            "ece": 0.1584507,
+            "days": 53,
+            "winningDays": 28,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 71,
+                "accuracy": 0.5915493,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.46057989,
+        "expectedGames": 71,
+        "excessLowerPoints": 13.09694102,
+        "excessCI95": [
+          0.02096953,
+          0.23321727
+        ],
+        "pExcess": 0.01877311,
+        "betterRuns": 4.47887324,
+        "lowerRuns": 4.73239437
+      },
+      "validation": {
+        "games": 56,
+        "lowerWins": 34,
+        "lowerWinRate": 0.60714286,
+        "lowerCI95": [
+          0.47633165,
+          0.72419774
+        ],
+        "chooseLowerVsBase": {
+          "games": 56,
+          "deltaPoints": 0.0,
+          "netCorrect": 0,
+          "rescued": 15,
+          "lost": 15,
+          "deltaCI95Points": [
+            -17.86071429,
+            17.24137931
+          ],
+          "before": {
+            "games": 56,
+            "correct": 34,
+            "accuracy": 0.60714286,
+            "accuracyCI95": [
+              0.47633165,
+              0.72419774
+            ],
+            "brier": 0.25148664,
+            "logLoss": 0.69638552,
+            "ece": 0.09354074,
+            "days": 37,
+            "winningDays": 19,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 33,
+                "accuracy": 0.63636364,
+                "confidence": 0.52314157
+              },
+              {
+                "label": "55–60%",
+                "games": 18,
+                "accuracy": 0.55555556,
+                "confidence": 0.5718316
+              },
+              {
+                "label": "60–65%",
+                "games": 4,
+                "accuracy": 0.75,
+                "confidence": 0.61425781
+              },
+              {
+                "label": "65–70%",
+                "games": 1,
+                "accuracy": 0.0,
+                "confidence": 0.66601562
+              }
+            ]
+          },
+          "after": {
+            "games": 56,
+            "correct": 34,
+            "accuracy": 0.60714286,
+            "accuracyCI95": [
+              0.47633165,
+              0.72419774
+            ],
+            "brier": 0.25892857,
+            "logLoss": 0.71927976,
+            "ece": 0.14285714,
+            "days": 37,
+            "winningDays": 20,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 56,
+                "accuracy": 0.60714286,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.49469866,
+        "expectedGames": 56,
+        "excessLowerPoints": 11.24441964,
+        "excessCI95": [
+          -0.01419406,
+          0.23302914
+        ],
+        "pExcess": 0.08973168,
+        "betterRuns": 3.69642857,
+        "lowerRuns": 4.82142857,
+        "qExcess": 0.11420396
+      }
+    },
+    {
+      "name": "Inferior sin pitcher dominante",
+      "discovery": {
+        "games": 205,
+        "lowerWins": 109,
+        "lowerWinRate": 0.53170732,
+        "lowerCI95": [
+          0.46344432,
+          0.59880381
+        ],
+        "chooseLowerVsBase": {
+          "games": 205,
+          "deltaPoints": -0.48780488,
+          "netCorrect": -1,
+          "rescued": 74,
+          "lost": 75,
+          "deltaCI95Points": [
+            -11.76553206,
+            10.09755711
+          ],
+          "before": {
+            "games": 205,
+            "correct": 110,
+            "accuracy": 0.53658537,
+            "accuracyCI95": [
+              0.4682771,
+              0.60354767
+            ],
+            "brier": 0.25054747,
+            "logLoss": 0.69384916,
+            "ece": 0.06548209,
+            "days": 86,
+            "winningDays": 36,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 82,
+                "accuracy": 0.56097561,
+                "confidence": 0.52486662
+              },
+              {
+                "label": "55–60%",
+                "games": 79,
+                "accuracy": 0.49367089,
+                "confidence": 0.57404569
+              },
+              {
+                "label": "60–65%",
+                "games": 24,
+                "accuracy": 0.5,
+                "confidence": 0.62207031
+              },
+              {
+                "label": "65–70%",
+                "games": 9,
+                "accuracy": 0.66666667,
+                "confidence": 0.67556424
+              },
+              {
+                "label": "70–100%",
+                "games": 11,
+                "accuracy": 0.63636364,
+                "confidence": 0.73668324
+              }
+            ]
+          },
+          "after": {
+            "games": 205,
+            "correct": 109,
+            "accuracy": 0.53170732,
+            "accuracyCI95": [
+              0.46344432,
+              0.59880381
+            ],
+            "brier": 0.29664634,
+            "logLoss": 0.80215417,
+            "ece": 0.21829268,
+            "days": 86,
+            "winningDays": 40,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 205,
+                "accuracy": 0.53170732,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.45250572,
+        "expectedGames": 205,
+        "excessLowerPoints": 7.92016006,
+        "excessCI95": [
+          0.01252692,
+          0.14474723
+        ],
+        "pExcess": 0.0199053,
+        "betterRuns": 4.30243902,
+        "lowerRuns": 4.34146341
+      },
+      "validation": {
+        "games": 129,
+        "lowerWins": 75,
+        "lowerWinRate": 0.58139535,
+        "lowerCI95": [
+          0.49511528,
+          0.66296773
+        ],
+        "chooseLowerVsBase": {
+          "games": 129,
+          "deltaPoints": -0.7751938,
+          "netCorrect": -1,
+          "rescued": 41,
+          "lost": 42,
+          "deltaCI95Points": [
+            -17.52384036,
+            14.16697761
+          ],
+          "before": {
+            "games": 129,
+            "correct": 76,
+            "accuracy": 0.58914729,
+            "accuracyCI95": [
+              0.50286451,
+              0.67027402
+            ],
+            "brier": 0.24186627,
+            "logLoss": 0.67658749,
+            "ece": 0.0715086,
+            "days": 63,
+            "winningDays": 34,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 81,
+                "accuracy": 0.58024691,
+                "confidence": 0.52567998
+              },
+              {
+                "label": "55–60%",
+                "games": 33,
+                "accuracy": 0.51515152,
+                "confidence": 0.56741241
+              },
+              {
+                "label": "60–65%",
+                "games": 10,
+                "accuracy": 0.9,
+                "confidence": 0.6234375
+              },
+              {
+                "label": "65–70%",
+                "games": 5,
+                "accuracy": 0.6,
+                "confidence": 0.66289062
+              }
+            ]
+          },
+          "after": {
+            "games": 129,
+            "correct": 75,
+            "accuracy": 0.58139535,
+            "accuracyCI95": [
+              0.49511528,
+              0.66296773
+            ],
+            "brier": 0.27180233,
+            "logLoss": 0.74756629,
+            "ece": 0.16860465,
+            "days": 63,
+            "winningDays": 35,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 129,
+                "accuracy": 0.58139535,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.47909096,
+        "expectedGames": 129,
+        "excessLowerPoints": 10.23043847,
+        "excessCI95": [
+          0.01007562,
+          0.18709417
+        ],
+        "pExcess": 0.02693948,
+        "betterRuns": 4.13953488,
+        "lowerRuns": 4.75193798,
+        "qExcess": 0.04190586
+      }
+    },
+    {
+      "name": "Superior con pitcher en problemas",
+      "discovery": {
+        "games": 80,
+        "lowerWins": 49,
+        "lowerWinRate": 0.6125,
+        "lowerCI95": [
+          0.50293456,
+          0.711756
+        ],
+        "chooseLowerVsBase": {
+          "games": 80,
+          "deltaPoints": 6.25,
+          "netCorrect": 5,
+          "rescued": 28,
+          "lost": 23,
+          "deltaCI95Points": [
+            -11.25044014,
+            24.3597561
+          ],
+          "before": {
+            "games": 80,
+            "correct": 44,
+            "accuracy": 0.55,
+            "accuracyCI95": [
+              0.44119313,
+              0.6542249
+            ],
+            "brier": 0.25093994,
+            "logLoss": 0.69690273,
+            "ece": 0.04282227,
+            "days": 51,
+            "winningDays": 25,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 39,
+                "accuracy": 0.53846154,
+                "confidence": 0.52358774
+              },
+              {
+                "label": "55–60%",
+                "games": 27,
+                "accuracy": 0.59259259,
+                "confidence": 0.57154225
+              },
+              {
+                "label": "60–65%",
+                "games": 7,
+                "accuracy": 0.42857143,
+                "confidence": 0.61914062
+              },
+              {
+                "label": "65–70%",
+                "games": 3,
+                "accuracy": 0.66666667,
+                "confidence": 0.66601562
+              },
+              {
+                "label": "70–100%",
+                "games": 4,
+                "accuracy": 0.5,
+                "confidence": 0.73535156
+              }
+            ]
+          },
+          "after": {
+            "games": 80,
+            "correct": 49,
+            "accuracy": 0.6125,
+            "accuracyCI95": [
+              0.50293456,
+              0.711756
+            ],
+            "brier": 0.25625,
+            "logLoss": 0.71339433,
+            "ece": 0.1375,
+            "days": 51,
+            "winningDays": 29,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 80,
+                "accuracy": 0.6125,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.46811523,
+        "expectedGames": 80,
+        "excessLowerPoints": 14.43847656,
+        "excessCI95": [
+          0.04179662,
+          0.24857954
+        ],
+        "pExcess": 0.0075741,
+        "betterRuns": 4.55,
+        "lowerRuns": 4.9
+      },
+      "validation": {
+        "games": 53,
+        "lowerWins": 28,
+        "lowerWinRate": 0.52830189,
+        "lowerCI95": [
+          0.39659852,
+          0.65617972
+        ],
+        "chooseLowerVsBase": {
+          "games": 53,
+          "deltaPoints": -11.32075472,
+          "netCorrect": -6,
+          "rescued": 12,
+          "lost": 18,
+          "deltaCI95Points": [
+            -33.33333333,
+            9.09090909
+          ],
+          "before": {
+            "games": 53,
+            "correct": 34,
+            "accuracy": 0.64150943,
+            "accuracyCI95": [
+              0.50690893,
+              0.7569823
+            ],
+            "brier": 0.23711734,
+            "logLoss": 0.66724858,
+            "ece": 0.10012529,
+            "days": 35,
+            "winningDays": 21,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 31,
+                "accuracy": 0.61290323,
+                "confidence": 0.52602067
+              },
+              {
+                "label": "55–60%",
+                "games": 15,
+                "accuracy": 0.66666667,
+                "confidence": 0.57070312
+              },
+              {
+                "label": "60–65%",
+                "games": 5,
+                "accuracy": 0.8,
+                "confidence": 0.62617188
+              },
+              {
+                "label": "65–70%",
+                "games": 2,
+                "accuracy": 0.5,
+                "confidence": 0.65234375
+              }
+            ]
+          },
+          "after": {
+            "games": 53,
+            "correct": 28,
+            "accuracy": 0.52830189,
+            "accuracyCI95": [
+              0.39659852,
+              0.65617972
+            ],
+            "brier": 0.29834906,
+            "logLoss": 0.80589542,
+            "ece": 0.22169811,
+            "days": 35,
+            "winningDays": 15,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 53,
+                "accuracy": 0.52830189,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.4883181,
+        "expectedGames": 53,
+        "excessLowerPoints": 3.99837854,
+        "excessCI95": [
+          -0.07855972,
+          0.15851187
+        ],
+        "pExcess": 0.51669612,
+        "betterRuns": 4.16981132,
+        "lowerRuns": 4.56603774,
+        "qExcess": 0.51669612
+      }
+    },
+    {
+      "name": "Superior sin pitcher en problemas",
+      "discovery": {
+        "games": 198,
+        "lowerWins": 97,
+        "lowerWinRate": 0.48989899,
+        "lowerCI95": [
+          0.42112544,
+          0.55905704
+        ],
+        "chooseLowerVsBase": {
+          "games": 198,
+          "deltaPoints": -7.07070707,
+          "netCorrect": -14,
+          "rescued": 66,
+          "lost": 80,
+          "deltaCI95Points": [
+            -19.51352068,
+            4.97637441
+          ],
+          "before": {
+            "games": 198,
+            "correct": 111,
+            "accuracy": 0.56060606,
+            "accuracyCI95": [
+              0.49097185,
+              0.62793327
+            ],
+            "brier": 0.248344,
+            "logLoss": 0.68922457,
+            "ece": 0.08021622,
+            "days": 86,
+            "winningDays": 41,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 79,
+                "accuracy": 0.60759494,
+                "confidence": 0.52578619
+              },
+              {
+                "label": "55–60%",
+                "games": 73,
+                "accuracy": 0.47945205,
+                "confidence": 0.57649294
+              },
+              {
+                "label": "60–65%",
+                "games": 26,
+                "accuracy": 0.57692308,
+                "confidence": 0.62454928
+              },
+              {
+                "label": "65–70%",
+                "games": 11,
+                "accuracy": 0.63636364,
+                "confidence": 0.67489347
+              },
+              {
+                "label": "70–100%",
+                "games": 9,
+                "accuracy": 0.66666667,
+                "confidence": 0.74153646
+              }
+            ]
+          },
+          "after": {
+            "games": 198,
+            "correct": 97,
+            "accuracy": 0.48989899,
+            "accuracyCI95": [
+              0.42112544,
+              0.55905704
+            ],
+            "brier": 0.31755051,
+            "logLoss": 0.84808531,
+            "ece": 0.26010101,
+            "days": 86,
+            "winningDays": 35,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 198,
+                "accuracy": 0.48989899,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.44884391,
+        "expectedGames": 198,
+        "excessLowerPoints": 4.10550821,
+        "excessCI95": [
+          -0.03326636,
+          0.11070788
+        ],
+        "pExcess": 0.27199753,
+        "betterRuns": 4.37878788,
+        "lowerRuns": 4.14141414
+      },
+      "validation": {
+        "games": 133,
+        "lowerWins": 82,
+        "lowerWinRate": 0.61654135,
+        "lowerCI95": [
+          0.53173592,
+          0.69480338
+        ],
+        "chooseLowerVsBase": {
+          "games": 133,
+          "deltaPoints": 2.2556391,
+          "netCorrect": 3,
+          "rescued": 42,
+          "lost": 39,
+          "deltaCI95Points": [
+            -12.94964029,
+            16.03123085
+          ],
+          "before": {
+            "games": 133,
+            "correct": 79,
+            "accuracy": 0.59398496,
+            "accuracyCI95": [
+              0.50902202,
+              0.67367096
+            ],
+            "brier": 0.24788456,
+            "logLoss": 0.68879805,
+            "ece": 0.12815731,
+            "days": 62,
+            "winningDays": 30,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 85,
+                "accuracy": 0.63529412,
+                "confidence": 0.5247932
+              },
+              {
+                "label": "55–60%",
+                "games": 33,
+                "accuracy": 0.42424242,
+                "confidence": 0.56883286
+              },
+              {
+                "label": "60–65%",
+                "games": 11,
+                "accuracy": 0.81818182,
+                "confidence": 0.61772017
+              },
+              {
+                "label": "65–70%",
+                "games": 4,
+                "accuracy": 0.5,
+                "confidence": 0.66894531
+              }
+            ]
+          },
+          "after": {
+            "games": 133,
+            "correct": 82,
+            "accuracy": 0.61654135,
+            "accuracyCI95": [
+              0.53173592,
+              0.69480338
+            ],
+            "brier": 0.25422932,
+            "logLoss": 0.70895445,
+            "ece": 0.13345865,
+            "days": 62,
+            "winningDays": 34,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 133,
+                "accuracy": 0.61654135,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.48215754,
+        "expectedGames": 133,
+        "excessLowerPoints": 13.43838111,
+        "excessCI95": [
+          0.04196341,
+          0.21855589
+        ],
+        "pExcess": 0.00329834,
+        "betterRuns": 3.91729323,
+        "lowerRuns": 4.72180451,
+        "qExcess": 0.0136923
+      }
+    },
+    {
+      "name": "Superior favorito del modelo",
+      "discovery": {
+        "games": 205,
+        "lowerWins": 101,
+        "lowerWinRate": 0.49268293,
+        "lowerCI95": [
+          0.42501093,
+          0.56062411
+        ],
+        "chooseLowerVsBase": {
+          "games": 205,
+          "deltaPoints": -1.46341463,
+          "netCorrect": -3,
+          "rescued": 101,
+          "lost": 104,
+          "deltaCI95Points": [
+            -15.5030697,
+            12.7980855
+          ],
+          "before": {
+            "games": 205,
+            "correct": 104,
+            "accuracy": 0.50731707,
+            "accuracyCI95": [
+              0.43937589,
+              0.57498907
+            ],
+            "brier": 0.25409034,
+            "logLoss": 0.70155458,
+            "ece": 0.07508575,
+            "days": 86,
+            "winningDays": 35,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 72,
+                "accuracy": 0.51388889,
+                "confidence": 0.5265842
+              },
+              {
+                "label": "55–60%",
+                "games": 77,
+                "accuracy": 0.45454545,
+                "confidence": 0.57596895
+              },
+              {
+                "label": "60–65%",
+                "games": 29,
+                "accuracy": 0.51724138,
+                "confidence": 0.62385506
+              },
+              {
+                "label": "65–70%",
+                "games": 14,
+                "accuracy": 0.64285714,
+                "confidence": 0.67299107
+              },
+              {
+                "label": "70–100%",
+                "games": 13,
+                "accuracy": 0.61538462,
+                "confidence": 0.73963341
+              }
+            ]
+          },
+          "after": {
+            "games": 205,
+            "correct": 101,
+            "accuracy": 0.49268293,
+            "accuracyCI95": [
+              0.42501093,
+              0.56062411
+            ],
+            "brier": 0.31615854,
+            "logLoss": 0.84502684,
+            "ece": 0.25731707,
+            "days": 86,
+            "winningDays": 33,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 205,
+                "accuracy": 0.49268293,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.41759718,
+        "expectedGames": 205,
+        "excessLowerPoints": 7.5085747,
+        "excessCI95": [
+          0.00541779,
+          0.14488063
+        ],
+        "pExcess": 0.03371221,
+        "betterRuns": 4.57560976,
+        "lowerRuns": 4.22439024
+      },
+      "validation": {
+        "games": 119,
+        "lowerWins": 60,
+        "lowerWinRate": 0.50420168,
+        "lowerCI95": [
+          0.41565273,
+          0.59248783
+        ],
+        "chooseLowerVsBase": {
+          "games": 119,
+          "deltaPoints": 0.84033613,
+          "netCorrect": 1,
+          "rescued": 60,
+          "lost": 59,
+          "deltaCI95Points": [
+            -17.95081967,
+            20.0
+          ],
+          "before": {
+            "games": 119,
+            "correct": 59,
+            "accuracy": 0.49579832,
+            "accuracyCI95": [
+              0.40751217,
+              0.58434727
+            ],
+            "brier": 0.25092832,
+            "logLoss": 0.69490867,
+            "ece": 0.0980994,
+            "days": 57,
+            "winningDays": 19,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 68,
+                "accuracy": 0.47058824,
+                "confidence": 0.52774586
+              },
+              {
+                "label": "55–60%",
+                "games": 36,
+                "accuracy": 0.44444444,
+                "confidence": 0.56629774
+              },
+              {
+                "label": "60–65%",
+                "games": 9,
+                "accuracy": 0.88888889,
+                "confidence": 0.62000868
+              },
+              {
+                "label": "65–70%",
+                "games": 6,
+                "accuracy": 0.5,
+                "confidence": 0.66341146
+              }
+            ]
+          },
+          "after": {
+            "games": 119,
+            "correct": 60,
+            "accuracy": 0.50420168,
+            "accuracyCI95": [
+              0.41565273,
+              0.59248783
+            ],
+            "brier": 0.31039916,
+            "logLoss": 0.8323722,
+            "ece": 0.24579832,
+            "days": 57,
+            "winningDays": 26,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 119,
+                "accuracy": 0.50420168,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.44677324,
+        "expectedGames": 119,
+        "excessLowerPoints": 5.74284401,
+        "excessCI95": [
+          -0.03730781,
+          0.15257174
+        ],
+        "pExcess": 0.24673477,
+        "betterRuns": 4.41176471,
+        "lowerRuns": 4.48739496,
+        "qExcess": 0.26571436
+      }
+    },
+    {
+      "name": "Superior no favorito del modelo",
+      "discovery": {
+        "games": 83,
+        "lowerWins": 54,
+        "lowerWinRate": 0.65060241,
+        "lowerCI95": [
+          0.54344018,
+          0.74444028
+        ],
+        "chooseLowerVsBase": {
+          "games": 83,
+          "deltaPoints": 0.0,
+          "netCorrect": 0,
+          "rescued": 0,
+          "lost": 0,
+          "deltaCI95Points": [
+            0.0,
+            0.0
+          ],
+          "before": {
+            "games": 83,
+            "correct": 54,
+            "accuracy": 0.65060241,
+            "accuracyCI95": [
+              0.54344018,
+              0.74444028
+            ],
+            "brier": 0.24065293,
+            "logLoss": 0.67432619,
+            "ece": 0.10728069,
+            "days": 56,
+            "winningDays": 30,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 50,
+                "accuracy": 0.68,
+                "confidence": 0.52351563
+              },
+              {
+                "label": "55–60%",
+                "games": 28,
+                "accuracy": 0.60714286,
+                "confidence": 0.5718471
+              },
+              {
+                "label": "60–65%",
+                "games": 5,
+                "accuracy": 0.6,
+                "confidence": 0.61835938
+              }
+            ]
+          },
+          "after": {
+            "games": 83,
+            "correct": 54,
+            "accuracy": 0.65060241,
+            "accuracyCI95": [
+              0.54344018,
+              0.74444028
+            ],
+            "brier": 0.2371988,
+            "logLoss": 0.67153456,
+            "ece": 0.09939759,
+            "days": 56,
+            "winningDays": 30,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 83,
+                "accuracy": 0.65060241,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.5455337,
+        "expectedGames": 83,
+        "excessLowerPoints": 10.50687123,
+        "excessCI95": [
+          -0.00313665,
+          0.2130669
+        ],
+        "pExcess": 0.06015143,
+        "betterRuns": 3.8313253,
+        "lowerRuns": 4.80722892
+      },
+      "validation": {
+        "games": 77,
+        "lowerWins": 57,
+        "lowerWinRate": 0.74025974,
+        "lowerCI95": [
+          0.63257582,
+          0.82510934
+        ],
+        "chooseLowerVsBase": {
+          "games": 77,
+          "deltaPoints": 0.0,
+          "netCorrect": 0,
+          "rescued": 0,
+          "lost": 0,
+          "deltaCI95Points": [
+            0.0,
+            0.0
+          ],
+          "before": {
+            "games": 77,
+            "correct": 57,
+            "accuracy": 0.74025974,
+            "accuracyCI95": [
+              0.63257582,
+              0.82510934
+            ],
+            "brier": 0.23614487,
+            "logLoss": 0.66527382,
+            "ece": 0.19878754,
+            "days": 46,
+            "winningDays": 33,
+            "bands": [
+              {
+                "label": "50–55%",
+                "games": 54,
+                "accuracy": 0.75925926,
+                "confidence": 0.5213397
+              },
+              {
+                "label": "55–60%",
+                "games": 16,
+                "accuracy": 0.6875,
+                "confidence": 0.57470703
+              },
+              {
+                "label": "60–65%",
+                "games": 7,
+                "accuracy": 0.71428571,
+                "confidence": 0.62081473
+              }
+            ]
+          },
+          "after": {
+            "games": 77,
+            "correct": 57,
+            "accuracy": 0.74025974,
+            "accuracyCI95": [
+              0.63257582,
+              0.82510934
+            ],
+            "brier": 0.19237013,
+            "logLoss": 0.57303591,
+            "ece": 0.00974026,
+            "days": 46,
+            "winningDays": 33,
+            "bands": [
+              {
+                "label": "70–100%",
+                "games": 77,
+                "accuracy": 0.74025974,
+                "confidence": 0.75
+              }
+            ]
+          }
+        },
+        "expectedLower": 0.5414722,
+        "expectedGames": 77,
+        "excessLowerPoints": 19.87875406,
+        "excessCI95": [
+          0.09246292,
+          0.29625858
+        ],
+        "pExcess": 8.581e-05,
+        "betterRuns": 3.31168831,
+        "lowerRuns": 5.14285714,
+        "qExcess": 0.00120135
+      }
+    }
+  ],
+  "monthlyPrimary": {
+    "2026-03": {
+      "games": 19,
+      "lowerWins": 10,
+      "lowerWinRate": 0.52631579,
+      "lowerCI95": [
+        0.31707483,
+        0.72670495
+      ],
+      "chooseLowerVsBase": {
+        "games": 19,
+        "deltaPoints": -10.52631579,
+        "netCorrect": -2,
+        "rescued": 7,
+        "lost": 9,
+        "deltaCI95Points": [
+          -61.11111111,
+          34.7826087
+        ],
+        "before": {
+          "games": 19,
+          "correct": 12,
+          "accuracy": 0.63157895,
+          "accuracyCI95": [
+            0.41039157,
+            0.80850728
+          ],
+          "brier": 0.22510308,
+          "logLoss": 0.64053674,
+          "ece": 0.11317845,
+          "days": 6,
+          "winningDays": 4,
+          "bands": [
+            {
+              "label": "50–55%",
+              "games": 2,
+              "accuracy": 0.5,
+              "confidence": 0.54296875
+            },
+            {
+              "label": "55–60%",
+              "games": 6,
+              "accuracy": 0.5,
+              "confidence": 0.56966146
+            },
+            {
+              "label": "60–65%",
+              "games": 2,
+              "accuracy": 0.5,
+              "confidence": 0.61523438
+            },
+            {
+              "label": "65–70%",
+              "games": 6,
+              "accuracy": 0.83333333,
+              "confidence": 0.671875
+            },
+            {
+              "label": "70–100%",
+              "games": 3,
+              "accuracy": 0.66666667,
+              "confidence": 0.81575521
+            }
+          ]
+        },
+        "after": {
+          "games": 19,
+          "correct": 10,
+          "accuracy": 0.52631579,
+          "accuracyCI95": [
+            0.31707483,
+            0.72670495
+          ],
+          "brier": 0.29934211,
+          "logLoss": 0.80807737,
+          "ece": 0.22368421,
+          "days": 6,
+          "winningDays": 2,
+          "bands": [
+            {
+              "label": "70–100%",
+              "games": 19,
+              "accuracy": 0.52631579,
+              "confidence": 0.75
+            }
+          ]
+        }
+      },
+      "expectedLower": 0.38373766,
+      "expectedGames": 19,
+      "excessLowerPoints": 14.2578125,
+      "excessCI95": [
+        -0.11524658,
+        0.37202785
+      ],
+      "pExcess": 0.2787031,
+      "betterRuns": 4.52631579,
+      "lowerRuns": 4.31578947
+    },
+    "2026-04": {
+      "games": 84,
+      "lowerWins": 41,
+      "lowerWinRate": 0.48809524,
+      "lowerCI95": [
+        0.38408172,
+        0.59315003
+      ],
+      "chooseLowerVsBase": {
+        "games": 84,
+        "deltaPoints": -7.14285714,
+        "netCorrect": -6,
+        "rescued": 32,
+        "lost": 38,
+        "deltaCI95Points": [
+          -25.0,
+          9.17483919
+        ],
+        "before": {
+          "games": 84,
+          "correct": 47,
+          "accuracy": 0.55952381,
+          "accuracyCI95": [
+            0.4530691,
+            0.66077218
+          ],
+          "brier": 0.2526276,
+          "logLoss": 0.69944872,
+          "ece": 0.07068452,
+          "days": 27,
+          "winningDays": 13,
+          "bands": [
+            {
+              "label": "50–55%",
+              "games": 25,
+              "accuracy": 0.6,
+              "confidence": 0.52601562
+            },
+            {
+              "label": "55–60%",
+              "games": 32,
+              "accuracy": 0.53125,
+              "confidence": 0.57775879
+            },
+            {
+              "label": "60–65%",
+              "games": 16,
+              "accuracy": 0.5625,
+              "confidence": 0.62231445
+            },
+            {
+              "label": "65–70%",
+              "games": 5,
+              "accuracy": 0.6,
+              "confidence": 0.67539063
+            },
+            {
+              "label": "70–100%",
+              "games": 6,
+              "accuracy": 0.5,
+              "confidence": 0.7109375
+            }
+          ]
+        },
+        "after": {
+          "games": 84,
+          "correct": 41,
+          "accuracy": 0.48809524,
+          "accuracyCI95": [
+            0.38408172,
+            0.59315003
+          ],
+          "brier": 0.31845238,
+          "logLoss": 0.85006693,
+          "ece": 0.26190476,
+          "days": 27,
+          "winningDays": 10,
+          "bands": [
+            {
+              "label": "70–100%",
+              "games": 84,
+              "accuracy": 0.48809524,
+              "confidence": 0.75
+            }
+          ]
+        }
+      },
+      "expectedLower": 0.42982701,
+      "expectedGames": 84,
+      "excessLowerPoints": 5.82682292,
+      "excessCI95": [
+        -0.03963572,
+        0.15779879
+      ],
+      "pExcess": 0.250603,
+      "betterRuns": 4.79761905,
+      "lowerRuns": 4.27380952
+    },
+    "2026-05": {
+      "games": 112,
+      "lowerWins": 67,
+      "lowerWinRate": 0.59821429,
+      "lowerCI95": [
+        0.50561884,
+        0.68429567
+      ],
+      "chooseLowerVsBase": {
+        "games": 112,
+        "deltaPoints": 0.89285714,
+        "netCorrect": 1,
+        "rescued": 36,
+        "lost": 35,
+        "deltaCI95Points": [
+          -16.96428571,
+          17.04666861
+        ],
+        "before": {
+          "games": 112,
+          "correct": 66,
+          "accuracy": 0.58928571,
+          "accuracyCI95": [
+            0.49668645,
+            0.6759631
+          ],
+          "brier": 0.24665233,
+          "logLoss": 0.68626943,
+          "ece": 0.10145787,
+          "days": 31,
+          "winningDays": 16,
+          "bands": [
+            {
+              "label": "50–55%",
+              "games": 55,
+              "accuracy": 0.65454545,
+              "confidence": 0.52553267
+            },
+            {
+              "label": "55–60%",
+              "games": 42,
+              "accuracy": 0.52380952,
+              "confidence": 0.57598586
+            },
+            {
+              "label": "60–65%",
+              "games": 9,
+              "accuracy": 0.44444444,
+              "confidence": 0.62521701
+            },
+            {
+              "label": "65–70%",
+              "games": 2,
+              "accuracy": 0.5,
+              "confidence": 0.67578125
+            },
+            {
+              "label": "70–100%",
+              "games": 4,
+              "accuracy": 0.75,
+              "confidence": 0.72558594
+            }
+          ]
+        },
+        "after": {
+          "games": 112,
+          "correct": 67,
+          "accuracy": 0.59821429,
+          "accuracyCI95": [
+            0.50561884,
+            0.68429567
+          ],
+          "brier": 0.26339286,
+          "logLoss": 0.7290888,
+          "ece": 0.15178571,
+          "days": 31,
+          "winningDays": 17,
+          "bands": [
+            {
+              "label": "70–100%",
+              "games": 112,
+              "accuracy": 0.59821429,
+              "confidence": 0.75
+            }
+          ]
+        }
+      },
+      "expectedLower": 0.46899414,
+      "expectedGames": 112,
+      "excessLowerPoints": 12.92201451,
+      "excessCI95": [
+        0.0193241,
+        0.22253423
+      ],
+      "pExcess": 0.01232183,
+      "betterRuns": 3.6875,
+      "lowerRuns": 4.0625
+    },
+    "2026-06": {
+      "games": 73,
+      "lowerWins": 37,
+      "lowerWinRate": 0.50684932,
+      "lowerCI95": [
+        0.39472044,
+        0.61829334
+      ],
+      "chooseLowerVsBase": {
+        "games": 73,
+        "deltaPoints": 5.47945205,
+        "netCorrect": 4,
+        "rescued": 26,
+        "lost": 22,
+        "deltaCI95Points": [
+          -14.28571429,
+          23.73260815
+        ],
+        "before": {
+          "games": 73,
+          "correct": 33,
+          "accuracy": 0.45205479,
+          "accuracyCI95": [
+            0.3431447,
+            0.56575881
+          ],
+          "brier": 0.25945172,
+          "logLoss": 0.712352,
+          "ece": 0.0992348,
+          "days": 28,
+          "winningDays": 9,
+          "bands": [
+            {
+              "label": "50–55%",
+              "games": 40,
+              "accuracy": 0.475,
+              "confidence": 0.52373047
+            },
+            {
+              "label": "55–60%",
+              "games": 25,
+              "accuracy": 0.4,
+              "confidence": 0.57054688
+            },
+            {
+              "label": "60–65%",
+              "games": 7,
+              "accuracy": 0.57142857,
+              "confidence": 0.62416295
+            },
+            {
+              "label": "65–70%",
+              "games": 1,
+              "accuracy": 0.0,
+              "confidence": 0.66210938
+            }
+          ]
+        },
+        "after": {
+          "games": 73,
+          "correct": 37,
+          "accuracy": 0.50684932,
+          "accuracyCI95": [
+            0.39472044,
+            0.61829334
+          ],
+          "brier": 0.30907534,
+          "logLoss": 0.82946348,
+          "ece": 0.24315068,
+          "days": 28,
+          "winningDays": 11,
+          "bands": [
+            {
+              "label": "70–100%",
+              "games": 73,
+              "accuracy": 0.50684932,
+              "confidence": 0.75
+            }
+          ]
+        }
+      },
+      "expectedLower": 0.47894371,
+      "expectedGames": 73,
+      "excessLowerPoints": 2.79056079,
+      "excessCI95": [
+        -0.09902635,
+        0.13604756
+      ],
+      "pExcess": 0.6408255,
+      "betterRuns": 4.84931507,
+      "lowerRuns": 5.05479452
+    },
+    "2026-07": {
+      "games": 90,
+      "lowerWins": 53,
+      "lowerWinRate": 0.58888889,
+      "lowerCI95": [
+        0.48563049,
+        0.68486959
+      ],
+      "chooseLowerVsBase": {
+        "games": 90,
+        "deltaPoints": 1.11111111,
+        "netCorrect": 1,
+        "rescued": 24,
+        "lost": 23,
+        "deltaCI95Points": [
+          -15.73342012,
+          15.66434276
+        ],
+        "before": {
+          "games": 90,
+          "correct": 52,
+          "accuracy": 0.57777778,
+          "accuracyCI95": [
+            0.47460998,
+            0.67457759
+          ],
+          "brier": 0.2433208,
+          "logLoss": 0.67951469,
+          "ece": 0.0499566,
+          "days": 27,
+          "winningDays": 15,
+          "bands": [
+            {
+              "label": "50–55%",
+              "games": 51,
+              "accuracy": 0.54901961,
+              "confidence": 0.52416513
+            },
+            {
+              "label": "55–60%",
+              "games": 22,
+              "accuracy": 0.54545455,
+              "confidence": 0.57421875
+            },
+            {
+              "label": "60–65%",
+              "games": 13,
+              "accuracy": 0.76923077,
+              "confidence": 0.62064303
+            },
+            {
+              "label": "65–70%",
+              "games": 4,
+              "accuracy": 0.5,
+              "confidence": 0.66601562
+            }
+          ]
+        },
+        "after": {
+          "games": 90,
+          "correct": 53,
+          "accuracy": 0.58888889,
+          "accuracyCI95": [
+            0.48563049,
+            0.68486959
+          ],
+          "brier": 0.26805556,
+          "logLoss": 0.73933379,
+          "ece": 0.16111111,
+          "days": 27,
+          "winningDays": 15,
+          "bands": [
+            {
+              "label": "70–100%",
+              "games": 90,
+              "accuracy": 0.58888889,
+              "confidence": 0.75
+            }
+          ]
+        }
+      },
+      "expectedLower": 0.49114583,
+      "expectedGames": 90,
+      "excessLowerPoints": 9.77430556,
+      "excessCI95": [
+        -0.00414997,
+        0.18488805
+      ],
+      "pExcess": 0.04504808,
+      "betterRuns": 3.88888889,
+      "lowerRuns": 4.34444444
+    },
+    "2026-08": {
+      "games": 83,
+      "lowerWins": 52,
+      "lowerWinRate": 0.62650602,
+      "lowerCI95": [
+        0.51901486,
+        0.72280472
+      ],
+      "chooseLowerVsBase": {
+        "games": 83,
+        "deltaPoints": 4.81927711,
+        "netCorrect": 4,
+        "rescued": 29,
+        "lost": 25,
+        "deltaCI95Points": [
+          -15.85365854,
+          22.9930614
+        ],
+        "before": {
+          "games": 83,
+          "correct": 48,
+          "accuracy": 0.57831325,
+          "accuracyCI95": [
+            0.47092628,
+            0.67877156
+          ],
+          "brier": 0.25184443,
+          "logLoss": 0.697017,
+          "ece": 0.12332925,
+          "days": 29,
+          "winningDays": 15,
+          "bands": [
+            {
+              "label": "50–55%",
+              "games": 59,
+              "accuracy": 0.62711864,
+              "confidence": 0.52671478
+            },
+            {
+              "label": "55–60%",
+              "games": 21,
+              "accuracy": 0.42857143,
+              "confidence": 0.56538318
+            },
+            {
+              "label": "60–65%",
+              "games": 2,
+              "accuracy": 1.0,
+              "confidence": 0.61328125
+            },
+            {
+              "label": "65–70%",
+              "games": 1,
+              "accuracy": 0.0,
+              "confidence": 0.66601562
+            }
+          ]
+        },
+        "after": {
+          "games": 83,
+          "correct": 52,
+          "accuracy": 0.62650602,
+          "accuracyCI95": [
+            0.51901486,
+            0.72280472
+          ],
+          "brier": 0.24924699,
+          "logLoss": 0.69800714,
+          "ece": 0.12349398,
+          "days": 29,
+          "winningDays": 19,
+          "bands": [
+            {
+              "label": "70–100%",
+              "games": 83,
+              "accuracy": 0.62650602,
+              "confidence": 0.75
+            }
+          ]
+        }
+      },
+      "expectedLower": 0.47663309,
+      "expectedGames": 83,
+      "excessLowerPoints": 14.98729292,
+      "excessCI95": [
+        0.02823142,
+        0.25497769
+      ],
+      "pExcess": 0.00894346,
+      "betterRuns": 3.93975904,
+      "lowerRuns": 5.1686747
+    },
+    "2026-09": {
+      "games": 23,
+      "lowerWins": 12,
+      "lowerWinRate": 0.52173913,
+      "lowerCI95": [
+        0.3296243,
+        0.7076313
+      ],
+      "chooseLowerVsBase": {
+        "games": 23,
+        "deltaPoints": -17.39130435,
+        "netCorrect": -4,
+        "rescued": 7,
+        "lost": 11,
+        "deltaCI95Points": [
+          -60.0,
+          16.66666667
+        ],
+        "before": {
+          "games": 23,
+          "correct": 16,
+          "accuracy": 0.69565217,
+          "accuracyCI95": [
+            0.49133871,
+            0.84396172
+          ],
+          "brier": 0.22789847,
+          "logLoss": 0.64832532,
+          "ece": 0.14835258,
+          "days": 10,
+          "winningDays": 7,
+          "bands": [
+            {
+              "label": "50–55%",
+              "games": 12,
+              "accuracy": 0.66666667,
+              "confidence": 0.51920573
+            },
+            {
+              "label": "55–60%",
+              "games": 9,
+              "accuracy": 0.66666667,
+              "confidence": 0.5640191
+            },
+            {
+              "label": "60–65%",
+              "games": 1,
+              "accuracy": 1.0,
+              "confidence": 0.63085938
+            },
+            {
+              "label": "65–70%",
+              "games": 1,
+              "accuracy": 1.0,
+              "confidence": 0.65039062
+            }
+          ]
+        },
+        "after": {
+          "games": 23,
+          "correct": 12,
+          "accuracy": 0.52173913,
+          "accuracyCI95": [
+            0.3296243,
+            0.7076313
+          ],
+          "brier": 0.30163043,
+          "logLoss": 0.81310534,
+          "ece": 0.22826087,
+          "days": 10,
+          "winningDays": 5,
+          "bands": [
+            {
+              "label": "70–100%",
+              "games": 23,
+              "accuracy": 0.52173913,
+              "confidence": 0.75
+            }
+          ]
+        }
+      },
+      "expectedLower": 0.48242188,
+      "expectedGames": 23,
+      "excessLowerPoints": 3.93172554,
+      "excessCI95": [
+        -0.20407072,
+        0.2412864
+      ],
+      "pExcess": 0.74411717,
+      "betterRuns": 4.47826087,
+      "lowerRuns": 4.7826087
+    }
+  },
+  "activated": false,
+  "method": "Calidad = OPS ofensivo 2026 previo al día, suavizado con 200 PA de historial 2023–2025 (a su vez suavizado hacia liga). OBP incluye HBP/SF. Promedio de los nueve titulares; ambos lados requieren ≥7 jugadores con ≥100 PA previas en total. Forma = etiquetas o OPS L30. Cortes y reglas explícitos, sin seleccionar el mejor después de validar.",
+  "limitations": "Exploración posterior al estudio anterior sobre datos ya vistos. Ajuste BH limitado a las 14 hipótesis de este seguimiento, no a todas las búsquedas históricas previas. Titulares reconstruidos de boxscore; sin timestamp de anuncio. No prueba causalidad. OPS L30 y OPS 2026 se superponen; la variante de años anteriores comprueba sensibilidad. Comparación con probabilidades base WF, no con mercado ni picks en vivo.",
+  "sources": {
+    "C:\\Users\\andra\\Desktop\\STRIKECAST\\StatsMLB\\outputs\\lineup-audit\\lineup-games.csv": "21b1f901ade85ecb6160915ea7e402b91560967fafd3184a3c6e3d701596f831",
+    "C:\\Users\\andra\\Desktop\\STRIKECAST\\data\\processed\\games.parquet": "519e0888b2fe9ae3fbb4e46346f7e245680e55edcb4df9f4385d7ab097a3d214",
+    "C:\\Users\\andra\\Desktop\\STRIKECAST\\data\\processed\\player_box.parquet": "335f3d65fa306e0540f2d03dff29b3dd80253220f6e4a9b53b3cca3bfca381f5",
+    "C:\\Users\\andra\\Desktop\\STRIKECAST\\StatsMLB\\scripts\\audit_lineup_quality.py": "60c54b55d5fc2a64a7559964890427f6b1f4e3f12286a521498c8118bf95db8b"
+  }
+}

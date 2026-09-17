@@ -7,13 +7,14 @@ const tabs = [
   { id: 'hoy', label: 'Jornada', icon: CalendarDays, title: 'Cada juego, en contexto.', description: 'Partidos, probabilidades y señales para preparar tus picks.', sections: ['hoy'] },
   { id: 'comparacion', label: 'Comparador', icon: BarChart3, title: 'Una vista. Todos los modelos.', description: 'Contrasta las selecciones, el mercado y el consenso por partido.', sections: ['comparacion'] },
   { id: 'rendimiento', label: 'Rendimiento', icon: Activity, title: 'La evidencia detrás del pick.', description: 'Explora resultados históricos y combinaciones con validación cronológica.', sections: ['rendimiento'] },
-  { id: 'auditorias', label: 'Auditorías', icon: ShieldCheck, title: 'Pon cada señal a prueba.', description: 'Revisa muestras, resultados y límites de cada factor del modelo.', sections: ['auditoria-temporada-l10', 'auditoria-juego-anterior', 'auditoria-mejores-jugadores', 'auditoria-rotacion-coach', 'auditoria-calidad-rotacion', 'auditoria-fatiga-lineup', 'auditoria-cruces-lineup', 'auditoria-forma-rival'] },
+  { id: 'auditorias', label: 'Auditorías', icon: ShieldCheck, title: 'Pon cada señal a prueba.', description: 'Revisa muestras, resultados y límites de cada factor del modelo.', sections: ['auditoria-rachas-lineup', 'auditoria-temporada-l10', 'auditoria-juego-anterior', 'auditoria-mejores-jugadores', 'auditoria-rotacion-coach', 'auditoria-calidad-rotacion', 'auditoria-fatiga-lineup', 'auditoria-cruces-lineup', 'auditoria-forma-rival'] },
   { id: 'equipos', label: 'Equipos y series', icon: Trophy, title: 'Lo que pasa después de una serie.', description: 'Rankings, cruces de contexto y respuesta de los equipos después de una barrida.', sections: ['rankings', 'escenarios', 'barridas-walkforward'] },
   { id: 'motor-momios', label: 'Momios', icon: Wallet, title: 'El mercado bajo la lupa.', description: 'Líneas de cierre, modelos de precio y diferencias frente al mercado.', sections: ['motor-momios'] },
   { id: 'metodo', label: 'Método', icon: FlaskConical, title: 'Entiende cómo se estima.', description: 'Metodología, procedencia de los datos y siguientes líneas de investigación.', sections: ['laboratorio'] },
 ];
 
 const sectionLabels: Record<string, string> = {
+  'auditoria-rachas-lineup': 'Patrones de alineación',
   'auditoria-temporada-l10': 'Temporada y L10', 'auditoria-juego-anterior': 'Juego anterior',
   'auditoria-mejores-jugadores': 'Mejores jugadores', 'auditoria-rotacion-coach': 'Rotación del coach',
   'auditoria-calidad-rotacion': 'Calidad del lineup', 'auditoria-fatiga-lineup': 'Fatiga',
