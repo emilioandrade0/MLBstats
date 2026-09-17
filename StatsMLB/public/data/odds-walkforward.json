@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T07:49:32.516913+00:00",
+  "generatedAt": "2026-09-17T13:39:16.020327+00:00",
   "source": "STRIKECAST data/processed/odds_close.parquet",
   "providersUsed": [
     "DraftKings",
@@ -100,27 +100,27 @@
       "models": {
         "naive": {
           "n": 3568,
-          "mae_american": 87.69,
+          "mae_american": 87.74,
           "mae_decimal": 0.2278,
           "direction_accuracy": 0.0
         },
         "roll5": {
           "n": 3568,
-          "mae_american": 101.12,
-          "mae_decimal": 1.3547,
-          "direction_accuracy": 0.579
+          "mae_american": 101.1,
+          "mae_decimal": 1.3546,
+          "direction_accuracy": 0.5794
         },
         "roll10": {
           "n": 3568,
-          "mae_american": 103.62,
-          "mae_decimal": 2.8825,
-          "direction_accuracy": 0.5801
+          "mae_american": 103.6,
+          "mae_decimal": 2.8827,
+          "direction_accuracy": 0.5794
         },
         "blend": {
           "n": 3568,
-          "mae_american": 89.44,
-          "mae_decimal": 0.7547,
-          "direction_accuracy": 0.6431
+          "mae_american": 89.46,
+          "mae_decimal": 0.7546,
+          "direction_accuracy": 0.6438
         }
       }
     }
@@ -130,7 +130,7 @@
     "models": {
       "naive": {
         "n": 17854,
-        "mae_american": 100.8,
+        "mae_american": 100.81,
         "mae_decimal": 0.2751,
         "direction_accuracy": 0.0
       },
@@ -138,19 +138,19 @@
         "n": 17854,
         "mae_american": 109.41,
         "mae_decimal": 1.1502,
-        "direction_accuracy": 0.5851
+        "direction_accuracy": 0.5852
       },
       "roll10": {
         "n": 17854,
-        "mae_american": 110.23,
+        "mae_american": 110.22,
         "mae_decimal": 2.6027,
-        "direction_accuracy": 0.5796
+        "direction_accuracy": 0.5795
       },
       "blend": {
         "n": 17854,
         "mae_american": 99.66,
         "mae_decimal": 0.8352,
-        "direction_accuracy": 0.6554
+        "direction_accuracy": 0.6555
       }
     }
   }
