@@ -955,3 +955,26 @@ body { background: #161826; color: #e9e9ed; }
 .lm-book-row em.lm-up { color: #b6ecc0; }
 .lm-book-row em.lm-down { color: #f4b8b8; }
 .line-movement-card footer { padding-top: 8px; border-top: 1px solid #292b31; color: #7f88aa; font-size: 10px; letter-spacing: .04em; }
+
+/* Cards colapsables — banner compacto por juego */
+.game-card-collapsible { padding: 0; overflow: visible; }
+.game-card-collapsible > details { border-radius: inherit; }
+.game-card-collapsible > details > summary { list-style: none; cursor: pointer; padding: 14px 20px; display: grid; grid-template-columns: 60px minmax(0, 1fr) minmax(0, 1fr) 20px; gap: 16px; align-items: center; border-radius: inherit; transition: background .15s ease; }
+.game-card-collapsible > details > summary::-webkit-details-marker { display: none; }
+.game-card-collapsible > details > summary:hover { background: #1e2030; }
+.game-card-collapsible > details[open] > summary { border-bottom: 1px solid #292b31; border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.gc-time { color: #9184d9; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.gc-vs { display: flex; align-items: center; gap: 6px; color: #cfd3e5; font-size: 13px; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
+.gc-vs .logo-xxs { width: 18px; height: 18px; flex: 0 0 auto; }
+.gc-vs b { color: #f1f1f5; font-weight: 650; }
+.gc-vs em { color: #d2cefd; font-style: normal; font-variant-numeric: tabular-nums; font-size: 12px; }
+.gc-vs i { color: #7f88aa; font-style: normal; margin: 0 4px; }
+.gc-fav { display: flex; align-items: center; gap: 6px; justify-content: flex-end; color: #cfd3e5; font-size: 13px; }
+.gc-fav .logo-xxs { width: 18px; height: 18px; flex: 0 0 auto; }
+.gc-fav b { color: #b6ecc0; font-weight: 700; }
+.gc-fav em { color: #f1f1f5; font-style: normal; font-variant-numeric: tabular-nums; font-size: 12px; }
+.gc-fav small { color: #9184d9; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gc-chevron { color: #7f88aa; transition: transform .15s ease; justify-self: end; }
+.game-card-collapsible > details[open] > summary .gc-chevron { transform: rotate(180deg); color: #9184d9; }
+.game-card-details { padding: 20px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 720px) { .game-card-collapsible > details > summary { grid-template-columns: 50px 1fr auto 16px; gap: 10px; padding: 12px 14px; } .gc-vs em, .gc-fav small { display: none; } .game-card-details { padding: 14px; } }

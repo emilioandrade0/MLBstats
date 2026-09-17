@@ -24,6 +24,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DashboardTabs from './components/DashboardTabs';
+import PredictionAudit from './components/PredictionAudit';
 import TeamLogo from './components/TeamLogo';
 import WalkforwardCalendar from './components/WalkforwardCalendar';
 
@@ -1279,8 +1280,30 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
     }
   };
 
+  const favoriteBestDecimal = favorite.team === game.home.team ? odds?.bestHome?.decimal : odds?.bestAway?.decimal;
   return (
-    <article className="game-card game-card-redesigned">
+    <article className="game-card game-card-redesigned game-card-collapsible">
+      <details>
+        <summary className="game-card-summary">
+          <span className="gc-time">{start}</span>
+          <span className="gc-vs">
+            <TeamLogo team={game.away.team} name={game.away.name} className="logo-xxs" />
+            <b>{game.away.team}</b>
+            <em>{pct(awayP)}</em>
+            <i>—</i>
+            <TeamLogo team={game.home.team} name={game.home.name} className="logo-xxs" />
+            <b>{game.home.team}</b>
+            <em>{pct(homeP)}</em>
+          </span>
+          <span className="gc-fav">
+            <TeamLogo team={favorite.team} name={favorite.name} className="logo-xxs" />
+            <b>{favorite.team}</b>
+            <em>{pct(favoriteProbability)}</em>
+            {favoriteBestDecimal != null && <small>·  {favoriteBestDecimal.toFixed(2)}</small>}
+          </span>
+          <ChevronDown size={16} className="gc-chevron" />
+        </summary>
+        <div className="game-card-details">
       <GameComparisonLayout game={game} stats={stats} active={active} odds={odds} estimate={estimate} homeP={homeP} awayP={awayP} favorite={favorite} favoriteProbability={favoriteProbability} historical={historical} comparisonMasks={comparisonMasks} strikecastPick={strikecastPick} valuePick={valuePick} oddsHistory={oddsHistory} evidenceProfiles={evidenceProfiles} evidenceSignals={evidenceSignals} playerPerformance={playerPerformance} historicalSnapshot={historicalSnapshot} telegramConfigured={telegramConfigured} onOpenTelegram={openTelegram} onOpenPerformance={() => setPerformanceOpen(true)} />
       <div className="game-meta"><span>{start} · {game.venue || 'Sede por confirmar'}</span><span className={game.abstractState === 'Live' ? 'status-live' : ''}>{game.status}</span></div>
       <div className="game-matchup">
@@ -1345,6 +1368,8 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
         </section>
       </div>, document.body)}
       {performanceOpen && typeof document !== 'undefined' && createPortal(<PlayerPerformanceModal game={game} playerPerformance={playerPerformance} historicalSnapshot={historicalSnapshot} onClose={() => setPerformanceOpen(false)} />, document.body)}
+        </div>
+      </details>
     </article>
   );
 }
@@ -1381,6 +1406,8 @@ function alignmentPickForGame(game: ScheduleGame, estimate: ReturnType<typeof es
   const away = scoreSide(game.away.lineup.players);
   if (home.counted < 5 || away.counted < 5) return null;
   const rawProb = .5 + (home.tilt - away.tilt);
+  // No signal is an abstention, not an extra vote for the home team.
+  if (Math.abs(rawProb - .5) < 1e-9) return null;
   const clampedProb = Math.max(.25, Math.min(.75, rawProb));
   return pickFromProbability(clampedProb, game);
 }
@@ -1394,7 +1421,9 @@ function GameComparisonLayout({ game, stats, active, odds, estimate, homeP, away
   };
   const marketPick = marketPickFromCurrentOdds(game, odds, oddsHistory);
   const value = valuePick && valuePick.tier !== 'NEUTRO' && valuePick.pickCode && valuePick.pickProb != null ? { code: alias(valuePick.pickCode), prob: valuePick.pickProb } : null;
-  const performanceLookup = historicalSnapshot?.players ?? playerPerformance?.players ?? {};
+  const performanceLookup = historicalSnapshot && historicalSnapshot.cutoffDate < game.officialDate
+    ? historicalSnapshot.players
+    : !historical && playerPerformance && playerPerformance.cutoffDate < game.officialDate ? playerPerformance.players : {};
   const alignmentTile = alignmentPickForGame(game, estimate, performanceLookup);
   const tiles = [
     { label: 'BASE', pick: comparisonMasks ? modelPick(comparisonMasks.base) : pickFromProbability(homeP, game) },
@@ -1803,7 +1832,9 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
     const currentOddsForGame = findCurrentOdds(game, odds);
     const marketPick = marketPickFromCurrentOdds(game, currentOddsForGame, oddsHistory);
     const historicalSnap = isHistorical ? historyCache[comparisonDate] : undefined;
-    const alignmentLookup = isHistorical ? historicalSnap?.players : playerPerformance?.players;
+    const alignmentLookup = isHistorical
+      ? historicalSnap && historicalSnap.cutoffDate < comparisonDate ? historicalSnap.players : undefined
+      : playerPerformance && playerPerformance.cutoffDate < comparisonDate ? playerPerformance.players : undefined;
     const alignmentPick = alignmentLookup
       ? alignmentPickForGame(game, estimateGame(game, stats, maskToActive(0), currentOddsForGame), alignmentLookup)
       : null;
@@ -2147,7 +2178,7 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
                   <th key={config.key} title={config.label}><span className="col-full">{config.label}</span><span className="col-short">{config.short}</span></th>
                 ))}
                 <th>StrikeCast</th>
-                <th title="Value Model: LGBM entrenado en 2023-2025 sobre features de pitcher/lineup/park/weather/elo. Muestra pick solo si edge (p_modelo - p_mercado) >= 5%. VALOR-FUERTE si edge >= 7% y el modelo de primer-anotador coincide en dirección."><span className="col-full">Value Model</span><span className="col-short">VAL</span></th>
+                <th title="Value Model: entrenamiento sobre todos los resultados disponibles; su accuracy histórica no está validada fuera de muestra. Muestra pick si edge >= 5%; VALOR-FUERTE si edge >= 7% y coincide primer-anotador."><span className="col-full">Value Model</span><span className="col-short">VAL</span></th>
                 <th title="Mercado (probabilidad implícita desvigada, media entre casas)">Mercado</th>
                 <th title="Mismo pick de Alineación de la jornada: requiere ambos lineups confirmados y al menos cinco bateadores con datos por equipo. No se calcula para fechas pasadas con datos actuales.">Alineación</th>
                 <th>Consenso</th>
@@ -2671,6 +2702,7 @@ export default function HomePage() {
 
       </div>
 
+      <div data-section="auditoria-motores"><PredictionAudit active={active} /></div>
       {seasonL10Audit && <div data-section="auditoria-temporada-l10"><SeasonL10AuditSection audit={seasonL10Audit} /></div>}
 
       <div data-section="barridas-walkforward"><SeriesSweepAuditSection stats={stats} schedule={schedule} previousGames={previousGames} active={active} odds={odds} /></div>
