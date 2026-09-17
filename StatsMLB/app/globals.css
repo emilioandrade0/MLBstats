@@ -80,7 +80,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* Game card comparison layout. Legacy nodes remain mounted for their Telegram portal only. */
 .game-card-redesigned { padding: 0; }
-.game-card-redesigned > :not(.game-comparison-layout) { display: none; }
+.game-card-redesigned:not(.game-card-collapsible) > :not(.game-comparison-layout) { display: none; }
 .game-comparison-layout { padding: 20px 22px; display: grid; grid-template-columns: minmax(220px, 1fr) minmax(270px, 1.12fr) minmax(210px, .82fr); gap: 20px 28px; }
 .game-comparison-matchup, .game-comparison-models, .game-comparison-pick { min-width: 0; align-content: start; }
 .game-comparison-matchup .game-meta { margin: 0 0 19px; padding: 0; border: 0; color: #9cacdc; font-size: 11px; }
