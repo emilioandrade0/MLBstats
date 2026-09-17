@@ -1282,29 +1282,29 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
   };
 
   const favoriteBestDecimal = favorite.team === game.home.team ? odds?.bestHome?.decimal : odds?.bestAway?.decimal;
-  // Resultado histórico: verde si el pick del modelo acertó, rojo si perdió
+  // Resultado: verde si el pick del modelo acertó, rojo si perdió (aplica hoy y antes)
   const bothScored = game.away.score != null && game.home.score != null && game.away.score !== game.home.score;
   const winnerTeam = bothScored ? (game.home.score! > game.away.score! ? game.home.team : game.away.team) : null;
-  const pickWon = historical && winnerTeam ? (favorite.team === winnerTeam) : null;
+  const pickWon = winnerTeam ? (favorite.team === winnerTeam) : null;
   const resultClass = pickWon === true ? 'card-result-won' : pickWon === false ? 'card-result-lost' : '';
   return (
     <article className={`game-card game-card-redesigned game-card-collapsible ${expanded ? 'is-open' : ''} ${resultClass}`}>
       <button type="button" className="game-card-summary" onClick={() => setExpanded(v => !v)} aria-expanded={expanded}>
         <span className="gc-time">{start}</span>
         <span className="gc-vs">
-          <TeamLogo team={game.away.team} name={game.away.name} className="logo-xxs" />
+          <TeamLogo team={game.away.team} name={game.away.name} className="gc-logo" />
           <b>{game.away.team}</b>
           <em>{pct(awayP)}</em>
           <i>—</i>
-          <TeamLogo team={game.home.team} name={game.home.name} className="logo-xxs" />
+          <TeamLogo team={game.home.team} name={game.home.name} className="gc-logo" />
           <b>{game.home.team}</b>
           <em>{pct(homeP)}</em>
         </span>
         <span className="gc-fav">
-          {historical && winnerTeam && (
+          {winnerTeam && (
             <span className={pickWon ? 'gc-badge gc-badge-won' : 'gc-badge gc-badge-lost'}>{pickWon ? 'GANÓ' : 'PERDIÓ'}</span>
           )}
-          <TeamLogo team={favorite.team} name={favorite.name} className="logo-xxs" />
+          <TeamLogo team={favorite.team} name={favorite.name} className="gc-logo" />
           <b>{favorite.team}</b>
           <em>{pct(favoriteProbability)}</em>
           {favoriteBestDecimal != null && <small>·  {favoriteBestDecimal.toFixed(2)}</small>}

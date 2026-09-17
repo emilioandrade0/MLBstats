@@ -981,7 +981,8 @@ body { background: #161826; color: #e9e9ed; }
 
 
 /* Reset del banner colapsable - override reglas heredadas de .game-card */
-.game-card-collapsible { padding: 0 !important; overflow: hidden; display: block !important; border: 1px solid #292b31; border-radius: 10px; background: #16171f; transition: border-color .15s ease, background .15s ease; }
+.game-card-collapsible { padding: 0 !important; overflow: visible !important; display: block !important; border: 1px solid #292b31; border-radius: 10px; background: #16171f; transition: border-color .15s ease, background .15s ease; }
+.game-card-collapsible > * { min-width: 0; }
 .game-card-collapsible.card-result-won { border-left: 3px solid #4caf64; background: linear-gradient(90deg, rgba(76,175,100,.06), #16171f 30%); }
 .game-card-collapsible.card-result-lost { border-left: 3px solid #dc5050; background: linear-gradient(90deg, rgba(220,80,80,.06), #16171f 30%); }
 .game-card-collapsible .game-card-summary { width: 100%; margin: 0; padding: 14px 20px; background: transparent; border: 0; color: inherit; text-align: left; cursor: pointer; display: grid; grid-template-columns: 60px minmax(0, 1.4fr) minmax(0, 1fr) 20px; column-gap: 16px; align-items: center; font: inherit; }
@@ -989,7 +990,7 @@ body { background: #161826; color: #e9e9ed; }
 .game-card-collapsible.is-open .game-card-summary { border-bottom: 1px solid #292b31; }
 .gc-time { color: #9184d9; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
 .gc-vs { display: inline-flex; align-items: center; gap: 6px; color: #cfd3e5; font-size: 13px; min-width: 0; overflow: hidden; }
-.gc-vs .logo-xxs, .gc-fav .logo-xxs { width: 20px; height: 20px; flex: 0 0 auto; }
+.gc-logo { width: 22px !important; height: 22px !important; min-width: 22px; flex: 0 0 22px; object-fit: contain; display: inline-block; vertical-align: middle; }
 .gc-vs b, .gc-fav b { color: #f1f1f5; font-weight: 650; font-size: 13px; }
 .gc-vs em, .gc-fav em { color: #d2cefd; font-style: normal; font-variant-numeric: tabular-nums; font-size: 12px; }
 .gc-vs i { color: #7f88aa; font-style: normal; padding: 0 4px; }
