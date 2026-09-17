@@ -148,7 +148,7 @@
       },
       "blend": {
         "n": 17854,
-        "mae_american": 99.66,
+        "mae_american": 99.67,
         "mae_decimal": 0.8352,
         "direction_accuracy": 0.6555
       }

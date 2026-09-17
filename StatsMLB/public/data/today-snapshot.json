@@ -7,19 +7,19 @@
       "gamePk": 823334,
       "gameDate": "2026-09-17T16:35:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "PNC Park",
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 1,
         "pitcher": "Kyle Harrison"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": null,
+        "score": 5,
         "pitcher": "Wilber Dotel"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 824464,
       "gameDate": "2026-09-17T16:40:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Great American Ball Park",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 7,
         "pitcher": "Justin Wrobleski"
       },
       "home": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": null,
+        "score": 1,
         "pitcher": "Brady Singer"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 822924,
       "gameDate": "2026-09-17T17:10:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Tropicana Field",
       "away": {
         "team": "ATH",
         "name": "Athletics",
-        "score": null,
+        "score": 0,
         "pitcher": "Jeffrey Springs"
       },
       "home": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": null,
+        "score": 2,
         "pitcher": "Drew Rasmussen"
       }
     },
@@ -67,19 +67,19 @@
       "gamePk": 824305,
       "gameDate": "2026-09-17T19:10:00Z",
       "officialDate": "2026-09-17",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Coors Field",
       "away": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": null,
+        "score": 0,
         "pitcher": "Michael King"
       },
       "home": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": null,
+        "score": 0,
         "pitcher": "Tanner Gordon"
       }
     },
