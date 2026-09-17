@@ -1187,6 +1187,7 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
   const lineupAvailable = estimate.coachRotationAvailable || estimate.rotationQualityAvailable || estimate.lineupFatigueAvailable;
   const [modalOpen, setModalOpen] = useState(false);
   const [performanceOpen, setPerformanceOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [selectedSide, setSelectedSide] = useState<'away' | 'home'>(homeP >= 0.5 ? 'home' : 'away');
   const [numberInput, setNumberInput] = useState(String(pickNumber));
   const [sending, setSending] = useState(false);
@@ -1281,28 +1282,36 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
   };
 
   const favoriteBestDecimal = favorite.team === game.home.team ? odds?.bestHome?.decimal : odds?.bestAway?.decimal;
+  // Resultado histórico: verde si el pick del modelo acertó, rojo si perdió
+  const bothScored = game.away.score != null && game.home.score != null && game.away.score !== game.home.score;
+  const winnerTeam = bothScored ? (game.home.score! > game.away.score! ? game.home.team : game.away.team) : null;
+  const pickWon = historical && winnerTeam ? (favorite.team === winnerTeam) : null;
+  const resultClass = pickWon === true ? 'card-result-won' : pickWon === false ? 'card-result-lost' : '';
   return (
-    <article className="game-card game-card-redesigned game-card-collapsible">
-      <details>
-        <summary className="game-card-summary">
-          <span className="gc-time">{start}</span>
-          <span className="gc-vs">
-            <TeamLogo team={game.away.team} name={game.away.name} className="logo-xxs" />
-            <b>{game.away.team}</b>
-            <em>{pct(awayP)}</em>
-            <i>—</i>
-            <TeamLogo team={game.home.team} name={game.home.name} className="logo-xxs" />
-            <b>{game.home.team}</b>
-            <em>{pct(homeP)}</em>
-          </span>
-          <span className="gc-fav">
-            <TeamLogo team={favorite.team} name={favorite.name} className="logo-xxs" />
-            <b>{favorite.team}</b>
-            <em>{pct(favoriteProbability)}</em>
-            {favoriteBestDecimal != null && <small>·  {favoriteBestDecimal.toFixed(2)}</small>}
-          </span>
-          <ChevronDown size={16} className="gc-chevron" />
-        </summary>
+    <article className={`game-card game-card-redesigned game-card-collapsible ${expanded ? 'is-open' : ''} ${resultClass}`}>
+      <button type="button" className="game-card-summary" onClick={() => setExpanded(v => !v)} aria-expanded={expanded}>
+        <span className="gc-time">{start}</span>
+        <span className="gc-vs">
+          <TeamLogo team={game.away.team} name={game.away.name} className="logo-xxs" />
+          <b>{game.away.team}</b>
+          <em>{pct(awayP)}</em>
+          <i>—</i>
+          <TeamLogo team={game.home.team} name={game.home.name} className="logo-xxs" />
+          <b>{game.home.team}</b>
+          <em>{pct(homeP)}</em>
+        </span>
+        <span className="gc-fav">
+          {historical && winnerTeam && (
+            <span className={pickWon ? 'gc-badge gc-badge-won' : 'gc-badge gc-badge-lost'}>{pickWon ? 'GANÓ' : 'PERDIÓ'}</span>
+          )}
+          <TeamLogo team={favorite.team} name={favorite.name} className="logo-xxs" />
+          <b>{favorite.team}</b>
+          <em>{pct(favoriteProbability)}</em>
+          {favoriteBestDecimal != null && <small>·  {favoriteBestDecimal.toFixed(2)}</small>}
+        </span>
+        <ChevronDown size={16} className="gc-chevron" />
+      </button>
+      {expanded && (
         <div className="game-card-details">
       <GameComparisonLayout game={game} stats={stats} active={active} odds={odds} estimate={estimate} homeP={homeP} awayP={awayP} favorite={favorite} favoriteProbability={favoriteProbability} historical={historical} comparisonMasks={comparisonMasks} strikecastPick={strikecastPick} valuePick={valuePick} oddsHistory={oddsHistory} evidenceProfiles={evidenceProfiles} evidenceSignals={evidenceSignals} playerPerformance={playerPerformance} historicalSnapshot={historicalSnapshot} telegramConfigured={telegramConfigured} onOpenTelegram={openTelegram} onOpenPerformance={() => setPerformanceOpen(true)} />
       <div className="game-meta"><span>{start} · {game.venue || 'Sede por confirmar'}</span><span className={game.abstractState === 'Live' ? 'status-live' : ''}>{game.status}</span></div>
@@ -1369,7 +1378,7 @@ function GameCard({ game, stats, active, odds, pickNumber, telegramConfigured, h
       </div>, document.body)}
       {performanceOpen && typeof document !== 'undefined' && createPortal(<PlayerPerformanceModal game={game} playerPerformance={playerPerformance} historicalSnapshot={historicalSnapshot} onClose={() => setPerformanceOpen(false)} />, document.body)}
         </div>
-      </details>
+      )}
     </article>
   );
 }
