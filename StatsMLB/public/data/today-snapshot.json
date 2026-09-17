@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-17T01:25:28.745437+00:00",
+  "retrievedAt": "2026-09-17T05:20:59.809024+00:00",
   "games": [
     {
       "gamePk": 823334,
@@ -20,7 +20,7 @@
         "team": "PIT",
         "name": "Pittsburgh Pirates",
         "score": null,
-        "pitcher": null
+        "pitcher": "Wilber Dotel"
       }
     },
     {
@@ -34,7 +34,7 @@
         "team": "LAD",
         "name": "Los Angeles Dodgers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Justin Wrobleski"
       },
       "home": {
         "team": "CIN",
@@ -160,7 +160,7 @@
         "team": "TEX",
         "name": "Texas Rangers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Tyler Alexander"
       }
     },
     {
