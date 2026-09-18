@@ -1,13 +1,13 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-18T17:11:53.994075+00:00",
+  "retrievedAt": "2026-09-18T19:14:09.397750+00:00",
   "games": [
     {
       "gamePk": 824463,
       "gameDate": "2026-09-18T22:40:00Z",
       "officialDate": "2026-09-18",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Great American Ball Park",
       "away": {
@@ -27,7 +27,7 @@
       "gamePk": 823331,
       "gameDate": "2026-09-18T22:40:00Z",
       "officialDate": "2026-09-18",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "PNC Park",
       "away": {
@@ -67,7 +67,7 @@
       "gamePk": 824383,
       "gameDate": "2026-09-18T23:10:00Z",
       "officialDate": "2026-09-18",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Progressive Field",
       "away": {
@@ -87,7 +87,7 @@
       "gamePk": 822923,
       "gameDate": "2026-09-18T23:10:00Z",
       "officialDate": "2026-09-18",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Tropicana Field",
       "away": {
@@ -180,7 +180,7 @@
         "team": "COL",
         "name": "Colorado Rockies",
         "score": null,
-        "pitcher": null
+        "pitcher": "Gabriel Hughes"
       }
     },
     {
