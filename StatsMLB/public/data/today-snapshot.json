@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-18T13:00:34.563224+00:00",
+  "retrievedAt": "2026-09-18T17:11:53.994075+00:00",
   "games": [
     {
       "gamePk": 824463,
@@ -60,7 +60,7 @@
         "team": "BAL",
         "name": "Baltimore Orioles",
         "score": null,
-        "pitcher": null
+        "pitcher": "Cade Povich"
       }
     },
     {
@@ -114,7 +114,7 @@
         "team": "PHI",
         "name": "Philadelphia Phillies",
         "score": null,
-        "pitcher": "Andrew Painter"
+        "pitcher": null
       },
       "home": {
         "team": "NYM",
