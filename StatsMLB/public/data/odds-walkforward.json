@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T21:06:59.630853+00:00",
+  "generatedAt": "2026-09-18T23:30:28.754247+00:00",
   "source": "STRIKECAST data/processed/odds_close.parquet",
   "providersUsed": [
     "DraftKings",
@@ -106,20 +106,20 @@
         },
         "roll5": {
           "n": 3620,
-          "mae_american": 100.95,
-          "mae_decimal": 1.3476,
+          "mae_american": 100.96,
+          "mae_decimal": 1.3477,
           "direction_accuracy": 0.5794
         },
         "roll10": {
           "n": 3620,
-          "mae_american": 103.58,
+          "mae_american": 103.59,
           "mae_decimal": 2.8537,
           "direction_accuracy": 0.5805
         },
         "blend": {
           "n": 3620,
-          "mae_american": 89.38,
-          "mae_decimal": 0.7517,
+          "mae_american": 89.39,
+          "mae_decimal": 0.7518,
           "direction_accuracy": 0.6443
         }
       }
