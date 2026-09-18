@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-18T07:28:13.973451+00:00",
+  "retrievedAt": "2026-09-18T13:00:34.563224+00:00",
   "games": [
     {
       "gamePk": 824463,
@@ -114,7 +114,7 @@
         "team": "PHI",
         "name": "Philadelphia Phillies",
         "score": null,
-        "pitcher": null
+        "pitcher": "Andrew Painter"
       },
       "home": {
         "team": "NYM",
