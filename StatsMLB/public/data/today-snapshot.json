@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-19T17:18:25.564927+00:00",
+  "retrievedAt": "2026-09-19T20:34:22.891438+00:00",
   "games": [
     {
       "gamePk": 824545,
       "gameDate": "2026-09-19T18:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Rate Field",
       "away": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 0,
+        "score": 1,
         "pitcher": "Jackson Jobe"
       },
       "home": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": 0,
+        "score": 3,
         "pitcher": "Sean Burke"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 824788,
       "gameDate": "2026-09-19T20:05:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 1,
         "pitcher": "Robert Gasser"
       },
       "home": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": null,
+        "score": 0,
         "pitcher": "Trevor Rogers"
       }
     },
@@ -47,8 +47,8 @@
       "gamePk": 822921,
       "gameDate": "2026-09-19T20:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Tropicana Field",
       "away": {
         "team": "BOS",
@@ -67,19 +67,19 @@
       "gamePk": 823571,
       "gameDate": "2026-09-19T20:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Citi Field",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
+        "score": 0,
         "pitcher": "Andrew Painter"
       },
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": null,
+        "score": 0,
         "pitcher": "Christian Scott"
       }
     },
@@ -87,19 +87,19 @@
       "gamePk": 824380,
       "gameDate": "2026-09-19T22:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Progressive Field",
       "away": {
         "team": "ATH",
         "name": "Athletics",
-        "score": null,
+        "score": 0,
         "pitcher": "Jacob Lopez"
       },
       "home": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": null,
+        "score": 0,
         "pitcher": "Tanner Bibee"
       }
     },
@@ -107,19 +107,19 @@
       "gamePk": 824461,
       "gameDate": "2026-09-19T22:40:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Great American Ball Park",
       "away": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": null,
+        "score": 0,
         "pitcher": "Matthew Boyd"
       },
       "home": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": null,
+        "score": 0,
         "pitcher": "Nick Lodolo"
       }
     },
@@ -127,19 +127,19 @@
       "gamePk": 823330,
       "gameDate": "2026-09-19T22:40:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "PNC Park",
       "away": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": null,
+        "score": 0,
         "pitcher": "Noah Cameron"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": null,
+        "score": 0,
         "pitcher": "Bubba Chandler"
       }
     },
@@ -147,19 +147,19 @@
       "gamePk": 822843,
       "gameDate": "2026-09-19T23:05:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Globe Life Field",
       "away": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": null,
+        "score": 0,
         "pitcher": "José Soriano"
       },
       "home": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": null,
+        "score": 0,
         "pitcher": "Cal Quantrill"
       }
     },
@@ -167,19 +167,19 @@
       "gamePk": 824137,
       "gameDate": "2026-09-19T23:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Daikin Park",
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Grant Holmes"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": null,
+        "score": 0,
         "pitcher": "Hayden Wesneski"
       }
     },
@@ -187,7 +187,7 @@
       "gamePk": 823003,
       "gameDate": "2026-09-19T23:15:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Busch Stadium",
       "away": {
@@ -227,7 +227,7 @@
       "gamePk": 825029,
       "gameDate": "2026-09-20T00:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Chase Field",
       "away": {
@@ -247,7 +247,7 @@
       "gamePk": 823249,
       "gameDate": "2026-09-20T00:40:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Petco Park",
       "away": {
