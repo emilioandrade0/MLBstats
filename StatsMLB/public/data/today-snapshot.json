@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-19T14:00:22.211266+00:00",
+  "retrievedAt": "2026-09-19T17:18:25.564927+00:00",
   "games": [
     {
       "gamePk": 824545,
       "gameDate": "2026-09-19T18:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Rate Field",
       "away": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": null,
+        "score": 0,
         "pitcher": "Jackson Jobe"
       },
       "home": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Sean Burke"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 822921,
       "gameDate": "2026-09-19T20:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Tropicana Field",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
-        "pitcher": null
+        "score": 0,
+        "pitcher": "Brayan Bello"
       },
       "home": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": null,
+        "score": 0,
         "pitcher": "Freddy Peralta"
       }
     },
@@ -274,7 +274,7 @@
         "team": "SF",
         "name": "San Francisco Giants",
         "score": null,
-        "pitcher": null
+        "pitcher": "Yunior Marte"
       },
       "home": {
         "team": "LAD",
