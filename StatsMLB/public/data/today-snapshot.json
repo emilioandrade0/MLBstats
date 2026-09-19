@@ -1,14 +1,14 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-19T20:34:22.891438+00:00",
+  "retrievedAt": "2026-09-19T23:00:46.179801+00:00",
   "games": [
     {
       "gamePk": 824545,
       "gameDate": "2026-09-19T18:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Rate Field",
       "away": {
         "team": "DET",
@@ -27,8 +27,8 @@
       "gamePk": 824788,
       "gameDate": "2026-09-19T20:05:00Z",
       "officialDate": "2026-09-19",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "MIL",
@@ -47,19 +47,19 @@
       "gamePk": 822921,
       "gameDate": "2026-09-19T20:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Tropicana Field",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": 0,
+        "score": 1,
         "pitcher": "Brayan Bello"
       },
       "home": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": 0,
+        "score": 2,
         "pitcher": "Freddy Peralta"
       }
     },
@@ -73,13 +73,13 @@
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": 0,
+        "score": 3,
         "pitcher": "Andrew Painter"
       },
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": 0,
+        "score": 6,
         "pitcher": "Christian Scott"
       }
     },
@@ -87,19 +87,19 @@
       "gamePk": 824380,
       "gameDate": "2026-09-19T22:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Progressive Field",
       "away": {
         "team": "ATH",
         "name": "Athletics",
-        "score": 0,
+        "score": 2,
         "pitcher": "Jacob Lopez"
       },
       "home": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": 0,
+        "score": 5,
         "pitcher": "Tanner Bibee"
       }
     },
@@ -107,8 +107,8 @@
       "gamePk": 824461,
       "gameDate": "2026-09-19T22:40:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Great American Ball Park",
       "away": {
         "team": "CHC",
@@ -127,8 +127,8 @@
       "gamePk": 823330,
       "gameDate": "2026-09-19T22:40:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "PNC Park",
       "away": {
         "team": "KC",
@@ -147,8 +147,8 @@
       "gamePk": 822843,
       "gameDate": "2026-09-19T23:05:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "Warmup",
+      "abstractState": "Live",
       "venue": "Globe Life Field",
       "away": {
         "team": "TOR",
@@ -167,8 +167,8 @@
       "gamePk": 824137,
       "gameDate": "2026-09-19T23:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "Warmup",
+      "abstractState": "Live",
       "venue": "Daikin Park",
       "away": {
         "team": "ATL",
@@ -187,19 +187,19 @@
       "gamePk": 823003,
       "gameDate": "2026-09-19T23:15:00Z",
       "officialDate": "2026-09-19",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "Warmup",
+      "abstractState": "Live",
       "venue": "Busch Stadium",
       "away": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": null,
+        "score": 0,
         "pitcher": "Andrew Alvarez"
       },
       "home": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": null,
+        "score": 0,
         "pitcher": "Michael McGreevy"
       }
     },
@@ -207,19 +207,19 @@
       "gamePk": 824304,
       "gameDate": "2026-09-20T00:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Coors Field",
       "away": {
         "team": "SEA",
         "name": "Seattle Mariners",
-        "score": null,
+        "score": 0,
         "pitcher": "Bryce Miller"
       },
       "home": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": null,
+        "score": 0,
         "pitcher": "Jose Quintana"
       }
     },
@@ -233,13 +233,13 @@
       "away": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Cam Schlittler"
       },
       "home": {
         "team": "AZ",
         "name": "Arizona Diamondbacks",
-        "score": null,
+        "score": 0,
         "pitcher": "Brandon Pfaadt"
       }
     },
@@ -253,13 +253,13 @@
       "away": {
         "team": "MIA",
         "name": "Miami Marlins",
-        "score": null,
+        "score": 0,
         "pitcher": "Eury Pérez"
       },
       "home": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": null,
+        "score": 0,
         "pitcher": "Casey Mize"
       }
     },
@@ -267,19 +267,19 @@
       "gamePk": 823899,
       "gameDate": "2026-09-20T01:10:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "UNIQLO Field at Dodger Stadium",
       "away": {
         "team": "SF",
         "name": "San Francisco Giants",
-        "score": null,
+        "score": 0,
         "pitcher": "Yunior Marte"
       },
       "home": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 0,
         "pitcher": "Tarik Skubal"
       }
     },
@@ -287,7 +287,7 @@
       "gamePk": 823976,
       "gameDate": "2026-09-20T01:38:00Z",
       "officialDate": "2026-09-19",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Angel Stadium",
       "away": {
