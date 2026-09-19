@@ -25,6 +25,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DashboardTabs from './components/DashboardTabs';
 import PredictionAudit from './components/PredictionAudit';
+import FailureComparator from './components/FailureComparator';
+import RecommendationFailureReview from './components/RecommendationFailureReview';
 import LineupSignalAudit from './components/LineupSignalAudit';
 import TeamLogo from './components/TeamLogo';
 import WalkforwardCalendar from './components/WalkforwardCalendar';
@@ -2239,6 +2241,13 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
           </table>
         </div>
       )}
+      <RecommendationFailureReview rows={rows.map(row => ({
+        id: row.game.gamePk, matchup: `${alias(row.game.away.team)} @ ${alias(row.game.home.team)}`,
+        team: row.recommendation.tier === 'skip' ? null : row.recommendation.team,
+        tier: row.recommendation.label, winner: row.winnerCode,
+        market: row.marketPick?.code ?? null, base: row.configs.find(c => c.key === 'base')?.pick?.code ?? null,
+        veryConfident: [...row.configs.map(c => c.pick), row.strikecastPick, row.valuePick].some(p => p != null && p.code === row.recommendation.team && p.prob >= .9),
+      }))} />
       <LineMovementPanel comparisonDate={comparisonDate} payload={lineMovement} index={lineMovementIndex} />
     </section>
   );
@@ -2703,6 +2712,8 @@ export default function HomePage() {
       />
 
       </div>
+
+      <div data-section="riesgo"><FailureComparator /></div>
 
       <div data-section="rendimiento"><WalkforwardCalendar
         active={active}

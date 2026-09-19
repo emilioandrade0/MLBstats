@@ -37,6 +37,10 @@ El archivo privado se guarda fuera del repositorio en `%LOCALAPPDATA%\StatsMLB\t
 
 ## Método y procedencia
 
+La pestaña **Fallos y riesgo** lee el histórico publicado en el mismo sitio (sin caché) y muestra su corte real. Compara aciertos y fallos de la máscara fija 45, sin seleccionar retrospectivamente la mejor combinación. Incluye señales con/sin presencia, simulación de abstención con cobertura y aciertos descartados, estabilidad mensual, partidos y descarga JSON. El corte de diseño es 2025-12-31 y la evaluación retrospectiva comienza en 2026; no es una prueba prospectiva ni activa reglas nuevas. En **Comparador**, «Revisar fallos de esta jornada» examina las recomendaciones mostradas, distinguiendo esa reconstrucción del histórico del motor. El registro inmutable de recomendaciones emitidas en vivo todavía es necesario para entrenar un detector específico de fallos LOCK/FUERTE.
+
+Validación del diagnóstico: `node --experimental-strip-types --test scripts/test_failure_analysis.mjs`.
+
 La definición de barrida exige una serie exacta de tres juegos ganada 3-0. El calendario histórico usa un walk-forward expansivo: al iniciar cada mes, el estimador se entrena solo con juegos terminados antes de ese mes y queda congelado hasta el siguiente corte. Entre marzo de 2024 y agosto de 2026 produjo 6,822 predicciones verdaderamente fuera de muestra. La combinación recomendada obtuvo 56.24%; la prueba opcional de calidad de rotación obtuvo 57.45%. Los porcentajes son estimaciones informativas, no garantías.
 
 Cuando se desactiva un factor, el navegador elimina únicamente la contribución de ese grupo dentro del modelo mensual que ya estaba congelado y vuelve a calcular sus predicciones. Esta comparación no reentrena el modelo ni utiliza resultados futuros.
