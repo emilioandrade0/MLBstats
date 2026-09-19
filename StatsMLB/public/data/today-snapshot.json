@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-19T04:24:03.135373+00:00",
+  "retrievedAt": "2026-09-19T09:30:19.645101+00:00",
   "games": [
     {
       "gamePk": 824545,
@@ -220,7 +220,7 @@
         "team": "COL",
         "name": "Colorado Rockies",
         "score": null,
-        "pitcher": null
+        "pitcher": "Jose Quintana"
       }
     },
     {
