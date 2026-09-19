@@ -41,6 +41,8 @@ La pestaña **Fallos y riesgo** lee el histórico publicado en el mismo sitio (s
 
 Validación del diagnóstico: `node --experimental-strip-types --test scripts/test_failure_analysis.mjs`.
 
+El experimento «Especialista <55%» conserva todos los partidos del nicho. Compara cuatro familias predefinidas, elige únicamente por aciertos netos en 2025 y mide la elegida en 2026 con entrenamiento expansivo mensual. El umbral para invertir un pick está fijado antes de evaluar: probabilidad estimada de acertar inferior a 45%. El informe muestra rescates, aciertos estropeados, incertidumbre por día y cambios por partido; nunca activa el candidato en producción. No equivale a mejorar el motor LOCK/FUERTE en vivo. La actualización de histórico regenera automáticamente `low-confidence-specialist.json`. Para reproducir: instalar `scripts/requirements-specialist.txt`, ejecutar `scripts/low_confidence_specialist.py` y verificar con `python -m unittest discover -s scripts -p test_low_confidence_specialist.py`.
+
 La definición de barrida exige una serie exacta de tres juegos ganada 3-0. El calendario histórico usa un walk-forward expansivo: al iniciar cada mes, el estimador se entrena solo con juegos terminados antes de ese mes y queda congelado hasta el siguiente corte. Entre marzo de 2024 y agosto de 2026 produjo 6,822 predicciones verdaderamente fuera de muestra. La combinación recomendada obtuvo 56.24%; la prueba opcional de calidad de rotación obtuvo 57.45%. Los porcentajes son estimaciones informativas, no garantías.
 
 Cuando se desactiva un factor, el navegador elimina únicamente la contribución de ese grupo dentro del modelo mensual que ya estaba congelado y vuelve a calcular sus predicciones. Esta comparación no reentrena el modelo ni utiliza resultados futuros.

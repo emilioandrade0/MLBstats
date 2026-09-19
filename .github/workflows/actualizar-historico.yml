@@ -113,6 +113,14 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Evaluate low-confidence specialist (research only)
+        working-directory: StatsMLB
+        run: |
+          python -m pip install -r scripts/requirements-specialist.txt
+          python -u scripts/low_confidence_specialist.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Build validated evidence for game cards
         working-directory: StatsMLB
         run: python -u scripts/build_card_evidence.py

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import LowConfidenceSpecialist from './LowConfidenceSpecialist';
 import { SIGNALS, compareSignal, evaluateFilter, metrics, normalizeGame, signalValue, type FailureGame, type FrozenGame, type SignalId } from '@/lib/failure-analysis';
 
 type Manifest = { generatedAt?: string; probabilityEncoding?: string; factorKeys: string[]; dayFiles: string[] };
@@ -100,6 +101,7 @@ export default function FailureComparator() {
     <div className="failure-toolbar"><label>Periodo de diagnóstico<select value={season} onChange={e => { setSeason(e.target.value); setPage(0); }}><option value="all">Todo el histórico</option>{[...new Set(['2026', ...(dataset?.games.map(g => g.date.slice(0,4)) ?? [])])].sort().reverse().map(y => <option key={y}>{y}</option>)}</select></label><button disabled={loading} onClick={() => { setEnabled(true); setAttempt(n => n+1); }}>{loading ? 'Leyendo histórico…' : 'Actualizar histórico'}</button><button disabled={!dataset || loading || !!error} onClick={download}>Descargar análisis</button></div>
     {loading && <p role="status">Consultando los archivos publicados en esta web…</p>}
     {error && <p role="alert" className="failure-warning">{error} {dataset ? 'Los resultados anteriores permanecen visibles; no se actualizaron.' : 'No se sustituyeron por datos de otra fuente.'}</p>}
+    <LowConfidenceSpecialist enabled={enabled} sourceGeneratedAt={dataset?.generatedAt} refreshToken={attempt} />
     {!dataset ? <p>El análisis estará disponible al terminar la lectura del histórico.</p> : <>
       <p className={old ? 'failure-warning' : 'failure-source'}>Último juego analizado: <strong>{latest}</strong> · Fuente: {dataset.source} · {old ? 'El histórico de predicciones tiene más de dos días de rezago, aunque la jornada en vivo pueda estar actualizada.' : 'Solo partidos finalizados con corte de entrenamiento anterior al juego.'}</p>
       <div className="coach-proof-grid"><article><span>ACIERTOS</span><strong>{pct(overall.accuracy)}</strong><small>{overall.correct} / {overall.n} picks · IC 95% {interval(overall)}</small></article><article><span>FALLOS</span><strong>{overall.failures}</strong><small>{pct(failureRate(overall))} del periodo</small></article><article><span>CONFIANZA PROMEDIO</span><strong>{pct(overall.averageConfidence)}</strong><small>Contrástala con el acierto observado</small></article><article><span>COBERTURA DEL DIAGNÓSTICO</span><strong>{overall.n.toLocaleString('es-MX')}</strong><small>Partidos válidos · {dataset.excluded} registros excluidos en la fuente completa</small></article></div>

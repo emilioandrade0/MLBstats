@@ -1027,4 +1027,8 @@ body { background: #161826; color: #e9e9ed; }
 .failure-comparator caption { text-align: left; color: #b3c1cc; padding: .75rem 0; }
 .failure-method { margin-top: 1.5rem; padding: 1rem; border: 1px solid #34465b; border-radius: .5rem; }
 .failure-method summary { cursor: pointer; }
+.specialist-experiment { padding: 1.25rem; margin: 1.5rem 0 2rem; border: 1px solid #487d79; border-radius: .75rem; background: #10262655; }
+.specialist-experiment h3 { margin-top: .65rem; }
+.specialist-experiment details { padding: .85rem 0; border-top: 1px solid #34465b; }
+.specialist-experiment summary { cursor: pointer; font-size: .95rem; }
 @media (max-width: 640px) { .failure-toolbar { align-items: stretch; } .failure-toolbar label { width: 100%; } .failure-comparator .coach-proof-grid { grid-template-columns: 1fr; } }
