@@ -2,6 +2,7 @@
 
 import { Activity, ArrowUpRight, BarChart3, CalendarDays, CircleDot, FlaskConical, RefreshCw, ShieldCheck, Trophy, Wallet } from 'lucide-react';
 import { Children, isValidElement, useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import SportSwitch from './SportSwitch';
 
 const tabs = [
   { id: 'hoy', label: 'Jornada', icon: CalendarDays, title: 'Cada juego, en contexto.', description: 'Partidos, probabilidades y señales para preparar tus picks.', sections: ['hoy'] },
@@ -80,6 +81,7 @@ export default function DashboardTabs({ children, metrics, cutoff, combination, 
   return <div className="dashboard app-content">
     <a className="skip-link" href="#dashboard-content">Saltar al contenido</a>
     <header className="dashboard-header" id="inicio">
+      <SportSwitch sport="MLB" />
       <a className="dashboard-brand" href="#hoy" aria-label="StatsMLB, ir a Jornada"><span className="dashboard-brand-icon"><CircleDot size={24} /></span><span>STRIKE<span>CAST</span><small>STATSMLB / CENTRO DE ANÁLISIS</small></span></a>
       <div className="dashboard-header-right"><span className={`connection-status ${telegramConfigured ? 'connected' : ''}`}><i />{telegramConfigured ? 'Telegram conectado' : 'Telegram pendiente'}</span><button className="dashboard-refresh" onClick={onRefresh} disabled={updating}><RefreshCw size={15} className={updating ? 'spin' : ''} />{updating ? 'Actualizando…' : 'Actualizar datos'}</button></div>
     </header>

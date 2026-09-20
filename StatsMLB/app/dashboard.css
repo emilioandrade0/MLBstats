@@ -1,4 +1,8 @@
 /* Dashboard design system. Legacy analytical components keep their data and behavior. */
+.sport-switch { display:flex;gap:4px;padding:4px;border:1px solid #324660;border-radius:9px;flex-shrink:0;background:#111d30; }
+.sport-switch a { padding:8px 12px;font-size:12px;border-radius:6px;color:#aec1d9;white-space:nowrap; }
+.sport-switch a[aria-current=page] { background:#244437;color:#b9f5df; }
+@media(max-width:650px) { .dashboard-header { flex-wrap:wrap; }.sport-switch { order:-1; } }
 :root { --ink: #e6edf5; --ink-soft: #a3b1c2; --paper: #0c111b; --surface: #131c29; --line: #293547; --navy: #102337; --cyan: #65dcc1; --cyan-dark: #128b77; --amber: #efbd68; --red: #f18592; --display: var(--sans); color-scheme: dark; }
 body { background: var(--paper); color: var(--ink); }
 [hidden] { display: none !important; }

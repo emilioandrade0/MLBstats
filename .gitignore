@@ -72,6 +72,9 @@ docs/
 sim/
 notebooks/
 
+# --- App NFL original (650 MB / 11k archivos, se queda local para el exportador) ---
+StatsMLB/StrikeCast NFL/
+
 # --- Data raw (40 GB de JSONs históricos, se quedan local) ---
 data/raw/
 data/savant/

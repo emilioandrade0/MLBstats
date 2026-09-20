@@ -1,0 +1,21 @@
+export type Game = {
+  game_id: string;
+  season: number;
+  week: number;
+  game_type?: string | null;
+  kickoff_utc?: string | null;
+  status: "past" | "today" | "upcoming" | "live" | "final";
+  home_team: string;
+  away_team: string;
+  home_score?: number | null;
+  away_score?: number | null;
+  spread_line?: number | null;
+  total_line?: number | null;
+  home_moneyline?: number | null;
+  away_moneyline?: number | null;
+  stadium?: string | null;
+  roof?: string | null;
+  model_home_win_prob?: number | null;
+  model_cover_home_prob?: number | null;
+  model_total_over_prob?: number | null;
+};

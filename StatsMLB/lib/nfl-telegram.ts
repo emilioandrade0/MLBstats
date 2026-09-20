@@ -1,0 +1,33 @@
+export type NflTelegramPick = { gameId: string; home: string; away: string; kickoff: string; market: 'ML' | 'SPREAD' | 'OVER' | 'UNDER' | 'LVD'; side: string; line?: number; decimalOdds: number; pickNumber: number };
+export function nflTelegramSettings(bindings: Record<string, string | undefined>, local: Record<string, string | undefined>) {
+  return { token: bindings.NFL_TELEGRAM_BOT_TOKEN || local.NFL_TELEGRAM_BOT_TOKEN || bindings.TELEGRAM_BOT_TOKEN || local.TELEGRAM_BOT_TOKEN,
+    chat: bindings.NFL_TELEGRAM_CHAT_ID || local.NFL_TELEGRAM_CHAT_ID };
+}
+const teams = new Set('ARI ATL BAL BUF CAR CHI CIN CLE DAL DEN DET GB HOU IND JAX JAC KC LV OAK LAC SD LA LAR STL MIA MIN NE NO NYG NYJ PHI PIT SF SEA TB TEN WAS WSH'.split(' '));
+export function nflMessage(value: unknown): string {
+  if (!value || typeof value !== 'object') throw Error('Pick inválido.');
+  const p = value as NflTelegramPick;
+  if (!teams.has(p.home) || !teams.has(p.away) || p.home === p.away) throw Error('Equipos NFL inválidos.');
+  if (typeof p.gameId !== 'string' || !/^[A-Za-z0-9_-]{3,60}$/.test(p.gameId)) throw Error('Partido inválido.');
+  if (typeof p.kickoff !== 'string' || !Number.isFinite(Date.parse(p.kickoff))) throw Error('Falta fecha válida del partido.');
+  if (!Number.isInteger(p.pickNumber) || p.pickNumber < 1 || p.pickNumber > 999) throw Error('Número de pick inválido.');
+  if (!Number.isFinite(p.decimalOdds) || p.decimalOdds < 1.01 || p.decimalOdds > 100) throw Error('Introduce un momio decimal entre 1.01 y 100.');
+  if (!['ML','SPREAD','OVER','UNDER','LVD'].includes(p.market)) throw Error('Mercado inválido.');
+  let pick = '';
+  if (p.market === 'ML' || p.market === 'SPREAD') {
+    if (p.side !== p.home && p.side !== p.away) throw Error('El equipo no pertenece al partido.');
+    pick = `${p.side} ML`;
+    if (p.market === 'SPREAD') {
+      if (typeof p.line !== 'number' || !Number.isFinite(p.line) || Math.abs(p.line) > 100) throw Error('Hándicap inválido.');
+      pick = `${p.side} ${p.line > 0 ? '+' : ''}${p.line} (spread)`;
+    }
+  } else if (p.market === 'LVD') {
+    if (!['L','V','D'].includes(p.side)) throw Error('Selección L/V/D inválida.');
+    pick = p.side === 'L' ? `${p.home} gana por más de 6` : p.side === 'V' ? `${p.away} gana por más de 6` : 'Diferencia de 6 puntos o menos';
+  } else {
+    if (typeof p.line !== 'number' || !Number.isFinite(p.line) || p.line <= 0 || p.line > 120) throw Error('Total NFL inválido.');
+    pick = `${p.market} ${p.line}`;
+  }
+  const when = new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(p.kickoff));
+  return `🏈 PICK #${p.pickNumber} | NFL\n\n${p.away} vs ${p.home}\nFecha: ${when} (CDMX)\n\n🎯 ${pick}\n💰 Momio decimal: ${p.decimalOdds.toFixed(2)}`;
+}
