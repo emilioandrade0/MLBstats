@@ -19,7 +19,7 @@
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": 0,
+        "score": 1,
         "pitcher": "Jonah Tong"
       }
     },
@@ -59,7 +59,7 @@
       "home": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": 0,
+        "score": 1,
         "pitcher": "Rhett Lowder"
       }
     },
