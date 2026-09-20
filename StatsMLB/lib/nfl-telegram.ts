@@ -1,4 +1,7 @@
-export type NflTelegramPick = { gameId: string; home: string; away: string; kickoff: string; market: 'ML' | 'SPREAD' | 'OVER' | 'UNDER' | 'LVD'; side: string; line?: number; decimalOdds: number; pickNumber: number };
+export type NflTelegramPick = { gameId: string; home: string; away: string; kickoff: string; market: 'ML' | 'SPREAD' | 'OVER' | 'UNDER' | 'LVD'; side: string; line?: number; decimalOdds: number; pickNumber: number;
+  // Odds de referencia por lado/mercado para auto-actualizar el momio del modal
+  homeMlDecimal?: number; awayMlDecimal?: number; spreadDecimal?: number; totalOverDecimal?: number; totalUnderDecimal?: number;
+};
 export function nflTelegramSettings(bindings: Record<string, string | undefined>, local: Record<string, string | undefined>) {
   return { token: bindings.NFL_TELEGRAM_BOT_TOKEN || local.NFL_TELEGRAM_BOT_TOKEN || bindings.TELEGRAM_BOT_TOKEN || local.TELEGRAM_BOT_TOKEN,
     chat: bindings.NFL_TELEGRAM_CHAT_ID || local.NFL_TELEGRAM_CHAT_ID };

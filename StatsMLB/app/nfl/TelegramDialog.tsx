@@ -42,6 +42,16 @@ export default function TelegramDialog({ pick, configured, close }: { pick: NflT
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market]);
+  // Cuando cambia el side (o el mercado), auto-actualizar momio con el de referencia
+  useEffect(() => {
+    let ref: number | undefined;
+    if (market === 'ML') ref = side === pick.home ? pick.homeMlDecimal : side === pick.away ? pick.awayMlDecimal : undefined;
+    else if (market === 'SPREAD') ref = pick.spreadDecimal;
+    else if (market === 'OVER') ref = pick.totalOverDecimal;
+    else if (market === 'UNDER') ref = pick.totalUnderDecimal;
+    if (ref != null && Number.isFinite(ref) && ref >= 1.01) setOdds(ref.toFixed(2));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [side, market]);
 
   const numericLine = line.trim() ? Number(line.replace(',', '.')) : NaN;
   const numericOdds = Number(odds.replace(',', '.'));

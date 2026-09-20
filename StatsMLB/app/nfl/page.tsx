@@ -126,7 +126,20 @@ export default function NflPage() {
   const correct=evaluated.filter(g=>(g.model_home_win_prob!>=.5)===(g.home_score!>g.away_score!)).length;
   function changeSeason(value:string){setSeason(value);setLiveDate(d=>Number(d.slice(0,4))===Number(value)||(Number(d.slice(0,4))===Number(value)+1&&Number(d.slice(5,7))<=2)?d:`${value}-09-10`);setWeek('');setGames([]);setLoading(true);setLimit(48);}
   function navigate(id:string){setTab(id);setLimit(48);window.history.pushState(null,'',`#${id}`);}
-  function openPick(g:NflGame,market:NflTelegramPick['market'],side:string,line?:number){setSendingPick({gameId:g.game_id,home:g.home_team,away:g.away_team,kickoff:g.kickoff_utc||'',market,side,line,pickNumber:1,decimalOdds:market==='ML'?(americanToDecimal(side===g.home_team?g.home_moneyline:g.away_moneyline)||0):0});}
+  function openPick(g:NflGame,market:NflTelegramPick['market'],side:string,line?:number){
+    const liveHome=g.liveMarket?.home ?? g.home_moneyline;
+    const liveAway=g.liveMarket?.away ?? g.away_moneyline;
+    const homeMlDec=americanToDecimal(liveHome)||undefined;
+    const awayMlDec=americanToDecimal(liveAway)||undefined;
+    // NFL spread/total normalmente -110 (1.91). Sin dato, usamos ese default.
+    const spreadDec=1.91, totalOverDec=1.91, totalUnderDec=1.91;
+    let decimalOdds=0;
+    if(market==='ML')decimalOdds=(side===g.home_team?homeMlDec:awayMlDec)||0;
+    else if(market==='SPREAD')decimalOdds=spreadDec;
+    else if(market==='OVER')decimalOdds=totalOverDec;
+    else if(market==='UNDER')decimalOdds=totalUnderDec;
+    setSendingPick({gameId:g.game_id,home:g.home_team,away:g.away_team,kickoff:g.kickoff_utc||'',market,side,line,pickNumber:1,decimalOdds,homeMlDecimal:homeMlDec,awayMlDecimal:awayMlDec,spreadDecimal:spreadDec,totalOverDecimal:totalOverDec,totalUnderDecimal:totalUnderDec});
+  }
   const controls=<div className="nfl-controls"><label>Temporada<select value={season} onChange={e=>changeSeason(e.target.value)}>{manifest?.seasons.map(s=><option key={s.season}>{s.season}</option>)}</select></label><label>Semana<select value={week} onChange={e=>{setWeek(e.target.value);setLimit(48);}}><option value="">Todas</option>{[...new Set(activeGames.map(g=>g.week))].sort((a,b)=>a-b).map(w=><option key={w}>{w}</option>)}</select></label><label>Equipo<select value={team} onChange={e=>{setTeam(e.target.value);setLimit(48);}}><option value="">Todos</option>{[...new Set(activeGames.flatMap(g=>[g.home_team,g.away_team]))].sort().map(t=><option key={t}>{t}</option>)}</select></label>{(tab==='jornada'||tab==='comparador')&&<label>Partidos<select value={period} onChange={e=>{setPeriod(e.target.value);setLimit(48);}}><option value="proximos">No finalizados</option><option value="hoy">Hoy · CDMX</option><option value="fecha">Fecha consultada</option><option value="todos">Todos</option></select></label>}<label>Modo de pick<select value={mode} onChange={e=>setMode(e.target.value as PickMode)}><option value="confidence">Mayor probabilidad</option><option value="value">Valor vs momio</option></select></label></div>;
   return <div className="dashboard nfl-dashboard"><a className="skip-link" href="#nfl-content">Saltar al contenido</a><header className="dashboard-header"><SportSwitch sport="NFL"/><a className="dashboard-brand" href="/nfl"><span className="dashboard-brand-icon">🏈</span><span>STRIKE<span>CAST</span><small>NFL / CENTRO DE ANÁLISIS</small></span></a><div className="dashboard-header-right"><span className={`connection-status ${configured?'connected':''}`}><i/>{configured?'Canal NFL configurado':'Canal NFL pendiente'}</span><button className="dashboard-refresh" disabled={loading} onClick={()=>{setLoading(true);setError('');setVersion(v=>v+1);}}><RefreshCw size={15}/>Actualizar datos NFL</button></div></header>
     <main className="dashboard-body" id="nfl-content"><div className="dashboard-intro"><div><span className="dashboard-overline">NFL INTELLIGENCE / STRIKECAST</span><h1>Otra liga. El mismo análisis.</h1><p>Juegos, picks y evidencia NFL, en tu centro de análisis.</p></div><div className="dashboard-source">{live?.state==='LIVE'?'Action Network · consulta actual':live?.state==='SAVED'?'NFL · datos guardados':'NFL · histórico importado'}<small>Última consulta: {when(live?.checkedAt)} · actualización cada 60 s con la pestaña visible</small></div></div>
