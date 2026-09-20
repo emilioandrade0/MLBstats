@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-20T01:05:32.138763+00:00",
+  "retrievedAt": "2026-09-20T05:23:47.631578+00:00",
   "games": [
     {
       "gamePk": 823570,
@@ -40,7 +40,7 @@
         "team": "PIT",
         "name": "Pittsburgh Pirates",
         "score": null,
-        "pitcher": null
+        "pitcher": "Lake Bachar"
       }
     },
     {
@@ -234,7 +234,7 @@
         "team": "SF",
         "name": "San Francisco Giants",
         "score": null,
-        "pitcher": null
+        "pitcher": "Matt Wilkinson"
       },
       "home": {
         "team": "LAD",
