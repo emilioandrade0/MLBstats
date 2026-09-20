@@ -65,6 +65,11 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Regenerar line-movement NFL JSONs por fecha
+        run: python -u StatsMLB/scripts/build_nfl_line_movement.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Regenerar line-movement JSONs por fecha
         run: python -u StatsMLB/scripts/build_line_movement.py
         env:
@@ -77,7 +82,7 @@ jobs:
 
       - name: Commit + push if changed
         run: |
-          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/value_picks.parquet data/processed/espn_odds_timeseries.parquet data/processed/nfl_odds_timeseries.parquet StatsMLB/public/data/line-movement StatsMLB/public/data/line-movement-index.json 2>/dev/null)" ]]; then
+          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/value_picks.parquet data/processed/espn_odds_timeseries.parquet data/processed/nfl_odds_timeseries.parquet StatsMLB/public/data/line-movement StatsMLB/public/data/line-movement-index.json StatsMLB/public/data/nfl/line-movement StatsMLB/public/data/nfl/line-movement-index.json 2>/dev/null)" ]]; then
             echo "No data changes — skipping commit."
             exit 0
           fi
@@ -89,7 +94,9 @@ jobs:
                   data/processed/espn_odds_timeseries.parquet \
                   data/processed/nfl_odds_timeseries.parquet \
                   StatsMLB/public/data/line-movement \
-                  StatsMLB/public/data/line-movement-index.json
+                  StatsMLB/public/data/line-movement-index.json \
+                  StatsMLB/public/data/nfl/line-movement \
+                  StatsMLB/public/data/nfl/line-movement-index.json
           # Value model pkls only if they changed (rare — same shape each retrain).
           git add data/models/value_first.pkl data/models/value_win.pkl 2>/dev/null || true
           git commit -m "data: auto-refresh + espn snapshot $(date -u +%Y-%m-%dT%H:%MZ)"

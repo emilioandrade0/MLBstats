@@ -1032,3 +1032,11 @@ body { background: #161826; color: #e9e9ed; }
 .specialist-experiment details { padding: .85rem 0; border-top: 1px solid #34465b; }
 .specialist-experiment summary { cursor: pointer; font-size: .95rem; }
 @media (max-width: 640px) { .failure-toolbar { align-items: stretch; } .failure-toolbar label { width: 100%; } .failure-comparator .coach-proof-grid { grid-template-columns: 1fr; } }
+
+
+/* Movimiento NFL â€” extra rows para spread y total */
+.lm-nfl-marketrow { display: grid; grid-template-columns: 100px 1fr 16px 1fr; gap: 8px; align-items: center; padding: 6px 0; color: #cfd3e5; font-size: 11px; font-variant-numeric: tabular-nums; border-top: 1px dashed #292b31; }
+.lm-nfl-marketrow span { color: #7f88aa; font-size: 10px; letter-spacing: .09em; text-transform: uppercase; }
+.lm-nfl-marketrow b { color: #d2cefd; font-weight: 500; }
+.lm-nfl-marketrow i { color: #7f88aa; font-style: normal; text-align: center; }
+
