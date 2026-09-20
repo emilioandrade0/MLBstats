@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-20T05:23:47.631578+00:00",
+  "retrievedAt": "2026-09-20T06:09:13.631793+00:00",
   "games": [
     {
       "gamePk": 823570,
@@ -174,7 +174,7 @@
         "team": "TOR",
         "name": "Toronto Blue Jays",
         "score": null,
-        "pitcher": null
+        "pitcher": "Spencer Miles"
       },
       "home": {
         "team": "TEX",
