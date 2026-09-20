@@ -95,13 +95,19 @@ export default function NflPage() {
   useEffect(()=>{
     if(!requestedWeek || !requestedPhase || !season || Number(liveDate.slice(0,4))<Number(season) || Number(liveDate.slice(0,4))>Number(season)+1)return;
     const controller=new AbortController();let busy=false;
+    // También consultamos la semana anterior (si aplica) para que los finales
+    // recientes se reflejen en historial aunque el pipeline local no los tenga.
+    const previousWeek=requestedPhase==='reg' && requestedWeek>1 ? requestedWeek-1 : null;
     const refresh=async()=>{
       if(busy || document.hidden)return;busy=true;setLiveBusy(true);
       try{
-        const r=await fetch(`/api/nfl/live?date=${liveDate}&season=${season}&week=${requestedWeek}&phase=${requestedPhase}`,{signal:controller.signal,cache:'no-store'});
-        if(!r.ok)throw Error('No se pudo actualizar NFL.');
-        const data=await r.json() as LiveResponse;
-        if(!controller.signal.aborted)setLiveData({...data,season});
+        const urls=[`/api/nfl/live?date=${liveDate}&season=${season}&week=${requestedWeek}&phase=${requestedPhase}`];
+        if(previousWeek)urls.push(`/api/nfl/live?date=${liveDate}&season=${season}&week=${previousWeek}&phase=reg`);
+        const responses=await Promise.all(urls.map(u=>fetch(u,{signal:controller.signal,cache:'no-store'}).then(r=>r.ok?r.json() as Promise<LiveResponse>:null).catch(()=>null)));
+        const primary=responses[0];
+        if(!primary)throw Error('No se pudo actualizar NFL.');
+        const combinedGames=[...primary.games,...(responses[1]?.games||[])];
+        if(!controller.signal.aborted)setLiveData({...primary,games:combinedGames,season});
       }catch{
         if(!controller.signal.aborted)setLiveData(old=>({...((old?.season===season)?old:{games:[],checkedAt:null}),date:liveDate,season,persistence:old?.persistence??false,state:old?.games.length?'SAVED':'UNAVAILABLE',error:'Conexión no disponible. Se muestran datos guardados.'}));
       }finally{busy=false;if(!controller.signal.aborted)setLiveBusy(false);}
