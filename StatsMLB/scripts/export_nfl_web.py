@@ -6,7 +6,10 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 APP=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(APP/'outputs/audit-runtime'))
+_audit=APP/'outputs/audit-runtime'
+if _audit.is_dir():
+    # Append (not insert) para no shadowear pyarrow del site-packages.
+    sys.path.append(str(_audit))
 import pandas as pd
 
 
