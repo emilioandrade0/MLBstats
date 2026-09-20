@@ -1047,3 +1047,18 @@ body { background: #161826; color: #e9e9ed; }
 .nfl-game.nfl-game-lost { border-left: 3px solid #dc5050 !important; background: linear-gradient(90deg, rgba(220,80,80,.08), rgba(22,23,31,.6) 40%); }
 .nfl-game.nfl-game-push { border-left: 3px solid #d2a24c !important; background: linear-gradient(90deg, rgba(210,162,76,.08), rgba(22,23,31,.6) 40%); }
 
+
+
+/* Multi-motor NFL - banner de evaluacion OOS en Comparador */
+.nfl-multi-meta { margin: 12px 0 22px; padding: 16px; border: 1px solid #292b31; border-radius: 10px; background: #16171f; }
+.nfl-multi-meta > .eyebrow { display: block; margin-bottom: 12px; color: #9184d9; font-size: 10px; letter-spacing: .1em; font-weight: 600; }
+.nfl-multi-meta > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.nfl-multi-meta article { padding: 12px; border: 1px solid #292b31; border-radius: 8px; background: #1c1e2a; }
+.nfl-multi-meta article span { display: block; color: #7f88aa; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.nfl-multi-meta article strong { display: block; color: #f1f1f5; font-size: 20px; font-variant-numeric: tabular-nums; }
+.nfl-multi-meta article small { display: block; margin-top: 3px; color: #9cacdc; font-size: 10px; }
+.nfl-multi-meta article.nfl-multi-consensus-used { border-color: #4caf64; background: linear-gradient(135deg, rgba(76,175,100,.12), #1c1e2a 60%); }
+.nfl-multi-meta article.nfl-multi-consensus-used strong { color: #b6ecc0; }
+.nfl-multi-meta article.nfl-multi-consensus-dropped { border-color: #7f88aa; opacity: .75; }
+.nfl-multi-meta article.nfl-multi-consensus-dropped small { color: #f4b8b8; }
+

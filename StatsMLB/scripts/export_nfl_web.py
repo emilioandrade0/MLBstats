@@ -28,6 +28,15 @@ def main():
         games=games.merge(predictions,on='game_id',how='left',validate='one_to_one')
     else:
         for c in cols[1:]:games[c]=None
+    # Multi-motor: solo agregamos consenso al catalogo si su OOS supera al mejor individual.
+    multi_meta={};multi_used=False
+    if (data/'nfl_multi_meta.json').exists():
+        multi_meta=json.loads((data/'nfl_multi_meta.json').read_text(encoding='utf-8'));multi_used=multi_meta.get('consensusUsed',False)
+    if (data/'nfl_multi_preds.parquet').exists():
+        multi=pd.read_parquet(data/'nfl_multi_preds.parquet');assert multi.game_id.is_unique
+        motor_cols=[c for c in multi.columns if c.endswith('_home_win')]
+        if not multi_used:multi=multi.drop(columns=['consensus_home_win'],errors='ignore');motor_cols=[c for c in motor_cols if c!='consensus_home_win']
+        games=games.merge(multi[['game_id']+motor_cols],on='game_id',how='left',validate='one_to_one')
     filters={};catalog={};extras={}
     if (data/'game_filters.parquet').exists():
         gf=pd.read_parquet(data/'game_filters.parquet')
@@ -53,9 +62,16 @@ def main():
     for name in ['roi_summary','roi_by_season','pattern_robust','pattern_leaderboard','pattern_oos']:
         path=data/(name+'.parquet')
         if path.exists():reports[name]=records(pd.read_parquet(path))
+    winner_models=[{'id':'strikecast','label':'StrikeCast NFL','target':'winner','field':'model_home_win_prob'}]
+    if (data/'nfl_multi_preds.parquet').exists():
+        motor_labels={'m_full':'Motor Completo','m_market':'Motor Mercado','m_elo':'Motor ELO','m_epa':'Motor EPA'}
+        for mid,label in motor_labels.items():
+            winner_models.append({'id':mid,'label':label,'target':'winner','field':f'{mid}_home_win'})
+        if multi_used:
+            winner_models.append({'id':'consensus','label':'Consenso (promedio)','target':'winner','field':'consensus_home_win'})
     manifest={'generatedAt':datetime.now(timezone.utc).isoformat(),'source':'StrikeCast NFL · snapshot de archivos locales',
         'seasons':sorted(seasons,key=lambda s:-s['season']),'filters':catalog,'reports':reports,
-        'models':[{'id':'strikecast','label':'StrikeCast NFL','target':'winner','field':'model_home_win_prob'}]}
+        'models':winner_models,'multiMeta':multi_meta}
     (out/'index.json').write_text(json.dumps(manifest,ensure_ascii=False,allow_nan=False),encoding='utf-8')
     print(f'Exported {len(games)} NFL games, {len(seasons)} seasons. No models retrained.')
 
