@@ -91,7 +91,7 @@ export default function TelegramDialog({ pick, configured, close }: { pick: NflT
         <input type="checkbox" checked={isLive} disabled={sending || sent} onChange={e => setIsLive(e.target.checked)} />
         <span>🔴 En vivo</span>
       </label>
-      <label>Momio decimal confirmado
+      <label>Momio confirmado
         <input type="number" step="0.01" min="1.01" max="100" value={odds} disabled={sending || sent} onChange={e => setOdds(e.target.value)} />
       </label>
     </div>

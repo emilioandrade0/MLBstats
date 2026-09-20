@@ -29,5 +29,5 @@ export function nflMessage(value: unknown): string {
     pick = `${p.market} ${p.line}`;
   }
   const when = new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(p.kickoff));
-  return `🏈 PICK #${p.pickNumber} | NFL\n\n${p.away} vs ${p.home}\nFecha: ${when} (CDMX)\n\n🎯 ${pick}\n💰 Momio decimal: ${p.decimalOdds.toFixed(2)}`;
+  return `🏈 PICK #${p.pickNumber} | NFL\n\n${p.away} vs ${p.home}\nFecha: ${when} (CDMX)\n\n🎯 ${pick}\n💰 Momio: ${p.decimalOdds.toFixed(2)}`;
 }
