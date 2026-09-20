@@ -70,22 +70,23 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
-      - name: Ingest fresh NFL games desde nflverse (schedule + resultados)
-        # No PBP para mantener el step rápido. EPA se refresca semanal
-        # cuando el user reruns run_pipeline.py local.
+      - name: Ingest NFL schedules (todas las temporadas 2015-2026, sin PBP)
+        # nflverse hostea schedules en CSVs pequeños (~50KB por temporada).
+        # Traemos todas para que features/build reconstruya train.parquet completo.
+        # PBP se salta (~50MB/temporada); EPA queda cacheada en el parquet commiteado.
         env:
           PYTHONUNBUFFERED: '1'
           PYTHONPATH: ${{ github.workspace }}
-        run: python -m nfl_pipeline.strikecast_nfl.sources.nfl_data_py_ingest --seasons 2026 --skip-pbp || echo "NFL ingest fail (non-fatal)"
+        run: python -m nfl_pipeline.strikecast_nfl.sources.nfl_data_py_ingest --seasons 2015-2026 --skip-pbp --skip-rosters
 
       - name: Rebuild NFL normalizados + Elo + train.parquet
         env:
           PYTHONUNBUFFERED: '1'
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python -m nfl_pipeline.strikecast_nfl.normalize.games || true
-          python -m nfl_pipeline.strikecast_nfl.features.elo || true
-          python -m nfl_pipeline.strikecast_nfl.features.build || true
+          python -m nfl_pipeline.strikecast_nfl.normalize.games
+          python -m nfl_pipeline.strikecast_nfl.features.elo
+          python -m nfl_pipeline.strikecast_nfl.features.build
 
       - name: Retrain NFL walkforward + LVD + multi-motor
         env:

@@ -136,7 +136,8 @@ def run(start_season: int, end_season: int) -> pd.DataFrame:
                   f"{'acc ' + f'{n_hit}/{n_eval}' if n_eval else 'sin resultados'}")
 
     out = pd.concat(out_rows, ignore_index=True) if out_rows else pd.DataFrame()
-    out["hit"] = out["hit"].astype("boolean")
+    if "hit" in out.columns:
+        out["hit"] = out["hit"].astype("boolean")
     path = PROCESSED / "lvd_preds.parquet"
     out.to_parquet(path, index=False)
     print(f"\nlvd_preds.parquet: {len(out):,} filas -> {path}")
