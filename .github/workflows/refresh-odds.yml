@@ -58,6 +58,13 @@ jobs:
         env:
           PYTHONUNBUFFERED: '1'
 
+      - name: Snapshot NFL moneylines/spreads/totales (Action Network)
+        # Mismo endpoint que /api/nfl/live. Ventana today-3d..+7d cubre Thu/Sun/Mon.
+        # Persiste momios por libro con timestamp UTC para la vista de movimiento.
+        run: python -u StatsMLB/scripts/snapshot_nfl_odds.py
+        env:
+          PYTHONUNBUFFERED: '1'
+
       - name: Regenerar line-movement JSONs por fecha
         run: python -u StatsMLB/scripts/build_line_movement.py
         env:
@@ -70,7 +77,7 @@ jobs:
 
       - name: Commit + push if changed
         run: |
-          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/value_picks.parquet data/processed/espn_odds_timeseries.parquet StatsMLB/public/data/line-movement StatsMLB/public/data/line-movement-index.json 2>/dev/null)" ]]; then
+          if [[ -z "$(git status --porcelain data/processed/odds_close.parquet data/processed/features_market.parquet data/processed/value_picks.parquet data/processed/espn_odds_timeseries.parquet data/processed/nfl_odds_timeseries.parquet StatsMLB/public/data/line-movement StatsMLB/public/data/line-movement-index.json 2>/dev/null)" ]]; then
             echo "No data changes — skipping commit."
             exit 0
           fi
@@ -80,6 +87,7 @@ jobs:
                   data/processed/features_market.parquet \
                   data/processed/value_picks.parquet \
                   data/processed/espn_odds_timeseries.parquet \
+                  data/processed/nfl_odds_timeseries.parquet \
                   StatsMLB/public/data/line-movement \
                   StatsMLB/public/data/line-movement-index.json
           # Value model pkls only if they changed (rare — same shape each retrain).
