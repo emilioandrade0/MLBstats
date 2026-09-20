@@ -36,6 +36,17 @@ OUT_META = PROCESSED / "nfl_multi_meta.json"
 
 OOS_SEASONS = [2024, 2025]
 
+COACH_FEATURES = [
+    # Diferenciales (home minus away) del estilo del equipo la temporada previa
+    "coach_prev_ppg_scored_diff", "coach_prev_ppg_allowed_diff",
+    "coach_prev_win_pct_diff", "coach_prev_ats_diff",
+    "coach_prev_over_diff", "coach_prev_close_diff", "coach_prev_blowout_diff",
+    "coach_prev_home_perf_diff",
+    # Season-to-date (misma temporada, hasta el juego antes)
+    "coach_std_ppg_scored_diff", "coach_std_ppg_allowed_diff",
+    "coach_std_win_pct_diff", "coach_std_games_played_diff",
+]
+
 MOTORS: dict[str, list[str]] = {
     "m_full": [
         "elo_diff", "home_elo_pre", "away_elo_pre",
@@ -56,7 +67,107 @@ MOTORS: dict[str, list[str]] = {
         "home_epa_off_per_play_l8", "away_epa_off_per_play_l8",
         "home_epa_def_per_play_l8", "away_epa_def_per_play_l8",
     ],
+    "m_coach": COACH_FEATURES,
 }
+
+
+def compute_coach_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Genera features de estilo por equipo/temporada (no leakage: solo usa juegos previos)."""
+    from collections import defaultdict
+    df = df.sort_values(["kickoff_utc", "game_id"]).reset_index(drop=True)
+    prev_season_stats: dict[str, dict] = defaultdict(dict)
+    curr_season_games: dict[str, list] = defaultdict(list)
+    curr_season_by_team: dict[str, int] = defaultdict(lambda: -1)  # season tracker
+
+    rows = []
+    for _, g in df.iterrows():
+        home, away = str(g["home_team"]), str(g["away_team"])
+        season = int(g["season"])
+
+        # Roll over: si nueva temporada, congelamos current->previous
+        for team in (home, away):
+            if curr_season_by_team[team] != season:
+                games = curr_season_games[team]
+                if games:
+                    scored = np.array([x["scored"] for x in games])
+                    allowed = np.array([x["allowed"] for x in games])
+                    won = np.array([x["won"] for x in games if x["won"] is not None])
+                    ats = [x["ats"] for x in games if x["ats"] is not None]
+                    over = [x["over"] for x in games if x["over"] is not None]
+                    close = np.array([1 if abs(x["scored"] - x["allowed"]) <= 3 else 0 for x in games])
+                    blow = np.array([1 if x["won"] and (x["scored"] - x["allowed"]) >= 14 else 0 for x in games])
+                    home_games = [x for x in games if x["side"] == "home"]
+                    away_games = [x for x in games if x["side"] == "away"]
+                    home_won = [x["won"] for x in home_games if x["won"] is not None]
+                    away_won = [x["won"] for x in away_games if x["won"] is not None]
+                    home_wr = float(np.mean(home_won)) if home_won else 0.5
+                    away_wr = float(np.mean(away_won)) if away_won else 0.5
+                    prev_season_stats[team] = {
+                        "ppg_scored": float(scored.mean()),
+                        "ppg_allowed": float(allowed.mean()),
+                        "win_pct": float(won.mean()) if len(won) else 0.5,
+                        "ats_pct": float(np.mean(ats)) if ats else 0.5,
+                        "over_pct": float(np.mean(over)) if over else 0.5,
+                        "close_pct": float(close.mean()) if len(close) else 0.0,
+                        "blowout_pct": float(blow.mean()) if len(blow) else 0.0,
+                        "home_perf_gap": home_wr - away_wr,
+                    }
+                curr_season_games[team] = []
+                curr_season_by_team[team] = season
+
+        def snapshot(team):
+            prev = prev_season_stats.get(team, {})
+            curr = curr_season_games[team]
+            if curr:
+                s = np.array([x["scored"] for x in curr])
+                a = np.array([x["allowed"] for x in curr])
+                w = [x["won"] for x in curr if x["won"] is not None]
+                return prev, {
+                    "ppg_scored": float(s.mean()), "ppg_allowed": float(a.mean()),
+                    "win_pct": float(np.mean(w)) if w else 0.5, "played": float(len(curr)),
+                }
+            return prev, {"ppg_scored": 22.0, "ppg_allowed": 22.0, "win_pct": 0.5, "played": 0.0}
+
+        hp, hs = snapshot(home)
+        ap, as_ = snapshot(away)
+
+        def d(k, hp, ap, default=0.0):
+            return (hp.get(k, default) or default) - (ap.get(k, default) or default)
+
+        row = {"game_id": g["game_id"]}
+        row["coach_prev_ppg_scored_diff"] = d("ppg_scored", hp, ap, 22.0)
+        row["coach_prev_ppg_allowed_diff"] = d("ppg_allowed", hp, ap, 22.0)
+        row["coach_prev_win_pct_diff"] = d("win_pct", hp, ap, 0.5)
+        row["coach_prev_ats_diff"] = d("ats_pct", hp, ap, 0.5)
+        row["coach_prev_over_diff"] = d("over_pct", hp, ap, 0.5)
+        row["coach_prev_close_diff"] = d("close_pct", hp, ap, 0.0)
+        row["coach_prev_blowout_diff"] = d("blowout_pct", hp, ap, 0.0)
+        row["coach_prev_home_perf_diff"] = d("home_perf_gap", hp, ap, 0.0)
+        row["coach_std_ppg_scored_diff"] = d("ppg_scored", hs, as_, 22.0)
+        row["coach_std_ppg_allowed_diff"] = d("ppg_allowed", hs, as_, 22.0)
+        row["coach_std_win_pct_diff"] = d("win_pct", hs, as_, 0.5)
+        row["coach_std_games_played_diff"] = hs["played"] - as_["played"]
+        rows.append(row)
+
+        # Post: actualizar current season con este juego si es final
+        if str(g.get("status")) == "final" and pd.notna(g.get("home_score")) and pd.notna(g.get("away_score")):
+            hsc = float(g["home_score"]); asc = float(g["away_score"])
+            spread = float(g["spread_line"]) if pd.notna(g.get("spread_line")) else 0.0
+            total_line = float(g["total_line"]) if pd.notna(g.get("total_line")) else None
+            total_actual = hsc + asc
+            over = None if total_line is None else 1 if total_actual > total_line else 0 if total_actual < total_line else None
+            home_covered = None if spread == 0 else 1 if (hsc + spread) > asc else 0 if (hsc + spread) < asc else None
+            for side, scored, allowed, ats_val in (("home", hsc, asc, home_covered),
+                                                   ("away", asc, hsc, None if home_covered is None else 1 - home_covered)):
+                team = str(g[f"{side}_team"])
+                won = 1 if scored > allowed else 0 if scored < allowed else None
+                curr_season_games[team].append({
+                    "side": side, "scored": scored, "allowed": allowed,
+                    "won": won, "ats": ats_val, "over": over,
+                })
+
+    feats = pd.DataFrame(rows)
+    return df.merge(feats, on="game_id", how="left")
 
 
 @dataclass
@@ -161,6 +272,8 @@ def evaluate(preds: pd.DataFrame, df: pd.DataFrame) -> dict:
 
 def main() -> None:
     df = pd.read_parquet(PROCESSED / "train.parquet")
+    print(f"[nfl_multi_models] computando features de coach/estilo por equipo…")
+    df = compute_coach_features(df)
     cfg = Cfg()
     print(f"[nfl_multi_models] {len(df):,} juegos totales, entrenando {len(MOTORS)} motores...")
     preds = walkforward_all(df, cfg)

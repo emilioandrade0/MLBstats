@@ -64,7 +64,7 @@ def main():
         if path.exists():reports[name]=records(pd.read_parquet(path))
     winner_models=[{'id':'strikecast','label':'StrikeCast NFL','target':'winner','field':'model_home_win_prob'}]
     if (data/'nfl_multi_preds.parquet').exists():
-        motor_labels={'m_full':'Motor Completo','m_market':'Motor Mercado','m_elo':'Motor ELO','m_epa':'Motor EPA'}
+        motor_labels={'m_full':'Motor Completo','m_market':'Motor Mercado','m_elo':'Motor ELO','m_epa':'Motor EPA','m_coach':'Motor Coach/Estilo'}
         for mid,label in motor_labels.items():
             winner_models.append({'id':mid,'label':label,'target':'winner','field':f'{mid}_home_win'})
         if multi_used:
