@@ -13,3 +13,19 @@
 .nfl-dialog { max-width:620px;width:calc(100% - 30px);max-height:90vh;overflow:auto;padding:26px;border:1px solid #426898;border-radius:12px;background:#10213b;color:#e0ebfa;margin:auto; }.nfl-dialog::backdrop { background:#030814cc; }.nfl-dialog h2 { font-size:24px; }.nfl-dialog p { color:#aebfda;line-height:1.6; }.nfl-dialog pre { white-space:pre-wrap;background:#0a162b;padding:20px;border-radius:8px;font:14px/1.7 monospace; }.nfl-dialog footer { display:flex;justify-content:flex-end;gap:12px; }.nfl-dialog footer button { padding:12px; }.nfl-dialog input { max-width:200px; }
 @media(max-width:650px) { .nfl-controls label { flex:1;min-width:120px; }.nfl-game { padding:16px; }.nfl-pick-list { grid-template-columns:1fr; } }
 .nfl-live-controls { align-items:center; }.nfl-live-controls p,.nfl-data-note { font-size:12px;color:#a7bbd6;line-height:1.6; }.nfl-live-market { display:grid;gap:8px;padding:14px;border:1px solid #41628e;border-radius:8px;background:#142b49; }.nfl-live-market strong { font-size:12px;color:#aacfff; }.nfl-live-market small { font-size:11px;line-height:1.5;color:#c4d4eb; }
+
+
+/* NFL Telegram Dialog - controles editables (matchea patron MLB) */
+.nfl-live-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #292b31; border-radius: 8px; background: #1c1e2a; cursor: pointer; }
+.nfl-live-toggle input { margin: 0; cursor: pointer; }
+.nfl-live-toggle span { color: #f4b8b8; font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+.nfl-side-select { margin: 10px 0; padding: 12px; border: 1px solid #292b31; border-radius: 8px; background: #1c1e2a; }
+.nfl-side-select legend { padding: 0 8px; color: #9184d9; font-size: 10px; letter-spacing: .09em; text-transform: uppercase; font-weight: 600; }
+.nfl-side-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.nfl-lvd-grid { grid-template-columns: repeat(3, 1fr); }
+.nfl-side-grid button { padding: 12px; border: 1px solid #292b31; border-radius: 8px; background: #202230; color: #cfd3e5; cursor: pointer; text-align: center; transition: border-color .15s ease, background .15s ease; }
+.nfl-side-grid button:hover:not(:disabled) { border-color: #9184d9; background: #26293a; }
+.nfl-side-grid button.selected { border-color: #4caf64; background: rgba(76,175,100,.12); }
+.nfl-side-grid button strong { display: block; font-size: 16px; font-weight: 700; color: #f1f1f5; margin-bottom: 4px; }
+.nfl-side-grid button small { display: block; color: #9cacdc; font-size: 11px; }
+
