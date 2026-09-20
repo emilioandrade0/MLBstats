@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-20T18:47:16.302882+00:00",
+  "retrievedAt": "2026-09-20T21:34:09.405676+00:00",
   "games": [
     {
       "gamePk": 823570,
       "gameDate": "2026-09-20T17:10:00Z",
       "officialDate": "2026-09-20",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Citi Field",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": 4,
+        "score": 7,
         "pitcher": "Cristopher Sánchez"
       },
       "home": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": 1,
+        "score": 2,
         "pitcher": "Jonah Tong"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 823329,
       "gameDate": "2026-09-20T17:35:00Z",
       "officialDate": "2026-09-20",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "PNC Park",
       "away": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": 1,
+        "score": 3,
         "pitcher": "Michael Wacha"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": 1,
+        "score": 4,
         "pitcher": "Lake Bachar"
       }
     },
@@ -47,13 +47,13 @@
       "gamePk": 824462,
       "gameDate": "2026-09-20T17:40:00Z",
       "officialDate": "2026-09-20",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Great American Ball Park",
       "away": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": 5,
+        "score": 9,
         "pitcher": "David Peterson"
       },
       "home": {
@@ -67,8 +67,8 @@
       "gamePk": 824381,
       "gameDate": "2026-09-20T17:40:00Z",
       "officialDate": "2026-09-20",
-      "status": "Delayed Start",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Progressive Field",
       "away": {
         "team": "ATH",
@@ -79,7 +79,7 @@
       "home": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": 0,
+        "score": 1,
         "pitcher": "Gavin Williams"
       }
     },
@@ -87,13 +87,13 @@
       "gamePk": 822922,
       "gameDate": "2026-09-20T17:40:00Z",
       "officialDate": "2026-09-20",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Tropicana Field",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": 0,
+        "score": 1,
         "pitcher": "Patrick Sandoval"
       },
       "home": {
@@ -107,19 +107,19 @@
       "gamePk": 824139,
       "gameDate": "2026-09-20T18:10:00Z",
       "officialDate": "2026-09-20",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Daikin Park",
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": 0,
+        "score": 4,
         "pitcher": "Martín Pérez"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": 0,
+        "score": 2,
         "pitcher": "Hunter Brown"
       }
     },
@@ -147,19 +147,19 @@
       "gamePk": 823001,
       "gameDate": "2026-09-20T18:15:00Z",
       "officialDate": "2026-09-20",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Busch Stadium",
       "away": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": 1,
+        "score": 3,
         "pitcher": "Jake Irvin"
       },
       "home": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": 1,
+        "score": 5,
         "pitcher": "Quinn Mathews"
       }
     },
@@ -173,13 +173,13 @@
       "away": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": 1,
+        "score": 7,
         "pitcher": "Spencer Miles"
       },
       "home": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": 0,
+        "score": 2,
         "pitcher": "Jacob deGrom"
       }
     },
@@ -187,13 +187,13 @@
       "gamePk": 824300,
       "gameDate": "2026-09-20T19:10:00Z",
       "officialDate": "2026-09-20",
-      "status": "Warmup",
+      "status": "In Progress",
       "abstractState": "Live",
       "venue": "Coors Field",
       "away": {
         "team": "SEA",
         "name": "Seattle Mariners",
-        "score": 0,
+        "score": 2,
         "pitcher": "Kade Anderson"
       },
       "home": {
@@ -207,13 +207,13 @@
       "gamePk": 823975,
       "gameDate": "2026-09-20T20:07:00Z",
       "officialDate": "2026-09-20",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Angel Stadium",
       "away": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": 0,
+        "score": 3,
         "pitcher": "Dean Kremer"
       },
       "home": {
@@ -227,13 +227,13 @@
       "gamePk": 823896,
       "gameDate": "2026-09-20T20:10:00Z",
       "officialDate": "2026-09-20",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "UNIQLO Field at Dodger Stadium",
       "away": {
         "team": "SF",
         "name": "San Francisco Giants",
-        "score": 0,
+        "score": 1,
         "pitcher": "Matt Wilkinson"
       },
       "home": {
@@ -247,8 +247,8 @@
       "gamePk": 823247,
       "gameDate": "2026-09-20T20:10:00Z",
       "officialDate": "2026-09-20",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Petco Park",
       "away": {
         "team": "MIA",
@@ -259,7 +259,7 @@
       "home": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": 0,
+        "score": 4,
         "pitcher": "Walker Buehler"
       }
     },
@@ -267,19 +267,19 @@
       "gamePk": 825028,
       "gameDate": "2026-09-20T20:10:00Z",
       "officialDate": "2026-09-20",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Chase Field",
       "away": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": 0,
+        "score": 4,
         "pitcher": "Will Warren"
       },
       "home": {
         "team": "AZ",
         "name": "Arizona Diamondbacks",
-        "score": 0,
+        "score": 1,
         "pitcher": "Corbin Burnes"
       }
     },
@@ -287,19 +287,19 @@
       "gamePk": 824789,
       "gameDate": "2026-09-20T23:20:00Z",
       "officialDate": "2026-09-20",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Jacob Misiorowski"
       },
       "home": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": null,
+        "score": 0,
         "pitcher": "Brandon Young"
       }
     }
