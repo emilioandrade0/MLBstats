@@ -21,7 +21,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "processed" / "nfl_odds_timeseries.parquet"
-SCHEDULE = ROOT / "StatsMLB" / "public" / "data" / "nfl" / "games.json"
+SCHEDULE_DIR = ROOT / "StatsMLB" / "public" / "data" / "nfl"
 
 UA = "StatsMLB/1.0 (+snapshot-nfl-odds)"
 
@@ -38,17 +38,28 @@ def http_get_json(url: str, timeout: int = 20) -> dict | None:
 
 
 def active_weeks(today: datetime) -> list[tuple[int, int, str]]:
-    """Return (season, week, phase) for the current + next NFL week."""
-    if not SCHEDULE.exists():
-        return []
-    try:
-        schedule = json.loads(SCHEDULE.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-    games = schedule if isinstance(schedule, list) else schedule.get("games") or []
+    """Return (season, week, phase) for the previous + current + next NFL week(s).
+
+    Reads all past + current season files (2026.json, 2025.json, etc.).
+    Ventana ampliada a today-7d..today+14d para asegurar captura tanto de
+    juegos que ya se jugaron esta semana como los pregame de la próxima.
+    """
+    all_games: list[dict] = []
+    year = today.year
+    for offset in (0, 1):  # temporada actual + siguiente (por si ya arrancó nueva)
+        path = SCHEDULE_DIR / f"{year - offset}.json"
+        if not path.exists():
+            path = SCHEDULE_DIR / f"{year + offset}.json"
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                all_games.extend(data.get("games") or [])
+            except Exception:
+                continue
+
     today_ts = today.timestamp()
-    upcoming = []
-    for g in games:
+    upcoming: set[tuple[int, int, str]] = set()
+    for g in all_games:
         kickoff = g.get("kickoff_utc")
         if not kickoff:
             continue
@@ -61,8 +72,8 @@ def active_weeks(today: datetime) -> list[tuple[int, int, str]]:
         game_type = (g.get("game_type") or "REG").upper()
         if not season or not week:
             continue
-        # window: 3 days before to 7 days after → cubre current + next week
-        if today_ts - 3 * 86400 <= k <= today_ts + 7 * 86400:
+        # Ventana: [today-7d, today+14d] cubre semana previa + actual + próxima
+        if today_ts - 7 * 86400 <= k <= today_ts + 14 * 86400:
             regular_weeks = 18 if season >= 2021 else 17
             if game_type == "REG":
                 phase, wk = "reg", week
@@ -71,8 +82,8 @@ def active_weeks(today: datetime) -> list[tuple[int, int, str]]:
             else:
                 continue
             if 1 <= wk <= (4 if phase == "post" else 18):
-                upcoming.append((season, wk, phase))
-    return sorted(set(upcoming))
+                upcoming.add((int(season), int(wk), phase))
+    return sorted(upcoming)
 
 
 def scoreboard(season: int, week: int, phase: str) -> list[dict]:
