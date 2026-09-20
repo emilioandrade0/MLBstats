@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-20T16:14:52.826492+00:00",
+  "generatedAt": "2026-09-20T18:56:33.735169+00:00",
   "source": "STRIKECAST data/processed/odds_close.parquet",
   "providersUsed": [
     "DraftKings",
@@ -100,26 +100,26 @@
       "models": {
         "naive": {
           "n": 3658,
-          "mae_american": 87.8,
-          "mae_decimal": 0.228,
+          "mae_american": 87.82,
+          "mae_decimal": 0.2281,
           "direction_accuracy": 0.0
         },
         "roll5": {
           "n": 3658,
-          "mae_american": 100.76,
-          "mae_decimal": 1.351,
+          "mae_american": 100.78,
+          "mae_decimal": 1.3511,
           "direction_accuracy": 0.5796
         },
         "roll10": {
           "n": 3658,
-          "mae_american": 103.52,
-          "mae_decimal": 2.8348,
+          "mae_american": 103.55,
+          "mae_decimal": 2.8349,
           "direction_accuracy": 0.5808
         },
         "blend": {
           "n": 3658,
-          "mae_american": 89.35,
-          "mae_decimal": 0.754,
+          "mae_american": 89.37,
+          "mae_decimal": 0.7541,
           "direction_accuracy": 0.6441
         }
       }
@@ -136,7 +136,7 @@
       },
       "roll5": {
         "n": 17944,
-        "mae_american": 109.29,
+        "mae_american": 109.3,
         "mae_decimal": 1.1505,
         "direction_accuracy": 0.5852
       },
