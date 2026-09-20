@@ -29,8 +29,10 @@ from sklearn.calibration import CalibratedClassifierCV
 
 
 ROOT = Path(__file__).resolve().parents[2]
-NFL_APP = ROOT / "StatsMLB" / "StrikeCast NFL"
-PROCESSED = NFL_APP / "data" / "processed"
+# Prefer los parquets committeados en data/processed/nfl (CI usa esto).
+# Fallback al mirror local StrikeCast NFL/ para desarrolladores que ya lo tenían.
+_CANDIDATES = [ROOT / "data" / "processed" / "nfl", ROOT / "StatsMLB" / "StrikeCast NFL" / "data" / "processed"]
+PROCESSED = next((p for p in _CANDIDATES if (p / "train.parquet").exists()), _CANDIDATES[0])
 OUT_PARQUET = PROCESSED / "nfl_multi_preds.parquet"
 OUT_META = PROCESSED / "nfl_multi_meta.json"
 

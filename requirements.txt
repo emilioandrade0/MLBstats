@@ -12,3 +12,4 @@ joblib>=1.4
 duckdb>=1.1
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
+nfl_data_py>=0.3.3

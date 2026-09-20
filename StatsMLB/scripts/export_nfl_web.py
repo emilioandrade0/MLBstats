@@ -18,7 +18,14 @@ def records(frame):
 
 
 def main():
-    root=APP/'StrikeCast NFL';data=root/'data/processed';out=APP/'public/data/nfl';out.mkdir(parents=True,exist_ok=True)
+    _repo=APP.parent
+    _candidates=[_repo/'data'/'processed'/'nfl', APP/'StrikeCast NFL'/'data'/'processed']
+    data=next((p for p in _candidates if (p/'games.parquet').exists()), _candidates[0])
+    _filters_src=APP/'StrikeCast NFL'/'packages/ml/strikecast_nfl/features/filters.py'
+    if not _filters_src.exists():
+        _filters_src=_repo/'nfl_pipeline'/'strikecast_nfl'/'features'/'filters.py'
+    root=data.parent.parent  # kept for backward-compat with lvd_preds/pattern reads below
+    out=APP/'public/data/nfl';out.mkdir(parents=True,exist_ok=True)
     games=pd.read_parquet(data/'games.parquet')
     assert games.game_id.is_unique
     cols=['game_id','model_home_win_prob','model_cover_home_prob','model_total_over_prob']
@@ -41,7 +48,7 @@ def main():
     if (data/'game_filters.parquet').exists():
         gf=pd.read_parquet(data/'game_filters.parquet')
         for row in records(gf):filters[row['game_id']]=[key for key,value in row.items() if value is True]
-    syntax=ast.parse((root/'packages/ml/strikecast_nfl/features/filters.py').read_text(encoding='utf-8'))
+    syntax=ast.parse(_filters_src.read_text(encoding='utf-8'))
     for node in syntax.body:
         if isinstance(node,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='FILTER_CATALOG' for t in node.targets):catalog=ast.literal_eval(node.value)
     if (data/'lvd_preds.parquet').exists():
