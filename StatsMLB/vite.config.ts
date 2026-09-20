@@ -18,6 +18,12 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 const localBindingConfig = {
   main: 'vinext/server/app-router-entry',
   compatibility_flags: ['nodejs_compat'],
+  vars: {
+    // Non-secret runtime vars persisted en cada deploy. Los secrets
+    // (TELEGRAM_BOT_TOKEN, STRIKECAST_BASE_URL, TELEGRAM_CHAT_ID) siguen
+    // solo en Cloudflare dashboard como encrypted.
+    NFL_TELEGRAM_CHAT_ID: '@StrikeCastNFL',
+  },
   d1_databases: d1
     ? [
         {
