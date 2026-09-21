@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-21T19:24:24.139463+00:00",
+  "retrievedAt": "2026-09-21T23:17:09.795455+00:00",
   "games": [
     {
       "gamePk": 824787,
       "gameDate": "2026-09-21T22:35:00Z",
       "officialDate": "2026-09-21",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "Warmup",
+      "abstractState": "Live",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": null,
+        "score": 0,
         "pitcher": "Trey Yesavage"
       },
       "home": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": null,
+        "score": 0,
         "pitcher": "Shane Baz"
       }
     },
@@ -27,8 +27,8 @@
       "gamePk": 824221,
       "gameDate": "2026-09-21T22:40:00Z",
       "officialDate": "2026-09-21",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Comerica Park",
       "away": {
         "team": "WSH",
@@ -39,7 +39,7 @@
       "home": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 0,
+        "score": 2,
         "pitcher": "River Ryan"
       }
     },
@@ -47,7 +47,7 @@
       "gamePk": 823169,
       "gameDate": "2026-09-22T01:45:00Z",
       "officialDate": "2026-09-21",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Oracle Park",
       "away": {
