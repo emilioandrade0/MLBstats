@@ -1,66 +1,326 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-21T23:17:09.795455+00:00",
+  "retrievedAt": "2026-09-22T04:37:54.573136+00:00",
   "games": [
     {
-      "gamePk": 824787,
-      "gameDate": "2026-09-21T22:35:00Z",
-      "officialDate": "2026-09-21",
-      "status": "Warmup",
-      "abstractState": "Live",
+      "gamePk": 823543,
+      "gameDate": "2026-09-22T17:05:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Yankee Stadium",
+      "away": {
+        "team": "TB",
+        "name": "Tampa Bay Rays",
+        "score": null,
+        "pitcher": "Nick Martinez"
+      },
+      "home": {
+        "team": "NYY",
+        "name": "New York Yankees",
+        "score": null,
+        "pitcher": "Carlos Rodón"
+      }
+    },
+    {
+      "gamePk": 823494,
+      "gameDate": "2026-09-22T23:05:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Yankee Stadium",
+      "away": {
+        "team": "TB",
+        "name": "Tampa Bay Rays",
+        "score": null,
+        "pitcher": "Drew Rasmussen"
+      },
+      "home": {
+        "team": "NYY",
+        "name": "New York Yankees",
+        "score": null,
+        "pitcher": "Max Fried"
+      }
+    },
+    {
+      "gamePk": 824785,
+      "gameDate": "2026-09-22T22:35:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": 0,
-        "pitcher": "Trey Yesavage"
+        "score": null,
+        "pitcher": "Max Scherzer"
       },
       "home": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": 0,
-        "pitcher": "Shane Baz"
+        "score": null,
+        "pitcher": "Chris Bassitt"
       }
     },
     {
-      "gamePk": 824221,
-      "gameDate": "2026-09-21T22:40:00Z",
-      "officialDate": "2026-09-21",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "gamePk": 824222,
+      "gameDate": "2026-09-22T22:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
       "venue": "Comerica Park",
       "away": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": 0,
-        "pitcher": "DJ Herz"
+        "score": null,
+        "pitcher": "Jackson Kent"
       },
       "home": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 2,
-        "pitcher": "River Ryan"
+        "score": null,
+        "pitcher": "Drew Anderson"
       }
     },
     {
-      "gamePk": 823169,
-      "gameDate": "2026-09-22T01:45:00Z",
-      "officialDate": "2026-09-21",
-      "status": "Pre-Game",
+      "gamePk": 823328,
+      "gameDate": "2026-09-22T22:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "PNC Park",
+      "away": {
+        "team": "STL",
+        "name": "St. Louis Cardinals",
+        "score": null,
+        "pitcher": "Andre Pallante"
+      },
+      "home": {
+        "team": "PIT",
+        "name": "Pittsburgh Pirates",
+        "score": null,
+        "pitcher": "Jared Jones"
+      }
+    },
+    {
+      "gamePk": 823412,
+      "gameDate": "2026-09-22T22:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Citizens Bank Park",
+      "away": {
+        "team": "MIL",
+        "name": "Milwaukee Brewers",
+        "score": null,
+        "pitcher": "Dustin May"
+      },
+      "home": {
+        "team": "PHI",
+        "name": "Philadelphia Phillies",
+        "score": null,
+        "pitcher": "Zack Wheeler"
+      }
+    },
+    {
+      "gamePk": 824709,
+      "gameDate": "2026-09-22T22:45:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Fenway Park",
+      "away": {
+        "team": "CLE",
+        "name": "Cleveland Guardians",
+        "score": null,
+        "pitcher": "Parker Messick"
+      },
+      "home": {
+        "team": "BOS",
+        "name": "Boston Red Sox",
+        "score": null,
+        "pitcher": "Payton Tolle"
+      }
+    },
+    {
+      "gamePk": 824867,
+      "gameDate": "2026-09-22T23:15:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Truist Park",
+      "away": {
+        "team": "CIN",
+        "name": "Cincinnati Reds",
+        "score": null,
+        "pitcher": "Brandon Williamson"
+      },
+      "home": {
+        "team": "ATL",
+        "name": "Atlanta Braves",
+        "score": null,
+        "pitcher": "JR Ritchie"
+      }
+    },
+    {
+      "gamePk": 824061,
+      "gameDate": "2026-09-22T23:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Kauffman Stadium",
+      "away": {
+        "team": "CWS",
+        "name": "Chicago White Sox",
+        "score": null,
+        "pitcher": "Anthony Kay"
+      },
+      "home": {
+        "team": "KC",
+        "name": "Kansas City Royals",
+        "score": null,
+        "pitcher": "Daniel Lynch IV"
+      }
+    },
+    {
+      "gamePk": 824624,
+      "gameDate": "2026-09-22T23:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Wrigley Field",
+      "away": {
+        "team": "MIA",
+        "name": "Miami Marlins",
+        "score": null,
+        "pitcher": "Janson Junk"
+      },
+      "home": {
+        "team": "CHC",
+        "name": "Chicago Cubs",
+        "score": null,
+        "pitcher": null
+      }
+    },
+    {
+      "gamePk": 822840,
+      "gameDate": "2026-09-23T00:05:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Globe Life Field",
+      "away": {
+        "team": "NYM",
+        "name": "New York Mets",
+        "score": null,
+        "pitcher": "Sean Manaea"
+      },
+      "home": {
+        "team": "TEX",
+        "name": "Texas Rangers",
+        "score": null,
+        "pitcher": "MacKenzie Gore"
+      }
+    },
+    {
+      "gamePk": 824302,
+      "gameDate": "2026-09-23T00:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Coors Field",
+      "away": {
+        "team": "AZ",
+        "name": "Arizona Diamondbacks",
+        "score": null,
+        "pitcher": "Michael Soroka"
+      },
+      "home": {
+        "team": "COL",
+        "name": "Colorado Rockies",
+        "score": null,
+        "pitcher": "Kyle Freeland"
+      }
+    },
+    {
+      "gamePk": 824953,
+      "gameDate": "2026-09-23T01:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Sutter Health Park",
+      "away": {
+        "team": "LAA",
+        "name": "Los Angeles Angels",
+        "score": null,
+        "pitcher": "Yusei Kikuchi"
+      },
+      "home": {
+        "team": "ATH",
+        "name": "Athletics",
+        "score": null,
+        "pitcher": "Brady Basso"
+      }
+    },
+    {
+      "gamePk": 823089,
+      "gameDate": "2026-09-23T01:40:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "T-Mobile Park",
+      "away": {
+        "team": "HOU",
+        "name": "Houston Astros",
+        "score": null,
+        "pitcher": "Cristian Javier"
+      },
+      "home": {
+        "team": "SEA",
+        "name": "Seattle Mariners",
+        "score": null,
+        "pitcher": "Logan Gilbert"
+      }
+    },
+    {
+      "gamePk": 823166,
+      "gameDate": "2026-09-23T01:45:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Oracle Park",
       "away": {
         "team": "MIN",
         "name": "Minnesota Twins",
         "score": null,
-        "pitcher": "Zebby Matthews"
+        "pitcher": "Taj Bradley"
       },
       "home": {
         "team": "SF",
         "name": "San Francisco Giants",
         "score": null,
-        "pitcher": "Blade Tidwell"
+        "pitcher": "Anthony Molina"
+      }
+    },
+    {
+      "gamePk": 823897,
+      "gameDate": "2026-09-23T02:10:00Z",
+      "officialDate": "2026-09-22",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "UNIQLO Field at Dodger Stadium",
+      "away": {
+        "team": "SD",
+        "name": "San Diego Padres",
+        "score": null,
+        "pitcher": "Michael King"
+      },
+      "home": {
+        "team": "LAD",
+        "name": "Los Angeles Dodgers",
+        "score": null,
+        "pitcher": null
       }
     }
   ]
