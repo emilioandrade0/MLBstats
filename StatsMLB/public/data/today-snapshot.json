@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-22T14:47:04.555548+00:00",
+  "retrievedAt": "2026-09-22T18:50:33.148966+00:00",
   "games": [
     {
       "gamePk": 823543,
       "gameDate": "2026-09-22T17:05:00Z",
       "officialDate": "2026-09-22",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Yankee Stadium",
       "away": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": null,
+        "score": 0,
         "pitcher": "Nick Martinez"
       },
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 2,
         "pitcher": "Carlos Rodón"
       }
     },
@@ -44,26 +44,6 @@
       }
     },
     {
-      "gamePk": 824785,
-      "gameDate": "2026-09-22T22:35:00Z",
-      "officialDate": "2026-09-22",
-      "status": "Scheduled",
-      "abstractState": "Preview",
-      "venue": "Oriole Park at Camden Yards",
-      "away": {
-        "team": "TOR",
-        "name": "Toronto Blue Jays",
-        "score": null,
-        "pitcher": "Max Scherzer"
-      },
-      "home": {
-        "team": "BAL",
-        "name": "Baltimore Orioles",
-        "score": null,
-        "pitcher": "Chris Bassitt"
-      }
-    },
-    {
       "gamePk": 824222,
       "gameDate": "2026-09-22T22:40:00Z",
       "officialDate": "2026-09-22",
@@ -74,7 +54,7 @@
         "team": "WSH",
         "name": "Washington Nationals",
         "score": null,
-        "pitcher": "Jackson Kent"
+        "pitcher": "Riley Cornelio"
       },
       "home": {
         "team": "DET",
@@ -87,19 +67,19 @@
       "gamePk": 823328,
       "gameDate": "2026-09-22T22:40:00Z",
       "officialDate": "2026-09-22",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "PNC Park",
       "away": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": null,
+        "score": 0,
         "pitcher": "Andre Pallante"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": null,
+        "score": 0,
         "pitcher": "Jared Jones"
       }
     },
@@ -200,7 +180,7 @@
         "team": "CHC",
         "name": "Chicago Cubs",
         "score": null,
-        "pitcher": null
+        "pitcher": "Shota Imanaga"
       }
     },
     {
@@ -227,7 +207,7 @@
       "gamePk": 824302,
       "gameDate": "2026-09-23T00:40:00Z",
       "officialDate": "2026-09-22",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Coors Field",
       "away": {
@@ -321,6 +301,26 @@
         "name": "Los Angeles Dodgers",
         "score": null,
         "pitcher": null
+      }
+    },
+    {
+      "gamePk": 824785,
+      "gameDate": "2026-09-22T22:35:00Z",
+      "officialDate": "2026-09-23",
+      "status": "Postponed",
+      "abstractState": "Final",
+      "venue": "Oriole Park at Camden Yards",
+      "away": {
+        "team": "TOR",
+        "name": "Toronto Blue Jays",
+        "score": null,
+        "pitcher": "Max Scherzer"
+      },
+      "home": {
+        "team": "BAL",
+        "name": "Baltimore Orioles",
+        "score": null,
+        "pitcher": "Chris Bassitt"
       }
     }
   ]
