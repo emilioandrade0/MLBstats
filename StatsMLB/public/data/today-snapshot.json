@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-23T11:26:10.084315+00:00",
+  "retrievedAt": "2026-09-23T16:50:16.621346+00:00",
   "games": [
     {
       "gamePk": 824223,
       "gameDate": "2026-09-23T17:10:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "Warmup",
+      "abstractState": "Live",
       "venue": "Comerica Park",
       "away": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": null,
+        "score": 0,
         "pitcher": "Richard Lovelady"
       },
       "home": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": null,
+        "score": 0,
         "pitcher": "Framber Valdez"
       }
     },
@@ -27,20 +27,20 @@
       "gamePk": 824785,
       "gameDate": "2026-09-23T17:35:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": null,
+        "score": 0,
         "pitcher": "Max Scherzer"
       },
       "home": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": null,
-        "pitcher": null
+        "score": 0,
+        "pitcher": "Chris Bassitt"
       }
     },
     {
@@ -67,19 +67,19 @@
       "gamePk": 823168,
       "gameDate": "2026-09-23T19:45:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Oracle Park",
       "away": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": null,
+        "score": 0,
         "pitcher": "Connor Prielipp"
       },
       "home": {
         "team": "SF",
         "name": "San Francisco Giants",
-        "score": null,
+        "score": 0,
         "pitcher": "Cesar Perdomo"
       }
     },
@@ -240,7 +240,7 @@
         "team": "TEX",
         "name": "Texas Rangers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Cody Bradford"
       }
     },
     {
