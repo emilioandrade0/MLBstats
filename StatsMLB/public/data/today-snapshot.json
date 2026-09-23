@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-23T05:10:52.756355+00:00",
+  "retrievedAt": "2026-09-23T05:56:34.644123+00:00",
   "games": [
     {
       "gamePk": 824223,
@@ -314,7 +314,7 @@
         "team": "HOU",
         "name": "Houston Astros",
         "score": null,
-        "pitcher": null
+        "pitcher": "Ethan Pecko"
       },
       "home": {
         "team": "SEA",
