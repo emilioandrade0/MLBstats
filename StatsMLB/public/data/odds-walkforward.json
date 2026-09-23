@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-23T20:02:06.465540+00:00",
+  "generatedAt": "2026-09-23T20:27:43.718625+00:00",
   "source": "STRIKECAST data/processed/odds_close.parquet",
   "providersUsed": [
     "DraftKings",
@@ -25,9 +25,9 @@
         },
         "roll10": {
           "n": 3148,
-          "mae_american": 110.49,
-          "mae_decimal": 1.9717,
-          "direction_accuracy": 0.5915
+          "mae_american": 110.48,
+          "mae_decimal": 1.9716,
+          "direction_accuracy": 0.5912
         },
         "blend": {
           "n": 3148,
@@ -100,27 +100,27 @@
       "models": {
         "naive": {
           "n": 3726,
-          "mae_american": 87.92,
+          "mae_american": 87.98,
           "mae_decimal": 0.2286,
           "direction_accuracy": 0.0
         },
         "roll5": {
           "n": 3726,
-          "mae_american": 101.15,
-          "mae_decimal": 1.3504,
-          "direction_accuracy": 0.5796
+          "mae_american": 101.21,
+          "mae_decimal": 1.3515,
+          "direction_accuracy": 0.5793
         },
         "roll10": {
           "n": 3726,
-          "mae_american": 103.92,
-          "mae_decimal": 2.8101,
+          "mae_american": 103.97,
+          "mae_decimal": 2.8106,
           "direction_accuracy": 0.5793
         },
         "blend": {
           "n": 3726,
-          "mae_american": 89.62,
-          "mae_decimal": 0.7558,
-          "direction_accuracy": 0.6432
+          "mae_american": 89.68,
+          "mae_decimal": 0.7562,
+          "direction_accuracy": 0.6426
         }
       }
     }
@@ -130,27 +130,27 @@
     "models": {
       "naive": {
         "n": 18012,
-        "mae_american": 100.73,
+        "mae_american": 100.75,
         "mae_decimal": 0.2748,
         "direction_accuracy": 0.0
       },
       "roll5": {
         "n": 18012,
-        "mae_american": 109.34,
-        "mae_decimal": 1.1511,
-        "direction_accuracy": 0.5852
+        "mae_american": 109.36,
+        "mae_decimal": 1.1513,
+        "direction_accuracy": 0.5851
       },
       "roll10": {
         "n": 18012,
-        "mae_american": 110.23,
+        "mae_american": 110.24,
         "mae_decimal": 2.5614,
         "direction_accuracy": 0.5795
       },
       "blend": {
         "n": 18012,
-        "mae_american": 99.61,
+        "mae_american": 99.62,
         "mae_decimal": 0.8348,
-        "direction_accuracy": 0.6552
+        "direction_accuracy": 0.6551
       }
     }
   }

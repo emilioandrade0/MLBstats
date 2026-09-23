@@ -1,14 +1,14 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-23T19:52:45.597676+00:00",
+  "retrievedAt": "2026-09-23T20:17:01.776349+00:00",
   "games": [
     {
       "gamePk": 824223,
       "gameDate": "2026-09-23T17:10:00Z",
       "officialDate": "2026-09-23",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Comerica Park",
       "away": {
         "team": "WSH",
@@ -19,7 +19,7 @@
       "home": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 1,
+        "score": 2,
         "pitcher": "Framber Valdez"
       }
     },
@@ -27,8 +27,8 @@
       "gamePk": 824785,
       "gameDate": "2026-09-23T17:35:00Z",
       "officialDate": "2026-09-23",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Game Over",
+      "abstractState": "Final",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "TOR",
@@ -73,7 +73,7 @@
       "away": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": 0,
+        "score": 1,
         "pitcher": "Connor Prielipp"
       },
       "home": {
@@ -93,13 +93,13 @@
       "away": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": null,
+        "score": 0,
         "pitcher": "Matthew Liberatore"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": null,
+        "score": 0,
         "pitcher": "Lake Bachar"
       }
     },
@@ -113,13 +113,13 @@
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Logan Henderson"
       },
       "home": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
+        "score": 0,
         "pitcher": "Aaron Nola"
       }
     },
@@ -193,13 +193,13 @@
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Bryan Hudson"
       },
       "home": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": null,
+        "score": 0,
         "pitcher": "Seth Lugo"
       }
     },
@@ -227,7 +227,7 @@
       "gamePk": 822841,
       "gameDate": "2026-09-24T00:05:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Globe Life Field",
       "away": {
