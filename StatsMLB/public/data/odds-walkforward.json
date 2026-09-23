@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-09-22T22:10:25.966986+00:00",
+  "generatedAt": "2026-09-23T00:37:35.189664+00:00",
   "source": "STRIKECAST data/processed/odds_close.parquet",
   "providersUsed": [
     "DraftKings",
     "ESPN BET"
   ],
   "minHistory": 6,
-  "totalTeamGameRows": 17982,
+  "totalTeamGameRows": 17998,
   "seasons": {
     "2023": {
       "games": 3148,
@@ -25,9 +25,9 @@
         },
         "roll10": {
           "n": 3148,
-          "mae_american": 110.41,
-          "mae_decimal": 1.9913,
-          "direction_accuracy": 0.5915
+          "mae_american": 110.45,
+          "mae_decimal": 2.0015,
+          "direction_accuracy": 0.5912
         },
         "blend": {
           "n": 3148,
@@ -96,61 +96,61 @@
       }
     },
     "2026": {
-      "games": 3696,
+      "games": 3712,
       "models": {
         "naive": {
-          "n": 3696,
-          "mae_american": 88.19,
-          "mae_decimal": 0.2292,
+          "n": 3712,
+          "mae_american": 88.15,
+          "mae_decimal": 0.229,
           "direction_accuracy": 0.0
         },
         "roll5": {
-          "n": 3696,
-          "mae_american": 101.19,
-          "mae_decimal": 1.3533,
-          "direction_accuracy": 0.5797
+          "n": 3712,
+          "mae_american": 101.11,
+          "mae_decimal": 1.3494,
+          "direction_accuracy": 0.5804
         },
         "roll10": {
-          "n": 3696,
-          "mae_american": 103.88,
-          "mae_decimal": 2.8226,
-          "direction_accuracy": 0.5805
+          "n": 3712,
+          "mae_american": 103.83,
+          "mae_decimal": 2.8155,
+          "direction_accuracy": 0.5804
         },
         "blend": {
-          "n": 3696,
-          "mae_american": 89.78,
-          "mae_decimal": 0.7549,
-          "direction_accuracy": 0.6435
+          "n": 3712,
+          "mae_american": 89.71,
+          "mae_decimal": 0.7534,
+          "direction_accuracy": 0.6429
         }
       }
     }
   },
   "overall": {
-    "games": 17982,
+    "games": 17998,
     "models": {
       "naive": {
-        "n": 17982,
-        "mae_american": 100.81,
-        "mae_decimal": 0.275,
+        "n": 17998,
+        "mae_american": 100.79,
+        "mae_decimal": 0.2749,
         "direction_accuracy": 0.0
       },
       "roll5": {
-        "n": 17982,
-        "mae_american": 109.36,
-        "mae_decimal": 1.1514,
-        "direction_accuracy": 0.5852
+        "n": 17998,
+        "mae_american": 109.34,
+        "mae_decimal": 1.1507,
+        "direction_accuracy": 0.5853
       },
       "roll10": {
-        "n": 17982,
-        "mae_american": 110.22,
-        "mae_decimal": 2.5669,
-        "direction_accuracy": 0.5798
+        "n": 17998,
+        "mae_american": 110.21,
+        "mae_decimal": 2.5675,
+        "direction_accuracy": 0.5797
       },
       "blend": {
-        "n": 17982,
-        "mae_american": 99.66,
-        "mae_decimal": 0.8347,
-        "direction_accuracy": 0.6553
+        "n": 17998,
+        "mae_american": 99.63,
+        "mae_decimal": 0.8343,
+        "direction_accuracy": 0.6552
       }
     }
   }
