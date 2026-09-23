@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-23T16:50:16.621346+00:00",
+  "retrievedAt": "2026-09-23T19:52:45.597676+00:00",
   "games": [
     {
       "gamePk": 824223,
       "gameDate": "2026-09-23T17:10:00Z",
       "officialDate": "2026-09-23",
-      "status": "Warmup",
+      "status": "In Progress",
       "abstractState": "Live",
       "venue": "Comerica Park",
       "away": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": 0,
+        "score": 4,
         "pitcher": "Richard Lovelady"
       },
       "home": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 0,
+        "score": 1,
         "pitcher": "Framber Valdez"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 824785,
       "gameDate": "2026-09-23T17:35:00Z",
       "officialDate": "2026-09-23",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Oriole Park at Camden Yards",
       "away": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": 0,
+        "score": 2,
         "pitcher": "Max Scherzer"
       },
       "home": {
         "team": "BAL",
         "name": "Baltimore Orioles",
-        "score": 0,
+        "score": 4,
         "pitcher": "Chris Bassitt"
       }
     },
@@ -67,8 +67,8 @@
       "gamePk": 823168,
       "gameDate": "2026-09-23T19:45:00Z",
       "officialDate": "2026-09-23",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Oracle Park",
       "away": {
         "team": "MIN",
@@ -87,7 +87,7 @@
       "gamePk": 823327,
       "gameDate": "2026-09-23T22:40:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "PNC Park",
       "away": {
@@ -107,7 +107,7 @@
       "gamePk": 823410,
       "gameDate": "2026-09-23T22:40:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Citizens Bank Park",
       "away": {
@@ -127,14 +127,14 @@
       "gamePk": 823492,
       "gameDate": "2026-09-23T23:05:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
       "away": {
         "team": "TB",
         "name": "Tampa Bay Rays",
         "score": null,
-        "pitcher": "Ian Seymour"
+        "pitcher": "Mason Englert"
       },
       "home": {
         "team": "NYY",
@@ -147,7 +147,7 @@
       "gamePk": 824710,
       "gameDate": "2026-09-23T23:10:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Fenway Park",
       "away": {
@@ -167,19 +167,19 @@
       "gamePk": 824868,
       "gameDate": "2026-09-23T23:15:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Truist Park",
       "away": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": null,
+        "score": 0,
         "pitcher": "Andrew Abbott"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Chris Sale"
       }
     },
@@ -187,7 +187,7 @@
       "gamePk": 824060,
       "gameDate": "2026-09-23T23:40:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Kauffman Stadium",
       "away": {
@@ -247,7 +247,7 @@
       "gamePk": 824301,
       "gameDate": "2026-09-24T00:40:00Z",
       "officialDate": "2026-09-23",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Coors Field",
       "away": {
