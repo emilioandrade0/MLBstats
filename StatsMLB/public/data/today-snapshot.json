@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-24T09:59:42.925237+00:00",
+  "retrievedAt": "2026-09-24T14:59:56.746945+00:00",
   "games": [
     {
       "gamePk": 823326,
       "gameDate": "2026-09-24T16:35:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "PNC Park",
       "away": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": null,
+        "score": 0,
         "pitcher": "Kyle Leahy"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": null,
+        "score": 0,
         "pitcher": "Paul Skenes"
       }
     },
@@ -27,7 +27,7 @@
       "gamePk": 824059,
       "gameDate": "2026-09-24T18:10:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Kauffman Stadium",
       "away": {
@@ -114,7 +114,7 @@
         "team": "MIL",
         "name": "Milwaukee Brewers",
         "score": null,
-        "pitcher": "Bryse Wilson"
+        "pitcher": null
       },
       "home": {
         "team": "PHI",
