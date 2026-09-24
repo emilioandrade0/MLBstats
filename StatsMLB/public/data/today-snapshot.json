@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-24T04:31:44.306344+00:00",
+  "retrievedAt": "2026-09-24T09:59:42.925237+00:00",
   "games": [
     {
       "gamePk": 823326,
@@ -200,7 +200,7 @@
         "team": "ATH",
         "name": "Athletics",
         "score": null,
-        "pitcher": null
+        "pitcher": "Mason Barnett"
       }
     },
     {

@@ -1,7 +1,7 @@
 {
   "sourceState": "REAL DATA",
   "source": "STRIKECAST data/processed/odds_pinnacle.parquet",
-  "generatedAt": "2026-09-24T04:39:42.233100+00:00",
+  "generatedAt": "2026-09-24T10:07:37.674855+00:00",
   "sourceUpdatedAt": "2026-09-12T07:03:35Z",
   "oddsFormat": "american_and_decimal",
   "selectionRule": "Mejor momio decimal disponible entre las casas presentes para cada lado.",
