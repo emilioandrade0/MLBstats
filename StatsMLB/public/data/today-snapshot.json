@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-24T14:59:56.746945+00:00",
+  "retrievedAt": "2026-09-24T19:06:36.278096+00:00",
   "games": [
     {
       "gamePk": 823326,
       "gameDate": "2026-09-24T16:35:00Z",
       "officialDate": "2026-09-24",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "PNC Park",
       "away": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": 0,
+        "score": 1,
         "pitcher": "Kyle Leahy"
       },
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": 0,
+        "score": 1,
         "pitcher": "Paul Skenes"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 824059,
       "gameDate": "2026-09-24T18:10:00Z",
       "officialDate": "2026-09-24",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Kauffman Stadium",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 6,
         "pitcher": "David Sandlin"
       },
       "home": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": null,
+        "score": 0,
         "pitcher": "Randy Dobnak"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 824623,
       "gameDate": "2026-09-24T18:20:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Wrigley Field",
       "away": {
         "team": "MIA",
         "name": "Miami Marlins",
-        "score": null,
+        "score": 1,
         "pitcher": "Tyler Phillips"
       },
       "home": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": null,
+        "score": 0,
         "pitcher": "Matthew Boyd"
       }
     },
@@ -67,19 +67,19 @@
       "gamePk": 822842,
       "gameDate": "2026-09-24T18:35:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Globe Life Field",
       "away": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": null,
+        "score": 1,
         "pitcher": "Zac Thornton"
       },
       "home": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": null,
+        "score": 2,
         "pitcher": "Kumar Rocker"
       }
     },
@@ -87,19 +87,19 @@
       "gamePk": 824298,
       "gameDate": "2026-09-24T19:10:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "Warmup",
+      "abstractState": "Live",
       "venue": "Coors Field",
       "away": {
         "team": "AZ",
         "name": "Arizona Diamondbacks",
-        "score": null,
+        "score": 0,
         "pitcher": "Eduardo Rodriguez"
       },
       "home": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": null,
+        "score": 0,
         "pitcher": "Tanner Gordon"
       }
     },
@@ -107,14 +107,14 @@
       "gamePk": 823411,
       "gameDate": "2026-09-24T22:05:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Citizens Bank Park",
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Shane Drohan"
       },
       "home": {
         "team": "PHI",
@@ -127,7 +127,7 @@
       "gamePk": 824707,
       "gameDate": "2026-09-24T22:45:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Fenway Park",
       "away": {
