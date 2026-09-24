@@ -1,14 +1,14 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-24T19:06:36.278096+00:00",
+  "retrievedAt": "2026-09-24T22:24:28.238536+00:00",
   "games": [
     {
       "gamePk": 823326,
       "gameDate": "2026-09-24T16:35:00Z",
       "officialDate": "2026-09-24",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "PNC Park",
       "away": {
         "team": "STL",
@@ -19,7 +19,7 @@
       "home": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": 1,
+        "score": 2,
         "pitcher": "Paul Skenes"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 824059,
       "gameDate": "2026-09-24T18:10:00Z",
       "officialDate": "2026-09-24",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Kauffman Stadium",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": 6,
+        "score": 9,
         "pitcher": "David Sandlin"
       },
       "home": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": 0,
+        "score": 1,
         "pitcher": "Randy Dobnak"
       }
     },
@@ -47,8 +47,8 @@
       "gamePk": 824623,
       "gameDate": "2026-09-24T18:20:00Z",
       "officialDate": "2026-09-24",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Wrigley Field",
       "away": {
         "team": "MIA",
@@ -59,7 +59,7 @@
       "home": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": 0,
+        "score": 2,
         "pitcher": "Matthew Boyd"
       }
     },
@@ -67,8 +67,8 @@
       "gamePk": 822842,
       "gameDate": "2026-09-24T18:35:00Z",
       "officialDate": "2026-09-24",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Globe Life Field",
       "away": {
         "team": "NYM",
@@ -79,7 +79,7 @@
       "home": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": 2,
+        "score": 3,
         "pitcher": "Kumar Rocker"
       }
     },
@@ -87,19 +87,19 @@
       "gamePk": 824298,
       "gameDate": "2026-09-24T19:10:00Z",
       "officialDate": "2026-09-24",
-      "status": "Warmup",
+      "status": "In Progress",
       "abstractState": "Live",
       "venue": "Coors Field",
       "away": {
         "team": "AZ",
         "name": "Arizona Diamondbacks",
-        "score": 0,
+        "score": 12,
         "pitcher": "Eduardo Rodriguez"
       },
       "home": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": 0,
+        "score": 8,
         "pitcher": "Tanner Gordon"
       }
     },
@@ -107,19 +107,19 @@
       "gamePk": 823411,
       "gameDate": "2026-09-24T22:05:00Z",
       "officialDate": "2026-09-24",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Citizens Bank Park",
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Shane Drohan"
       },
       "home": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
+        "score": 0,
         "pitcher": "Andrew Painter"
       }
     },
@@ -133,13 +133,13 @@
       "away": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": null,
+        "score": 0,
         "pitcher": "Daniel Espino"
       },
       "home": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Ranger Suarez"
       }
     },
@@ -147,19 +147,19 @@
       "gamePk": 823493,
       "gameDate": "2026-09-24T23:05:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
       "away": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": null,
+        "score": 0,
         "pitcher": "Ian Seymour"
       },
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Cam Schlittler"
       }
     },
@@ -167,19 +167,19 @@
       "gamePk": 824866,
       "gameDate": "2026-09-24T23:15:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Truist Park",
       "away": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": null,
+        "score": 0,
         "pitcher": "Brady Singer"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Tyler Mahle"
       }
     },
@@ -187,7 +187,7 @@
       "gamePk": 824950,
       "gameDate": "2026-09-25T01:40:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Sutter Health Park",
       "away": {
@@ -207,19 +207,19 @@
       "gamePk": 823087,
       "gameDate": "2026-09-25T01:40:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "T-Mobile Park",
       "away": {
         "team": "LAA",
         "name": "Los Angeles Angels",
-        "score": null,
+        "score": 0,
         "pitcher": "Grayson Rodriguez"
       },
       "home": {
         "team": "SEA",
         "name": "Seattle Mariners",
-        "score": null,
+        "score": 0,
         "pitcher": "Bryan Woo"
       }
     },
@@ -227,7 +227,7 @@
       "gamePk": 823895,
       "gameDate": "2026-09-25T02:10:00Z",
       "officialDate": "2026-09-24",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "UNIQLO Field at Dodger Stadium",
       "away": {
