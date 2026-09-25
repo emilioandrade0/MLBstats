@@ -1,0 +1,58 @@
+name: deploy-on-push
+
+# Deploy Cloudflare Worker en cada push a main que toque frontend / bundle.
+# Complementa refresh-odds (que corre cada hora con data): este workflow es
+# solo build + wrangler deploy, sin re-ingestar datos. Ideal para cambios UI.
+#
+# El workflow es rápido (~90s): checkout + node + pnpm install + build + deploy.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'StatsMLB/app/**'
+      - 'StatsMLB/lib/**'
+      - 'StatsMLB/db/**'
+      - 'StatsMLB/public/**'
+      - 'StatsMLB/vite.config.ts'
+      - 'StatsMLB/package.json'
+      - 'StatsMLB/pnpm-lock.yaml'
+      - 'StatsMLB/tsconfig.json'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-on-push
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10
+
+      - name: Install StatsMLB deps
+        working-directory: StatsMLB
+        run: pnpm install --frozen-lockfile
+
+      - name: Build StatsMLB
+        working-directory: StatsMLB
+        run: pnpm build
+
+      - name: Deploy Cloudflare Worker
+        working-directory: StatsMLB
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler deploy
