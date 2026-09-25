@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-25T05:23:26.525416+00:00",
+  "retrievedAt": "2026-09-25T07:43:24.918710+00:00",
   "games": [
     {
       "gamePk": 824703,
@@ -44,28 +44,8 @@
       }
     },
     {
-      "gamePk": 823489,
-      "gameDate": "2026-09-25T20:05:00Z",
-      "officialDate": "2026-09-25",
-      "status": "Scheduled",
-      "abstractState": "Preview",
-      "venue": "Yankee Stadium",
-      "away": {
-        "team": "BAL",
-        "name": "Baltimore Orioles",
-        "score": null,
-        "pitcher": "Trevor Rogers"
-      },
-      "home": {
-        "team": "NYY",
-        "name": "New York Yankees",
-        "score": null,
-        "pitcher": "Brendan Beck"
-      }
-    },
-    {
       "gamePk": 823491,
-      "gameDate": "2026-09-25T20:10:00Z",
+      "gameDate": "2026-09-25T20:05:00Z",
       "officialDate": "2026-09-25",
       "status": "Scheduled",
       "abstractState": "Preview",
@@ -81,6 +61,26 @@
         "name": "New York Yankees",
         "score": null,
         "pitcher": null
+      }
+    },
+    {
+      "gamePk": 823489,
+      "gameDate": "2026-09-25T20:10:00Z",
+      "officialDate": "2026-09-25",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Yankee Stadium",
+      "away": {
+        "team": "BAL",
+        "name": "Baltimore Orioles",
+        "score": null,
+        "pitcher": "Trevor Rogers"
+      },
+      "home": {
+        "team": "NYY",
+        "name": "New York Yankees",
+        "score": null,
+        "pitcher": "Brendan Beck"
       }
     },
     {
@@ -274,7 +274,7 @@
         "team": "HOU",
         "name": "Houston Astros",
         "score": null,
-        "pitcher": null
+        "pitcher": "Hunter Brown"
       },
       "home": {
         "team": "ATH",
