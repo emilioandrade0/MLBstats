@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-25T01:29:57.693870+00:00",
+  "retrievedAt": "2026-09-25T05:23:26.525416+00:00",
   "games": [
     {
       "gamePk": 824703,
@@ -20,7 +20,7 @@
         "team": "BOS",
         "name": "Boston Red Sox",
         "score": null,
-        "pitcher": null
+        "pitcher": "Alec Gamboa"
       }
     },
     {
@@ -40,7 +40,7 @@
         "team": "BOS",
         "name": "Boston Red Sox",
         "score": null,
-        "pitcher": null
+        "pitcher": "Brayan Bello"
       }
     },
     {
@@ -60,7 +60,7 @@
         "team": "NYY",
         "name": "New York Yankees",
         "score": null,
-        "pitcher": null
+        "pitcher": "Brendan Beck"
       }
     },
     {
