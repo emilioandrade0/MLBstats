@@ -933,6 +933,9 @@ body { background: #161826; color: #e9e9ed; }
 .line-movement-card > header { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
 .lm-teams { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 650; color: #f1f1f5; }
 .lm-teams i { color: #7f88aa; font-style: normal; font-weight: 400; }
+.lm-teams { flex-wrap: wrap; }
+.lm-team { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.lm-team-logo { width: 28px; height: 28px; flex: 0 0 28px; }
 .lm-shift { text-align: right; display: flex; flex-direction: column; gap: 2px; }
 .lm-shift b { font-size: 15px; font-variant-numeric: tabular-nums; font-weight: 650; }
 .lm-shift small { color: #7f88aa; font-size: 10px; letter-spacing: .04em; }

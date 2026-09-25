@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+const { outputText } = ts.transpileModule(readFileSync('lib/line-movement-order.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } });
+const { orderLineMovement } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const games = { 10: { commence: 'invalid' }, 20: { commence: '2026-09-25T20:00:00Z' }, 30: { commence: '2026-09-25T18:00:00Z' }, 40: { commence: 'invalid' } };
+assert.deepEqual(orderLineMovement(games, [30, 99, 10, 20]).map(([id]) => id), ['30', '10', '20', '40']);
+assert.deepEqual(orderLineMovement(games, []).map(([id]) => id), ['30', '20', '10', '40']);
+assert.deepEqual(orderLineMovement({}, [1]), []);
+assert.deepEqual(Object.keys(games), ['10', '20', '30', '40']);
+assert.equal(orderLineMovement(games, ['20', '10'])[0][1], games[20]);
+console.log('PASS: comparison order, missing games, independent game IDs, stable fallback, and unchanged source data.');

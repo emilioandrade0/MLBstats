@@ -29,6 +29,7 @@ import FailureComparator from './components/FailureComparator';
 import RecommendationFailureReview from './components/RecommendationFailureReview';
 import LineupSignalAudit from './components/LineupSignalAudit';
 import TeamLogo from './components/TeamLogo';
+import { orderLineMovement } from '../lib/line-movement-order';
 import WalkforwardCalendar from './components/WalkforwardCalendar';
 
 type TeamMetric = {
@@ -2248,13 +2249,13 @@ function ComparisonSection({ stats, odds, scheduleArchive, schedule, tomorrowSch
         market: row.marketPick?.code ?? null, base: row.configs.find(c => c.key === 'base')?.pick?.code ?? null,
         veryConfident: [...row.configs.map(c => c.pick), row.strikecastPick, row.valuePick].some(p => p != null && p.code === row.recommendation.team && p.prob >= .9),
       }))} />
-      <LineMovementPanel comparisonDate={comparisonDate} payload={lineMovement} index={lineMovementIndex} />
+      <LineMovementPanel comparisonDate={comparisonDate} payload={lineMovement} index={lineMovementIndex} comparisonIds={rows.map(row => row.game.gamePk)} />
     </section>
   );
 }
 
-function LineMovementPanel({ comparisonDate, payload, index }: { comparisonDate: string; payload: LineMovementPayload | null; index: LineMovementIndex | null }) {
-  const games = payload?.games ? Object.entries(payload.games) : [];
+function LineMovementPanel({ comparisonDate, payload, index, comparisonIds }: { comparisonDate: string; payload: LineMovementPayload | null; index: LineMovementIndex | null; comparisonIds: number[] }) {
+  const games = orderLineMovement(payload?.games ?? {}, comparisonIds);
   const bookLabel: Record<string, string> = {
     pinnacle: 'Pinnacle', draftkings: 'DraftKings', fanduel: 'FanDuel',
     betmgm: 'BetMGM', caesars: 'Caesars', williamhill_us: 'William Hill',
@@ -2315,7 +2316,9 @@ function LineMovementPanel({ comparisonDate, payload, index }: { comparisonDate:
               <article key={gamePk} className="line-movement-card">
                 <header>
                   <div className="lm-teams">
-                    <span>{g.away}</span><i>@</i><span>{g.home}</span>
+                    <span className="lm-team"><TeamLogo team={g.away} className="lm-team-logo" /><span>{g.away}</span></span>
+                    <i>@</i>
+                    <span className="lm-team"><TeamLogo team={g.home} className="lm-team-logo" /><span>{g.home}</span></span>
                   </div>
                   <div className={`lm-shift ${shiftClass}`}>
                     <b>{shift > 0 ? '+' : ''}{shift.toFixed(1)} pp</b>
