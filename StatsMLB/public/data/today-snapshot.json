@@ -1,31 +1,31 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-25T13:42:54.487559+00:00",
+  "retrievedAt": "2026-09-25T18:35:28.102875+00:00",
   "games": [
     {
       "gamePk": 824703,
       "gameDate": "2026-09-25T17:05:00Z",
       "officialDate": "2026-09-25",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Fenway Park",
       "away": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": null,
+        "score": 3,
         "pitcher": "Clay Holmes"
       },
       "home": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 1,
         "pitcher": "Alec Gamboa"
       }
     },
     {
       "gamePk": 824706,
-      "gameDate": "2026-09-25T22:05:00Z",
+      "gameDate": "2026-09-25T21:35:00Z",
       "officialDate": "2026-09-25",
       "status": "Scheduled",
       "abstractState": "Preview",
@@ -47,6 +47,26 @@
       "gamePk": 823491,
       "gameDate": "2026-09-25T20:05:00Z",
       "officialDate": "2026-09-25",
+      "status": "Pre-Game",
+      "abstractState": "Preview",
+      "venue": "Yankee Stadium",
+      "away": {
+        "team": "BAL",
+        "name": "Baltimore Orioles",
+        "score": 0,
+        "pitcher": "Trevor Rogers"
+      },
+      "home": {
+        "team": "NYY",
+        "name": "New York Yankees",
+        "score": 0,
+        "pitcher": "Brendan Beck"
+      }
+    },
+    {
+      "gamePk": 823489,
+      "gameDate": "2026-09-25T20:10:00Z",
+      "officialDate": "2026-09-25",
       "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
@@ -61,26 +81,6 @@
         "name": "New York Yankees",
         "score": null,
         "pitcher": null
-      }
-    },
-    {
-      "gamePk": 823489,
-      "gameDate": "2026-09-25T20:10:00Z",
-      "officialDate": "2026-09-25",
-      "status": "Scheduled",
-      "abstractState": "Preview",
-      "venue": "Yankee Stadium",
-      "away": {
-        "team": "BAL",
-        "name": "Baltimore Orioles",
-        "score": null,
-        "pitcher": "Trevor Rogers"
-      },
-      "home": {
-        "team": "NYY",
-        "name": "New York Yankees",
-        "score": null,
-        "pitcher": "Brendan Beck"
       }
     },
     {
