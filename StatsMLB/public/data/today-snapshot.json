@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-26T01:33:50.762849+00:00",
+  "retrievedAt": "2026-09-26T05:30:43.578948+00:00",
   "games": [
     {
       "gamePk": 822678,
@@ -34,7 +34,7 @@
         "team": "PIT",
         "name": "Pittsburgh Pirates",
         "score": null,
-        "pitcher": null
+        "pitcher": "Kirby Yates"
       },
       "home": {
         "team": "DET",
@@ -94,7 +94,7 @@
         "team": "TEX",
         "name": "Texas Rangers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Nathan Eovaldi"
       },
       "home": {
         "team": "MIN",
@@ -114,13 +114,13 @@
         "team": "ATL",
         "name": "Atlanta Braves",
         "score": null,
-        "pitcher": null
+        "pitcher": "Brent Suter"
       },
       "home": {
         "team": "MIA",
         "name": "Miami Marlins",
         "score": null,
-        "pitcher": null
+        "pitcher": "Jack Ralston"
       }
     },
     {
@@ -234,7 +234,7 @@
         "team": "HOU",
         "name": "Houston Astros",
         "score": null,
-        "pitcher": null
+        "pitcher": "Hayden Wesneski"
       },
       "home": {
         "team": "ATH",
