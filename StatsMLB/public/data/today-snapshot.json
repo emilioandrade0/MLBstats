@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-26T17:12:44.145540+00:00",
+  "retrievedAt": "2026-09-26T21:07:44.192322+00:00",
   "games": [
     {
       "gamePk": 822678,
       "gameDate": "2026-09-26T16:35:00Z",
       "officialDate": "2026-09-26",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Nationals Park",
       "away": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": 0,
+        "score": 7,
         "pitcher": "Jonah Tong"
       },
       "home": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": 0,
+        "score": 1,
         "pitcher": "Connelly Early"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 824219,
       "gameDate": "2026-09-26T17:10:00Z",
       "officialDate": "2026-09-26",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Comerica Park",
       "away": {
         "team": "PIT",
         "name": "Pittsburgh Pirates",
-        "score": 0,
+        "score": 3,
         "pitcher": "Kirby Yates"
       },
       "home": {
         "team": "DET",
         "name": "Detroit Tigers",
-        "score": 0,
+        "score": 4,
         "pitcher": "Justin Verlander"
       }
     },
@@ -47,13 +47,13 @@
       "gamePk": 822759,
       "gameDate": "2026-09-26T19:07:00Z",
       "officialDate": "2026-09-26",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Rogers Centre",
       "away": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": 0,
+        "score": 5,
         "pitcher": "Rhett Lowder"
       },
       "home": {
@@ -67,19 +67,19 @@
       "gamePk": 823165,
       "gameDate": "2026-09-26T20:05:00Z",
       "officialDate": "2026-09-26",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Oracle Park",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": 0,
+        "score": 2,
         "pitcher": "Blake Snell"
       },
       "home": {
         "team": "SF",
         "name": "San Francisco Giants",
-        "score": 0,
+        "score": 1,
         "pitcher": "Matt Wilkinson"
       }
     },
@@ -87,19 +87,19 @@
       "gamePk": 823653,
       "gameDate": "2026-09-26T20:10:00Z",
       "officialDate": "2026-09-26",
-      "status": "Scheduled",
+      "status": "Delayed Start",
       "abstractState": "Preview",
       "venue": "Target Field",
       "away": {
         "team": "TEX",
         "name": "Texas Rangers",
-        "score": null,
+        "score": 0,
         "pitcher": "Nathan Eovaldi"
       },
       "home": {
         "team": "MIN",
         "name": "Minnesota Twins",
-        "score": null,
+        "score": 0,
         "pitcher": "Bailey Ober"
       }
     },
@@ -107,19 +107,19 @@
       "gamePk": 823813,
       "gameDate": "2026-09-26T20:10:00Z",
       "officialDate": "2026-09-26",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "loanDepot park",
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 4,
         "pitcher": "Brent Suter"
       },
       "home": {
         "team": "MIA",
         "name": "Miami Marlins",
-        "score": null,
+        "score": 0,
         "pitcher": "Jack Ralston"
       }
     },
@@ -127,19 +127,19 @@
       "gamePk": 824057,
       "gameDate": "2026-09-26T23:10:00Z",
       "officialDate": "2026-09-26",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Kauffman Stadium",
       "away": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": null,
+        "score": 0,
         "pitcher": "Tanner Bibee"
       },
       "home": {
         "team": "KC",
         "name": "Kansas City Royals",
-        "score": null,
+        "score": 0,
         "pitcher": "Michael Wacha"
       }
     },
@@ -147,19 +147,19 @@
       "gamePk": 824543,
       "gameDate": "2026-09-26T23:10:00Z",
       "officialDate": "2026-09-26",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Rate Field",
       "away": {
         "team": "COL",
         "name": "Colorado Rockies",
-        "score": null,
+        "score": 0,
         "pitcher": "Jose Quintana"
       },
       "home": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Davis Martin"
       }
     },
@@ -167,19 +167,19 @@
       "gamePk": 823733,
       "gameDate": "2026-09-26T23:10:00Z",
       "officialDate": "2026-09-26",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "American Family Field",
       "away": {
         "team": "STL",
         "name": "St. Louis Cardinals",
-        "score": null,
+        "score": 0,
         "pitcher": "Quinn Mathews"
       },
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Dustin May"
       }
     },
@@ -187,27 +187,27 @@
       "gamePk": 823407,
       "gameDate": "2026-09-26T23:15:00Z",
       "officialDate": "2026-09-26",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Citizens Bank Park",
       "away": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": null,
+        "score": 0,
         "pitcher": "Griffin Jax"
       },
       "home": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
-        "pitcher": null
+        "score": 0,
+        "pitcher": "Aaron Nola"
       }
     },
     {
       "gamePk": 823245,
       "gameDate": "2026-09-27T00:40:00Z",
       "officialDate": "2026-09-26",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Petco Park",
       "away": {
