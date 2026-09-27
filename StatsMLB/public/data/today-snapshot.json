@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-27T10:36:08.343590+00:00",
+  "retrievedAt": "2026-09-27T15:45:00.424247+00:00",
   "games": [
     {
       "gamePk": 822679,
       "gameDate": "2026-09-27T17:05:00Z",
       "officialDate": "2026-09-27",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Nationals Park",
       "away": {
         "team": "NYM",
         "name": "New York Mets",
-        "score": null,
+        "score": 0,
         "pitcher": "Sean Manaea"
       },
       "home": {
         "team": "WSH",
         "name": "Washington Nationals",
-        "score": null,
+        "score": 0,
         "pitcher": "DJ Herz"
       }
     },
@@ -27,7 +27,7 @@
       "gamePk": 823490,
       "gameDate": "2026-09-27T17:05:00Z",
       "officialDate": "2026-09-27",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
       "away": {
@@ -44,6 +44,26 @@
       }
     },
     {
+      "gamePk": 823408,
+      "gameDate": "2026-09-27T18:30:00Z",
+      "officialDate": "2026-09-27",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Citizens Bank Park",
+      "away": {
+        "team": "TB",
+        "name": "Tampa Bay Rays",
+        "score": null,
+        "pitcher": "Nick Martinez"
+      },
+      "home": {
+        "team": "PHI",
+        "name": "Philadelphia Phillies",
+        "score": null,
+        "pitcher": "Zack Wheeler"
+      }
+    },
+    {
       "gamePk": 824705,
       "gameDate": "2026-09-27T19:05:00Z",
       "officialDate": "2026-09-27",
@@ -54,7 +74,7 @@
         "team": "CHC",
         "name": "Chicago Cubs",
         "score": null,
-        "pitcher": null
+        "pitcher": "Shota Imanaga"
       },
       "home": {
         "team": "BOS",
@@ -104,42 +124,22 @@
       }
     },
     {
-      "gamePk": 823408,
-      "gameDate": "2026-09-27T19:05:00Z",
-      "officialDate": "2026-09-27",
-      "status": "Scheduled",
-      "abstractState": "Preview",
-      "venue": "Citizens Bank Park",
-      "away": {
-        "team": "TB",
-        "name": "Tampa Bay Rays",
-        "score": null,
-        "pitcher": "Nick Martinez"
-      },
-      "home": {
-        "team": "PHI",
-        "name": "Philadelphia Phillies",
-        "score": null,
-        "pitcher": "Zack Wheeler"
-      }
-    },
-    {
       "gamePk": 822761,
       "gameDate": "2026-09-27T19:07:00Z",
       "officialDate": "2026-09-27",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Rogers Centre",
       "away": {
         "team": "CIN",
         "name": "Cincinnati Reds",
-        "score": null,
+        "score": 0,
         "pitcher": "Brandon Williamson"
       },
       "home": {
         "team": "TOR",
         "name": "Toronto Blue Jays",
-        "score": null,
+        "score": 0,
         "pitcher": "Max Scherzer"
       }
     },
@@ -147,7 +147,7 @@
       "gamePk": 824055,
       "gameDate": "2026-09-27T19:10:00Z",
       "officialDate": "2026-09-27",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Kauffman Stadium",
       "away": {
@@ -167,7 +167,7 @@
       "gamePk": 824217,
       "gameDate": "2026-09-27T19:10:00Z",
       "officialDate": "2026-09-27",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Comerica Park",
       "away": {
@@ -247,7 +247,7 @@
       "gamePk": 824542,
       "gameDate": "2026-09-27T19:10:00Z",
       "officialDate": "2026-09-27",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Rate Field",
       "away": {
