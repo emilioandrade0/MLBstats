@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-27T05:06:52.142518+00:00",
+  "retrievedAt": "2026-09-27T10:36:08.343590+00:00",
   "games": [
     {
       "gamePk": 822679,
@@ -74,7 +74,7 @@
         "team": "HOU",
         "name": "Houston Astros",
         "score": null,
-        "pitcher": null
+        "pitcher": "Peter Lambert"
       },
       "home": {
         "team": "ATH",
@@ -200,7 +200,7 @@
         "team": "SD",
         "name": "San Diego Padres",
         "score": null,
-        "pitcher": null
+        "pitcher": "Randy Vásquez"
       }
     },
     {
