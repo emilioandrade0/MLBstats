@@ -1,6 +1,87 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-28T23:18:14.726561+00:00",
-  "games": []
+  "retrievedAt": "2026-09-29T01:17:51.363867+00:00",
+  "games": [
+    {
+      "gamePk": 849845,
+      "gameDate": "2026-09-29T18:00:00Z",
+      "officialDate": "2026-09-29",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Truist Park",
+      "away": {
+        "team": "PHI",
+        "name": "Philadelphia Phillies",
+        "score": null,
+        "pitcher": "Jesús Luzardo"
+      },
+      "home": {
+        "team": "ATL",
+        "name": "Atlanta Braves",
+        "score": null,
+        "pitcher": "Chris Sale"
+      }
+    },
+    {
+      "gamePk": 849849,
+      "gameDate": "2026-09-29T21:00:00Z",
+      "officialDate": "2026-09-29",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Daikin Park",
+      "away": {
+        "team": "CWS",
+        "name": "Chicago White Sox",
+        "score": null,
+        "pitcher": "Hagen Smith"
+      },
+      "home": {
+        "team": "HOU",
+        "name": "Houston Astros",
+        "score": null,
+        "pitcher": "AJ Blubaugh"
+      }
+    },
+    {
+      "gamePk": 849851,
+      "gameDate": "2026-09-30T00:00:00Z",
+      "officialDate": "2026-09-29",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Yankee Stadium",
+      "away": {
+        "team": "BOS",
+        "name": "Boston Red Sox",
+        "score": null,
+        "pitcher": "Payton Tolle"
+      },
+      "home": {
+        "team": "NYY",
+        "name": "New York Yankees",
+        "score": null,
+        "pitcher": "Cam Schlittler"
+      }
+    },
+    {
+      "gamePk": 849843,
+      "gameDate": "2026-09-30T02:00:00Z",
+      "officialDate": "2026-09-29",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Petco Park",
+      "away": {
+        "team": "CHC",
+        "name": "Chicago Cubs",
+        "score": null,
+        "pitcher": "Matthew Boyd"
+      },
+      "home": {
+        "team": "SD",
+        "name": "San Diego Padres",
+        "score": null,
+        "pitcher": "Michael King"
+      }
+    }
+  ]
 }
