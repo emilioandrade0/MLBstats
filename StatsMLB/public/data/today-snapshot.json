@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-29T12:46:03.339446+00:00",
+  "retrievedAt": "2026-09-29T18:43:46.708905+00:00",
   "games": [
     {
       "gamePk": 849845,
       "gameDate": "2026-09-29T18:00:00Z",
       "officialDate": "2026-09-29",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Truist Park",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
+        "score": 1,
         "pitcher": "Jesús Luzardo"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Chris Sale"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 849849,
       "gameDate": "2026-09-29T21:00:00Z",
       "officialDate": "2026-09-29",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Daikin Park",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Hagen Smith"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": null,
+        "score": 0,
         "pitcher": "AJ Blubaugh"
       }
     },
