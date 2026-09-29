@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-29T18:43:46.708905+00:00",
+  "retrievedAt": "2026-09-29T23:04:42.122355+00:00",
   "games": [
     {
       "gamePk": 849845,
       "gameDate": "2026-09-29T18:00:00Z",
       "officialDate": "2026-09-29",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Truist Park",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": 1,
+        "score": 3,
         "pitcher": "Jesús Luzardo"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": 0,
+        "score": 5,
         "pitcher": "Chris Sale"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 849849,
       "gameDate": "2026-09-29T21:00:00Z",
       "officialDate": "2026-09-29",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Daikin Park",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": 0,
+        "score": 5,
         "pitcher": "Hagen Smith"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": 0,
+        "score": 2,
         "pitcher": "AJ Blubaugh"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 849851,
       "gameDate": "2026-09-30T00:00:00Z",
       "officialDate": "2026-09-29",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Payton Tolle"
       },
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Cam Schlittler"
       }
     },
@@ -67,19 +67,19 @@
       "gamePk": 849843,
       "gameDate": "2026-09-30T02:00:00Z",
       "officialDate": "2026-09-29",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Petco Park",
       "away": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": null,
+        "score": 0,
         "pitcher": "Matthew Boyd"
       },
       "home": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": null,
+        "score": 0,
         "pitcher": "Michael King"
       }
     }
