@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-30T15:55:50.770870+00:00",
+  "retrievedAt": "2026-09-30T20:53:03.391410+00:00",
   "games": [
     {
       "gamePk": 849841,
       "gameDate": "2026-09-30T18:00:00Z",
       "officialDate": "2026-09-30",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Truist Park",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": 0,
+        "score": 3,
         "pitcher": "Cristopher Sánchez"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": 0,
+        "score": 3,
         "pitcher": "Tyler Mahle"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 849846,
       "gameDate": "2026-09-30T21:00:00Z",
       "officialDate": "2026-09-30",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "Warmup",
+      "abstractState": "Live",
       "venue": "Daikin Park",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Sean Burke"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": null,
+        "score": 0,
         "pitcher": "Hunter Brown"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 849848,
       "gameDate": "2026-10-01T00:00:00Z",
       "officialDate": "2026-09-30",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Sonny Gray"
       },
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Max Fried"
       }
     },
