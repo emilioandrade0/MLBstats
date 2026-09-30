@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-30T08:31:03.381695+00:00",
+  "retrievedAt": "2026-09-30T15:55:50.770870+00:00",
   "games": [
     {
       "gamePk": 849841,
       "gameDate": "2026-09-30T18:00:00Z",
       "officialDate": "2026-09-30",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Truist Park",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
+        "score": 0,
         "pitcher": "Cristopher Sánchez"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Tyler Mahle"
       }
     },
