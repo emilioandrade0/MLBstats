@@ -1,86 +1,86 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-09-29T23:04:42.122355+00:00",
+  "retrievedAt": "2026-09-30T02:08:04.684532+00:00",
   "games": [
     {
-      "gamePk": 849845,
-      "gameDate": "2026-09-29T18:00:00Z",
-      "officialDate": "2026-09-29",
-      "status": "Final",
-      "abstractState": "Final",
+      "gamePk": 849841,
+      "gameDate": "2026-09-30T18:00:00Z",
+      "officialDate": "2026-09-30",
+      "status": "Scheduled",
+      "abstractState": "Preview",
       "venue": "Truist Park",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": 3,
-        "pitcher": "Jesús Luzardo"
+        "score": null,
+        "pitcher": "Cristopher Sánchez"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": 5,
-        "pitcher": "Chris Sale"
+        "score": null,
+        "pitcher": "Tyler Mahle"
       }
     },
     {
-      "gamePk": 849849,
-      "gameDate": "2026-09-29T21:00:00Z",
-      "officialDate": "2026-09-29",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "gamePk": 849846,
+      "gameDate": "2026-09-30T21:00:00Z",
+      "officialDate": "2026-09-30",
+      "status": "Scheduled",
+      "abstractState": "Preview",
       "venue": "Daikin Park",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": 5,
-        "pitcher": "Hagen Smith"
+        "score": null,
+        "pitcher": "Sean Burke"
       },
       "home": {
         "team": "HOU",
         "name": "Houston Astros",
-        "score": 2,
-        "pitcher": "AJ Blubaugh"
+        "score": null,
+        "pitcher": "Hunter Brown"
       }
     },
     {
-      "gamePk": 849851,
-      "gameDate": "2026-09-30T00:00:00Z",
-      "officialDate": "2026-09-29",
-      "status": "Pre-Game",
+      "gamePk": 849848,
+      "gameDate": "2026-10-01T00:00:00Z",
+      "officialDate": "2026-09-30",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
       "away": {
         "team": "BOS",
         "name": "Boston Red Sox",
-        "score": 0,
-        "pitcher": "Payton Tolle"
+        "score": null,
+        "pitcher": "Sonny Gray"
       },
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": 0,
-        "pitcher": "Cam Schlittler"
+        "score": null,
+        "pitcher": "Max Fried"
       }
     },
     {
-      "gamePk": 849843,
-      "gameDate": "2026-09-30T02:00:00Z",
-      "officialDate": "2026-09-29",
-      "status": "Pre-Game",
+      "gamePk": 849842,
+      "gameDate": "2026-10-01T02:00:00Z",
+      "officialDate": "2026-09-30",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "Petco Park",
       "away": {
         "team": "CHC",
         "name": "Chicago Cubs",
-        "score": 0,
-        "pitcher": "Matthew Boyd"
+        "score": null,
+        "pitcher": null
       },
       "home": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": 0,
-        "pitcher": "Michael King"
+        "score": null,
+        "pitcher": "Nick Pivetta"
       }
     }
   ]
