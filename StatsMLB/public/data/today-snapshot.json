@@ -1,11 +1,11 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-01T00:50:56.411026+00:00",
+  "retrievedAt": "2026-10-01T06:34:05.721235+00:00",
   "games": [
     {
       "gamePk": 849844,
-      "gameDate": "2026-10-01T18:00:00Z",
+      "gameDate": "2026-10-02T00:00:00Z",
       "officialDate": "2026-10-01",
       "status": "Scheduled",
       "abstractState": "Preview",
@@ -19,46 +19,6 @@
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
-        "pitcher": null
-      }
-    },
-    {
-      "gamePk": 849847,
-      "gameDate": "2026-10-02T00:00:00Z",
-      "officialDate": "2026-10-01",
-      "status": "Scheduled",
-      "abstractState": "Preview",
-      "venue": "Yankee Stadium",
-      "away": {
-        "team": "BOS",
-        "name": "Boston Red Sox",
-        "score": null,
-        "pitcher": "Ranger Suarez"
-      },
-      "home": {
-        "team": "NYY",
-        "name": "New York Yankees",
-        "score": null,
-        "pitcher": "Gerrit Cole"
-      }
-    },
-    {
-      "gamePk": 849840,
-      "gameDate": "2026-10-02T02:00:00Z",
-      "officialDate": "2026-10-01",
-      "status": "Scheduled",
-      "abstractState": "Preview",
-      "venue": "Petco Park",
-      "away": {
-        "team": "CHC",
-        "name": "Chicago Cubs",
-        "score": null,
-        "pitcher": null
-      },
-      "home": {
-        "team": "SD",
-        "name": "San Diego Padres",
         "score": null,
         "pitcher": null
       }
