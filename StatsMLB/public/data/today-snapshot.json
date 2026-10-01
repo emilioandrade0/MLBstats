@@ -1,26 +1,26 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-01T15:30:17.857776+00:00",
+  "retrievedAt": "2026-10-01T21:05:47.904292+00:00",
   "games": [
     {
       "gamePk": 849844,
       "gameDate": "2026-10-02T00:00:00Z",
       "officialDate": "2026-10-01",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Truist Park",
       "away": {
         "team": "PHI",
         "name": "Philadelphia Phillies",
-        "score": null,
-        "pitcher": null
+        "score": 0,
+        "pitcher": "Aaron Nola"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
-        "pitcher": null
+        "score": 0,
+        "pitcher": "Ray Kerr"
       }
     }
   ]
