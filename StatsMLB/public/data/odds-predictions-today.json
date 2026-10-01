@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T06:37:11.072088+00:00",
+  "generatedAt": "2026-10-01T07:19:35.437858+00:00",
   "model": "blend(prev_ml, roll5)",
   "note": "Delta = mercado - predicción. Delta positivo (favorito) sugiere que el mercado paga MÁS de lo que este modelo simple espera para ese lado.",
   "games": [
