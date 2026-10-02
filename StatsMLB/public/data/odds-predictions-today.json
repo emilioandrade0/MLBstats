@@ -1,25 +1,6 @@
 {
-  "generatedAt": "2026-10-01T21:24:00.382796+00:00",
+  "generatedAt": "2026-10-02T00:53:20.521786+00:00",
   "model": "blend(prev_ml, roll5)",
   "note": "Delta = mercado - predicción. Delta positivo (favorito) sugiere que el mercado paga MÁS de lo que este modelo simple espera para ese lado.",
-  "games": [
-    {
-      "gamePk": 849844,
-      "gameDate": "2026-10-02T00:00:00Z",
-      "awayTeam": "PHI",
-      "homeTeam": "ATL",
-      "awayPredicted": -188.8,
-      "homePredicted": 26.1,
-      "awayMarket": 105.0,
-      "homeMarket": -115.0,
-      "awayDelta": 293.8,
-      "homeDelta": -141.1,
-      "awayLast": -207.0,
-      "homeLast": 105.0,
-      "awayRoll5": -170.6,
-      "homeRoll5": -52.8,
-      "awayGamesSeen": 630,
-      "homeGamesSeen": 607
-    }
-  ]
+  "games": []
 }
