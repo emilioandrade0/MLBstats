@@ -1,14 +1,14 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-03T19:18:49.445609+00:00",
+  "retrievedAt": "2026-10-03T22:57:11.647798+00:00",
   "games": [
     {
       "gamePk": 849829,
       "gameDate": "2026-10-03T17:00:00Z",
       "officialDate": "2026-10-03",
-      "status": "In Progress",
-      "abstractState": "Live",
+      "status": "Final",
+      "abstractState": "Final",
       "venue": "Progressive Field",
       "away": {
         "team": "CWS",
@@ -27,19 +27,19 @@
       "gamePk": 849828,
       "gameDate": "2026-10-03T20:00:00Z",
       "officialDate": "2026-10-03",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "Game Over",
+      "abstractState": "Final",
       "venue": "UNIQLO Field at Dodger Stadium",
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": 0,
+        "score": 3,
         "pitcher": "Dylan Dodd"
       },
       "home": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": 0,
+        "score": 5,
         "pitcher": "Tarik Skubal"
       }
     },
@@ -47,8 +47,8 @@
       "gamePk": 849835,
       "gameDate": "2026-10-03T22:30:00Z",
       "officialDate": "2026-10-03",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Tropicana Field",
       "away": {
         "team": "NYY",
@@ -67,19 +67,19 @@
       "gamePk": 849830,
       "gameDate": "2026-10-04T00:30:00Z",
       "officialDate": "2026-10-03",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "American Family Field",
       "away": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": null,
+        "score": 0,
         "pitcher": "Robbie Ray"
       },
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Jacob Misiorowski"
       }
     }
