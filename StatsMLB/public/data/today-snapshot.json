@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-03T10:31:29.027837+00:00",
+  "retrievedAt": "2026-10-03T15:14:33.390586+00:00",
   "games": [
     {
       "gamePk": 849829,
       "gameDate": "2026-10-03T17:00:00Z",
       "officialDate": "2026-10-03",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Progressive Field",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Hagen Smith"
       },
       "home": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": null,
+        "score": 0,
         "pitcher": "Parker Messick"
       }
     },
