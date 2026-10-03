@@ -1,6 +1,87 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-02T23:50:39.284156+00:00",
-  "games": []
+  "retrievedAt": "2026-10-03T05:07:54.535662+00:00",
+  "games": [
+    {
+      "gamePk": 849829,
+      "gameDate": "2026-10-03T17:00:00Z",
+      "officialDate": "2026-10-03",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Progressive Field",
+      "away": {
+        "team": "CWS",
+        "name": "Chicago White Sox",
+        "score": null,
+        "pitcher": "Hagen Smith"
+      },
+      "home": {
+        "team": "CLE",
+        "name": "Cleveland Guardians",
+        "score": null,
+        "pitcher": "Parker Messick"
+      }
+    },
+    {
+      "gamePk": 849828,
+      "gameDate": "2026-10-03T20:00:00Z",
+      "officialDate": "2026-10-03",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "UNIQLO Field at Dodger Stadium",
+      "away": {
+        "team": "ATL",
+        "name": "Atlanta Braves",
+        "score": null,
+        "pitcher": null
+      },
+      "home": {
+        "team": "LAD",
+        "name": "Los Angeles Dodgers",
+        "score": null,
+        "pitcher": "Tarik Skubal"
+      }
+    },
+    {
+      "gamePk": 849835,
+      "gameDate": "2026-10-03T22:30:00Z",
+      "officialDate": "2026-10-03",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Tropicana Field",
+      "away": {
+        "team": "NYY",
+        "name": "New York Yankees",
+        "score": null,
+        "pitcher": "Gerrit Cole"
+      },
+      "home": {
+        "team": "TB",
+        "name": "Tampa Bay Rays",
+        "score": null,
+        "pitcher": "Drew Rasmussen"
+      }
+    },
+    {
+      "gamePk": 849830,
+      "gameDate": "2026-10-04T00:30:00Z",
+      "officialDate": "2026-10-03",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "American Family Field",
+      "away": {
+        "team": "SD",
+        "name": "San Diego Padres",
+        "score": null,
+        "pitcher": "Robbie Ray"
+      },
+      "home": {
+        "team": "MIL",
+        "name": "Milwaukee Brewers",
+        "score": null,
+        "pitcher": "Jacob Misiorowski"
+      }
+    }
+  ]
 }
