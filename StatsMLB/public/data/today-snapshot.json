@@ -1,19 +1,19 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-03T15:14:33.390586+00:00",
+  "retrievedAt": "2026-10-03T19:18:49.445609+00:00",
   "games": [
     {
       "gamePk": 849829,
       "gameDate": "2026-10-03T17:00:00Z",
       "officialDate": "2026-10-03",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Progressive Field",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": 0,
+        "score": 3,
         "pitcher": "Hagen Smith"
       },
       "home": {
@@ -27,19 +27,19 @@
       "gamePk": 849828,
       "gameDate": "2026-10-03T20:00:00Z",
       "officialDate": "2026-10-03",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "UNIQLO Field at Dodger Stadium",
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
-        "pitcher": null
+        "score": 0,
+        "pitcher": "Dylan Dodd"
       },
       "home": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 0,
         "pitcher": "Tarik Skubal"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 849835,
       "gameDate": "2026-10-03T22:30:00Z",
       "officialDate": "2026-10-03",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Tropicana Field",
       "away": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Gerrit Cole"
       },
       "home": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": null,
+        "score": 0,
         "pitcher": "Drew Rasmussen"
       }
     },
