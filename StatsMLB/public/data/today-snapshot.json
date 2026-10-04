@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-04T15:25:01.388608+00:00",
+  "retrievedAt": "2026-10-04T19:34:36.316887+00:00",
   "games": [
     {
       "gamePk": 849825,
       "gameDate": "2026-10-04T20:00:00Z",
       "officialDate": "2026-10-04",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "American Family Field",
       "away": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": null,
+        "score": 0,
         "pitcher": "Michael King"
       },
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Logan Henderson"
       }
     },
@@ -34,7 +34,7 @@
         "team": "ATL",
         "name": "Atlanta Braves",
         "score": null,
-        "pitcher": null
+        "pitcher": "Ray Kerr"
       },
       "home": {
         "team": "LAD",
