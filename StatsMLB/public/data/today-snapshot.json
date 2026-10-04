@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-04T19:34:36.316887+00:00",
+  "retrievedAt": "2026-10-04T23:06:56.074673+00:00",
   "games": [
     {
       "gamePk": 849825,
       "gameDate": "2026-10-04T20:00:00Z",
       "officialDate": "2026-10-04",
-      "status": "Pre-Game",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "American Family Field",
       "away": {
         "team": "SD",
         "name": "San Diego Padres",
-        "score": 0,
+        "score": 3,
         "pitcher": "Michael King"
       },
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": 0,
+        "score": 2,
         "pitcher": "Logan Henderson"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 849823,
       "gameDate": "2026-10-05T00:00:00Z",
       "officialDate": "2026-10-04",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "UNIQLO Field at Dodger Stadium",
       "away": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Ray Kerr"
       },
       "home": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 0,
         "pitcher": "Blake Snell"
       }
     }
