@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-05T08:58:32.775722+00:00",
+  "retrievedAt": "2026-10-05T18:25:38.872409+00:00",
   "games": [
     {
       "gamePk": 849834,
       "gameDate": "2026-10-05T21:00:00Z",
       "officialDate": "2026-10-05",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Progressive Field",
       "away": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 0,
         "pitcher": "Anthony Kay"
       },
       "home": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": null,
+        "score": 0,
         "pitcher": "Gavin Williams"
       }
     },
