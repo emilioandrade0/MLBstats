@@ -1,46 +1,46 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-04T23:06:56.074673+00:00",
+  "retrievedAt": "2026-10-05T01:57:39.407115+00:00",
   "games": [
     {
-      "gamePk": 849825,
-      "gameDate": "2026-10-04T20:00:00Z",
-      "officialDate": "2026-10-04",
-      "status": "In Progress",
-      "abstractState": "Live",
-      "venue": "American Family Field",
+      "gamePk": 849834,
+      "gameDate": "2026-10-05T21:00:00Z",
+      "officialDate": "2026-10-05",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Progressive Field",
       "away": {
-        "team": "SD",
-        "name": "San Diego Padres",
-        "score": 3,
-        "pitcher": "Michael King"
+        "team": "CWS",
+        "name": "Chicago White Sox",
+        "score": null,
+        "pitcher": "Anthony Kay"
       },
       "home": {
-        "team": "MIL",
-        "name": "Milwaukee Brewers",
-        "score": 2,
-        "pitcher": "Logan Henderson"
+        "team": "CLE",
+        "name": "Cleveland Guardians",
+        "score": null,
+        "pitcher": "Gavin Williams"
       }
     },
     {
-      "gamePk": 849823,
-      "gameDate": "2026-10-05T00:00:00Z",
-      "officialDate": "2026-10-04",
-      "status": "Pre-Game",
+      "gamePk": 849839,
+      "gameDate": "2026-10-06T00:00:00Z",
+      "officialDate": "2026-10-05",
+      "status": "Scheduled",
       "abstractState": "Preview",
-      "venue": "UNIQLO Field at Dodger Stadium",
+      "venue": "Tropicana Field",
       "away": {
-        "team": "ATL",
-        "name": "Atlanta Braves",
-        "score": 0,
-        "pitcher": "Ray Kerr"
+        "team": "NYY",
+        "name": "New York Yankees",
+        "score": null,
+        "pitcher": "Cam Schlittler"
       },
       "home": {
-        "team": "LAD",
-        "name": "Los Angeles Dodgers",
-        "score": 0,
-        "pitcher": "Blake Snell"
+        "team": "TB",
+        "name": "Tampa Bay Rays",
+        "score": null,
+        "pitcher": "Freddy Peralta"
       }
     }
   ]
