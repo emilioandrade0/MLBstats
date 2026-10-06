@@ -1,46 +1,46 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-05T22:59:01.542591+00:00",
+  "retrievedAt": "2026-10-06T00:53:21.091916+00:00",
   "games": [
     {
-      "gamePk": 849834,
-      "gameDate": "2026-10-05T21:00:00Z",
-      "officialDate": "2026-10-05",
-      "status": "In Progress",
-      "abstractState": "Live",
-      "venue": "Progressive Field",
+      "gamePk": 849819,
+      "gameDate": "2026-10-06T22:00:00Z",
+      "officialDate": "2026-10-06",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Truist Park",
       "away": {
-        "team": "CWS",
-        "name": "Chicago White Sox",
-        "score": 1,
-        "pitcher": "Anthony Kay"
+        "team": "LAD",
+        "name": "Los Angeles Dodgers",
+        "score": null,
+        "pitcher": "Yoshinobu Yamamoto"
       },
       "home": {
-        "team": "CLE",
-        "name": "Cleveland Guardians",
-        "score": 2,
-        "pitcher": "Gavin Williams"
+        "team": "ATL",
+        "name": "Atlanta Braves",
+        "score": null,
+        "pitcher": "Chris Sale"
       }
     },
     {
-      "gamePk": 849839,
-      "gameDate": "2026-10-06T00:00:00Z",
-      "officialDate": "2026-10-05",
-      "status": "Pre-Game",
+      "gamePk": 849826,
+      "gameDate": "2026-10-07T01:30:00Z",
+      "officialDate": "2026-10-06",
+      "status": "Scheduled",
       "abstractState": "Preview",
-      "venue": "Tropicana Field",
+      "venue": "Petco Park",
       "away": {
-        "team": "NYY",
-        "name": "New York Yankees",
-        "score": 0,
-        "pitcher": "Cam Schlittler"
+        "team": "MIL",
+        "name": "Milwaukee Brewers",
+        "score": null,
+        "pitcher": "Dustin May"
       },
       "home": {
-        "team": "TB",
-        "name": "Tampa Bay Rays",
-        "score": 0,
-        "pitcher": "Freddy Peralta"
+        "team": "SD",
+        "name": "San Diego Padres",
+        "score": null,
+        "pitcher": "Nick Pivetta"
       }
     }
   ]
