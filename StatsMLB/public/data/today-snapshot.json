@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-06T15:05:58.377798+00:00",
+  "retrievedAt": "2026-10-06T20:18:56.237793+00:00",
   "games": [
     {
       "gamePk": 849819,
       "gameDate": "2026-10-06T22:00:00Z",
       "officialDate": "2026-10-06",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Truist Park",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 0,
         "pitcher": "Yoshinobu Yamamoto"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Chris Sale"
       }
     },
