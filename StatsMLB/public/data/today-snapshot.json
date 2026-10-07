@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-07T15:37:09.193803+00:00",
+  "retrievedAt": "2026-10-07T21:21:43.808574+00:00",
   "games": [
     {
       "gamePk": 849833,
       "gameDate": "2026-10-07T20:00:00Z",
       "officialDate": "2026-10-07",
-      "status": "Scheduled",
-      "abstractState": "Preview",
+      "status": "In Progress",
+      "abstractState": "Live",
       "venue": "Rate Field",
       "away": {
         "team": "CLE",
         "name": "Cleveland Guardians",
-        "score": null,
+        "score": 4,
         "pitcher": "Daniel Espino"
       },
       "home": {
         "team": "CWS",
         "name": "Chicago White Sox",
-        "score": null,
+        "score": 1,
         "pitcher": "Sean Newcomb"
       }
     },
@@ -27,19 +27,19 @@
       "gamePk": 849822,
       "gameDate": "2026-10-07T22:00:00Z",
       "officialDate": "2026-10-07",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Truist Park",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 0,
         "pitcher": "Tyler Glasnow"
       },
       "home": {
         "team": "ATL",
         "name": "Atlanta Braves",
-        "score": null,
+        "score": 0,
         "pitcher": "Tyler Mahle"
       }
     },
@@ -47,19 +47,19 @@
       "gamePk": 849838,
       "gameDate": "2026-10-08T00:00:00Z",
       "officialDate": "2026-10-07",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Yankee Stadium",
       "away": {
         "team": "TB",
         "name": "Tampa Bay Rays",
-        "score": null,
+        "score": 0,
         "pitcher": "Nick Martinez"
       },
       "home": {
         "team": "NYY",
         "name": "New York Yankees",
-        "score": null,
+        "score": 0,
         "pitcher": "Max Fried"
       }
     },
@@ -67,14 +67,14 @@
       "gamePk": 849827,
       "gameDate": "2026-10-08T02:00:00Z",
       "officialDate": "2026-10-07",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "Petco Park",
       "away": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
         "score": null,
-        "pitcher": null
+        "pitcher": "Robert Gasser"
       },
       "home": {
         "team": "SD",
