@@ -1,7 +1,7 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-07T06:29:05.885242+00:00",
+  "retrievedAt": "2026-10-07T07:14:49.960343+00:00",
   "games": [
     {
       "gamePk": 849833,
@@ -80,7 +80,7 @@
         "team": "SD",
         "name": "San Diego Padres",
         "score": null,
-        "pitcher": null
+        "pitcher": "Walker Buehler"
       }
     }
   ]
