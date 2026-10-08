@@ -1,11 +1,11 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-08T01:53:31.984615+00:00",
+  "retrievedAt": "2026-10-08T06:42:42.538246+00:00",
   "games": [
     {
       "gamePk": 849832,
-      "gameDate": "2026-10-08T21:00:00Z",
+      "gameDate": "2026-10-09T00:00:00Z",
       "officialDate": "2026-10-08",
       "status": "Scheduled",
       "abstractState": "Preview",
@@ -20,27 +20,7 @@
         "team": "CWS",
         "name": "Chicago White Sox",
         "score": null,
-        "pitcher": null
-      }
-    },
-    {
-      "gamePk": 849837,
-      "gameDate": "2026-10-09T00:00:00Z",
-      "officialDate": "2026-10-08",
-      "status": "Scheduled",
-      "abstractState": "Preview",
-      "venue": "Yankee Stadium",
-      "away": {
-        "team": "TB",
-        "name": "Tampa Bay Rays",
-        "score": null,
-        "pitcher": "Drew Rasmussen"
-      },
-      "home": {
-        "team": "NYY",
-        "name": "New York Yankees",
-        "score": null,
-        "pitcher": "Carlos Rodón"
+        "pitcher": "Hagen Smith"
       }
     }
   ]
