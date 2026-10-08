@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-07T21:35:08.686143+00:00",
+  "generatedAt": "2026-10-08T01:23:10.550056+00:00",
   "model": "blend(prev_ml, roll5)",
   "note": "Delta = mercado - predicción. Delta positivo (favorito) sugiere que el mercado paga MÁS de lo que este modelo simple espera para ese lado.",
   "games": [
     {
-      "gamePk": 849833,
-      "gameDate": "2026-10-07T20:00:00Z",
+      "gamePk": 849832,
+      "gameDate": "2026-10-08T21:00:00Z",
       "awayTeam": "CLE",
       "homeTeam": "CWS",
       "awayPredicted": -91.1,
@@ -22,26 +22,8 @@
       "homeGamesSeen": 595
     },
     {
-      "gamePk": 849822,
-      "gameDate": "2026-10-07T22:00:00Z",
-      "awayTeam": "LAD",
-      "homeTeam": "ATL",
-      "awayPredicted": -254.6,
-      "homePredicted": 26.1,
-      "awayMarket": null,
-      "homeMarket": null,
-      "awayDelta": null,
-      "homeDelta": null,
-      "awayLast": -249.0,
-      "homeLast": 105.0,
-      "awayRoll5": -260.2,
-      "homeRoll5": -52.8,
-      "awayGamesSeen": 630,
-      "homeGamesSeen": 607
-    },
-    {
-      "gamePk": 849838,
-      "gameDate": "2026-10-08T00:00:00Z",
+      "gamePk": 849837,
+      "gameDate": "2026-10-09T00:00:00Z",
       "awayTeam": "TB",
       "homeTeam": "NYY",
       "awayPredicted": 156.1,
@@ -56,24 +38,6 @@
       "homeRoll5": -121.4,
       "awayGamesSeen": 601,
       "homeGamesSeen": 636
-    },
-    {
-      "gamePk": 849827,
-      "gameDate": "2026-10-08T02:00:00Z",
-      "awayTeam": "MIL",
-      "homeTeam": "SD",
-      "awayPredicted": -177.3,
-      "homePredicted": 78.6,
-      "awayMarket": null,
-      "homeMarket": null,
-      "awayDelta": null,
-      "homeDelta": null,
-      "awayLast": -218.0,
-      "homeLast": 129.0,
-      "awayRoll5": -136.6,
-      "homeRoll5": 28.2,
-      "awayGamesSeen": 615,
-      "homeGamesSeen": 607
     }
   ]
 }
