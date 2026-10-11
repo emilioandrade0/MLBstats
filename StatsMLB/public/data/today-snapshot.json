@@ -1,26 +1,26 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-10T23:37:20.955716+00:00",
+  "retrievedAt": "2026-10-11T05:33:10.364630+00:00",
   "games": [
     {
-      "gamePk": 849831,
-      "gameDate": "2026-10-11T00:00:00Z",
-      "officialDate": "2026-10-10",
-      "status": "Warmup",
-      "abstractState": "Live",
-      "venue": "Progressive Field",
+      "gamePk": 849809,
+      "gameDate": "2026-10-12T00:00:00Z",
+      "officialDate": "2026-10-11",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "American Family Field",
       "away": {
-        "team": "CWS",
-        "name": "Chicago White Sox",
-        "score": 0,
-        "pitcher": "Sean Burke"
+        "team": "LAD",
+        "name": "Los Angeles Dodgers",
+        "score": null,
+        "pitcher": "Tarik Skubal"
       },
       "home": {
-        "team": "CLE",
-        "name": "Cleveland Guardians",
-        "score": 0,
-        "pitcher": "Gavin Williams"
+        "team": "MIL",
+        "name": "Milwaukee Brewers",
+        "score": null,
+        "pitcher": "Jacob Misiorowski"
       }
     }
   ]
