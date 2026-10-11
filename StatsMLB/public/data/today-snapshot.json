@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-11T18:05:31.808846+00:00",
+  "retrievedAt": "2026-10-11T20:37:30.688506+00:00",
   "games": [
     {
       "gamePk": 849809,
       "gameDate": "2026-10-12T00:00:00Z",
       "officialDate": "2026-10-11",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "American Family Field",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 0,
         "pitcher": "Tarik Skubal"
       },
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Jacob Misiorowski"
       }
     }
