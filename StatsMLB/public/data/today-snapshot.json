@@ -1,25 +1,25 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-12T09:09:05.434814+00:00",
+  "retrievedAt": "2026-10-12T19:04:27.901395+00:00",
   "games": [
     {
       "gamePk": 849812,
       "gameDate": "2026-10-12T21:00:00Z",
       "officialDate": "2026-10-12",
-      "status": "Scheduled",
+      "status": "Pre-Game",
       "abstractState": "Preview",
       "venue": "American Family Field",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": null,
+        "score": 0,
         "pitcher": "Yoshinobu Yamamoto"
       },
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": null,
+        "score": 0,
         "pitcher": "Logan Henderson"
       }
     },
