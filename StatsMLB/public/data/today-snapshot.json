@@ -1,26 +1,46 @@
 {
   "sourceState": "LIVE SCHEDULE",
   "source": "MLB StatsAPI",
-  "retrievedAt": "2026-10-11T21:59:29.923589+00:00",
+  "retrievedAt": "2026-10-12T01:19:11.377467+00:00",
   "games": [
     {
-      "gamePk": 849809,
-      "gameDate": "2026-10-12T00:00:00Z",
-      "officialDate": "2026-10-11",
-      "status": "Pre-Game",
+      "gamePk": 849812,
+      "gameDate": "2026-10-12T21:00:00Z",
+      "officialDate": "2026-10-12",
+      "status": "Scheduled",
       "abstractState": "Preview",
       "venue": "American Family Field",
       "away": {
         "team": "LAD",
         "name": "Los Angeles Dodgers",
-        "score": 0,
-        "pitcher": "Tarik Skubal"
+        "score": null,
+        "pitcher": "Yoshinobu Yamamoto"
       },
       "home": {
         "team": "MIL",
         "name": "Milwaukee Brewers",
-        "score": 0,
-        "pitcher": "Jacob Misiorowski"
+        "score": null,
+        "pitcher": "Logan Henderson"
+      }
+    },
+    {
+      "gamePk": 849820,
+      "gameDate": "2026-10-13T00:00:00Z",
+      "officialDate": "2026-10-12",
+      "status": "Scheduled",
+      "abstractState": "Preview",
+      "venue": "Tropicana Field",
+      "away": {
+        "team": "CLE",
+        "name": "Cleveland Guardians",
+        "score": null,
+        "pitcher": "Foster Griffin"
+      },
+      "home": {
+        "team": "TB",
+        "name": "Tampa Bay Rays",
+        "score": null,
+        "pitcher": "Drew Rasmussen"
       }
     }
   ]
